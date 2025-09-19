@@ -60,6 +60,22 @@
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
+    },
+    "android": {
+      "minSdkVersion": 24,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE"
+      ],
+      "keystorePath": "./keystore/calculator.keystore",
+      "keystorePassword": "calculator123",
+      "keyAlias": "calculator",
+      "keyPassword": "calculator123"
     }
   },
   "plugins": {
