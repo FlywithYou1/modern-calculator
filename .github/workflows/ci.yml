@@ -1,4 +1,4 @@
-name: 简化CI检查
+name: 高效CI检查
 
 on:
   push:
@@ -24,16 +24,19 @@ jobs:
           cache: npm
           
       - name: 安装依赖
-        run: npm install
+        run: npm ci
         
-      - name: 前端检查
-        run: |
-          echo "=== 前端质量检查 ==="
-          npm run typecheck
-          npm run lint
-          npm run test:run
-          npm run build
-          echo "✅ 前端检查完成"
+      - name: TypeScript类型检查
+        run: npm run typecheck
+        
+      - name: ESLint代码检查  
+        run: npm run lint
+        
+      - name: 运行单元测试
+        run: npm run test:run
+        
+      - name: 构建前端
+        run: npm run build
           
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
@@ -41,3 +44,10 @@ jobs:
           name: frontend-build-${{ github.run_number }}
           path: dist/**/*
           retention-days: 7
+          
+      - name: 验证构建产物
+        run: |
+          echo "=== 构建产物验证 ==="
+          ls -la dist/
+          du -sh dist/
+          echo "✅ 构建产物验证完成"
