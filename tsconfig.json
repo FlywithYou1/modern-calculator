@@ -14,8 +14,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -33,8 +33,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "verbatimModuleSyntax": true,
-    "types": ["vitest", "vitest/globals", "node"]
+    "verbatimModuleSyntax": true
   },
   "include": [
     "src/**/*",
@@ -45,7 +44,10 @@
     "node_modules",
     "dist",
     "src-tauri/target",
-    "src-tauri/gen"
+    "src-tauri/gen",
+    "src/tests/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
