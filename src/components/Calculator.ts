@@ -56,7 +56,7 @@ export class Calculator {
    */
   private async loadState(): Promise<void> {
     const startTime = performance.now()
-    
+
     try {
       // 1. 尝试从 Tauri 后端加载
       const backendData = await this.loadFromBackend()
@@ -64,7 +64,7 @@ export class Calculator {
         console.log('✅ 后端状态加载成功')
         trackPerformance({
           operation: 'load-backend-state',
-          duration: performance.now() - startTime
+          duration: performance.now() - startTime,
         })
         return
       }
@@ -79,14 +79,14 @@ export class Calculator {
 
       trackPerformance({
         operation: 'load-state-complete',
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       })
     } catch (error) {
       console.error('❌ 状态加载失败:', error)
       trackError({
         type: 'state-load-error',
         message: error instanceof Error ? error.message : '未知错误',
-        context: { startTime, currentTime: performance.now() }
+        context: { startTime, currentTime: performance.now() },
       })
     }
   }
@@ -103,7 +103,7 @@ export class Calculator {
       // 并行加载设置和历史记录
       const [settingsResult, historyResult] = await Promise.allSettled([
         invoke<AppSettings>('get_settings'),
-        invoke<HistoryItem[]>('get_history', { limit: 100 })
+        invoke<HistoryItem[]>('get_history', { limit: 100 }),
       ])
 
       // 处理设置加载结果
@@ -133,14 +133,14 @@ export class Calculator {
     if (backendSettings.theme?.mode) {
       mapped.theme = backendSettings.theme.mode
     }
-    
+
     if (typeof backendSettings.display?.decimalPlaces === 'number') {
       mapped.precision = Math.max(1, Math.min(20, backendSettings.display.decimalPlaces))
     }
-    
+
     if (backendSettings.display?.angleUnit) {
-      mapped.angleUnit = ['degrees', 'radians'].includes(backendSettings.display.angleUnit) 
-        ? backendSettings.display.angleUnit as 'degrees' | 'radians'
+      mapped.angleUnit = ['degrees', 'radians'].includes(backendSettings.display.angleUnit)
+        ? (backendSettings.display.angleUnit as 'degrees' | 'radians')
         : 'degrees'
     }
 
@@ -154,7 +154,10 @@ export class Calculator {
     ] as const
 
     booleanMappings.forEach(([backendPath, frontendKey]) => {
-      const value = this.getNestedValue(backendSettings as Record<string, unknown>, backendPath)
+      const value = this.getNestedValue(
+        backendSettings as unknown as Record<string, unknown>,
+        backendPath
+      )
       if (typeof value === 'boolean') {
         ;(mapped as Record<string, unknown>)[frontendKey] = value
       }
@@ -174,7 +177,7 @@ export class Calculator {
       }
 
       const parsedState = JSON.parse(savedState)
-      
+
       // 验证状态结构
       if (this.validateStateStructure(parsedState)) {
         this.state = { ...this.state, ...parsedState }
@@ -196,8 +199,10 @@ export class Calculator {
     return (
       typeof state === 'object' &&
       state !== null &&
-      (!(state as Record<string, unknown>).settings || typeof (state as Record<string, unknown>).settings === 'object') &&
-      (!(state as Record<string, unknown>).history || Array.isArray((state as Record<string, unknown>).history))
+      (!(state as Record<string, unknown>).settings ||
+        typeof (state as Record<string, unknown>).settings === 'object') &&
+      (!(state as Record<string, unknown>).history ||
+        Array.isArray((state as Record<string, unknown>).history))
     )
   }
 
@@ -205,7 +210,13 @@ export class Calculator {
    * 获取嵌套对象属性值
    */
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-    return path.split('.').reduce((current: Record<string, unknown> | undefined, key) => current?.[key] as Record<string, unknown>, obj)
+    return path
+      .split('.')
+      .reduce(
+        (current: Record<string, unknown> | undefined, key) =>
+          current?.[key] as Record<string, unknown>,
+        obj
+      )
   }
 
   /**

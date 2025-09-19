@@ -17,6 +17,62 @@
 
 ## 📦 构建产物说明
 
+### 🎯 构建产物位置
+
+#### 前端构建产物 (dist/)
+运行 `npm run build` 后，生成的前端资源位于 `dist/` 目录：
+
+```
+dist/
+├── index.html                     2.72 kB  # 主入口页面
+└── assets/
+    ├── main-DwZrvMdA.js          90.17 kB  # 主应用代码 (gzip: 21.30 kB)
+    ├── main-D79PZLhZ.css         31.69 kB  # 样式文件 (gzip: 6.01 kB)
+    ├── evaluator-Bl1E3tPs.js      3.68 kB  # 计算引擎 (gzip: 1.47 kB)
+    ├── vendor-B46sw_IK.js         1.67 kB  # 第三方库 (gzip: 0.83 kB)
+    └── index-BUDdy0sR.js          1.47 kB  # 入口脚本 (gzip: 0.51 kB)
+
+总大小: ~141 kB → ~31 kB (gzip 压缩率: 78%)
+```
+
+#### Android 构建产物
+- **项目结构**: `src-tauri/gen/android/` - Android Studio 项目
+- **APK 文件**: `src-tauri/gen/android/app/build/outputs/apk/`
+- **AAB 文件**: `src-tauri/gen/android/app/build/outputs/bundle/`
+- **签名配置**: `src-tauri/keystore/calculator.keystore`
+
+#### 桌面端构建产物 (Tauri)
+运行 `npm run tauri:build` 后：
+- **Windows**: `src-tauri/target/release/bundle/msi/` (.msi 安装包)
+- **macOS**: `src-tauri/target/release/bundle/dmg/` (.dmg 镜像)
+- **Linux**: `src-tauri/target/release/bundle/deb/` (.deb 包) 和 `appimage/` (AppImage)
+
+### 🚀 CI/CD 构建产物获取
+
+#### GitHub Actions 自动构建
+每次推送到 main 分支或创建 Pull Request 时，会自动触发构建：
+
+1. **前端构建**: 自动运行质量检查和构建
+2. **Android 构建**: main 分支自动构建 (PR 时跳过)
+
+#### 下载构建产物
+1. 访问 [GitHub Actions](https://github.com/FlywithYou1/modern-calculator/actions)
+2. 选择最新的工作流运行
+3. 在 "Artifacts" 部分下载：
+   - `frontend-build-{run_number}` - 前端构建产物
+   - `android-build-{run_number}` - Android 构建产物
+4. 产物保留期：7天
+
+#### 构建状态验证
+```bash
+# 本地验证构建
+npm run quality:check  # 运行所有质量检查
+npm run build          # 构建前端
+npm run tauri:build    # 构建桌面应用 (需要 Rust 环境)
+npm run android:build  # 构建 Android (需要 Android SDK)
+```
+
+
 ### 🎯 前端构建产物位置
 
 构建完成后，所有前端资源位于 **`dist/`** 目录：
