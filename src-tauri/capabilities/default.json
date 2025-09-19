@@ -1,0 +1,38 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "最小权限配置，仅允许必要的store操作",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    {
+      "identifier": "store:allow-get",
+      "allow": [
+        {
+          "path": "settings.json"
+        },
+        {
+          "path": "history.json"
+        }
+      ]
+    },
+    {
+      "identifier": "store:allow-set",
+      "allow": [
+        {
+          "path": "settings.json"
+        },
+        {
+          "path": "history.json"
+        }
+      ]
+    },
+    {
+      "identifier": "store:allow-save"
+    },
+    {
+      "identifier": "store:allow-load"
+    }
+  ]
+}

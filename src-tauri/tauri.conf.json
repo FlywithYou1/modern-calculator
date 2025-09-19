@@ -1,0 +1,79 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "科学计算器",
+  "version": "2.0.0",
+  "identifier": "com.calculator.scientific",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "科学计算器",
+        "width": 800,
+        "height": 600,
+        "minWidth": 320,
+        "minHeight": 480,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' asset: tauri:; img-src 'self' data: blob: asset: tauri:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' asset: tauri: ipc: http://localhost:5173 ws://localhost:5173 http://localhost:1420 ws://localhost:1420; frame-src 'none'; object-src 'none'"
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "deb", "msi", "nsis", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Scientific Calculator Team",
+    "copyright": "© 2024 Scientific Calculator Team",
+    "category": "Productivity",
+    "shortDescription": "现代化跨平台科学计算器",
+    "longDescription": "高精度数学计算、科技感界面、完整功能的现代科学计算器，支持基础运算、科学函数、历史记录、多主题等功能。",
+    "externalBin": [],
+    "resources": [],
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  },
+  "plugins": {
+    "store": {
+      "default": true
+    },
+    "haptics": {
+      "default": true
+    },
+    "barcode-scanner": {
+      "default": false
+    },
+    "biometric": {
+      "default": false
+    }
+  }
+}
