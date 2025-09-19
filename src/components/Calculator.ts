@@ -50,76 +50,167 @@ export class Calculator {
     }
   }
 
+  /**
+   * 从多个数据源加载应用状态
+   * 优先级: Tauri后端 > localStorage > 默认值
+   */
   private async loadState(): Promise<void> {
+    const startTime = performance.now()
+    
     try {
-      // 尝试从 Tauri 后端加载设置和历史记录
-      if (invoke) {
-        try {
-          // 加载设置
-          const backendSettings = await invoke<{
-            theme?: { mode?: 'light' | 'dark' | 'auto' }
-            display?: { decimalPlaces?: number; angleUnit?: 'degrees' | 'radians' }
-            general?: {
-              enableAnimations?: boolean
-              enableHaptic?: boolean
-              enableKeyboardShortcuts?: boolean
-            }
-            layout?: { compactMode?: boolean; showHistory?: boolean }
-          }>('get_settings')
-          if (backendSettings) {
-            // 将后端设置映射到前端 CalculatorSettings 结构，保留默认值
-            const mapped = { ...this.state.settings }
-            if (backendSettings.theme?.mode) mapped.theme = backendSettings.theme.mode
-            if (typeof backendSettings.display?.decimalPlaces === 'number')
-              mapped.precision = backendSettings.display.decimalPlaces
-            if (backendSettings.display?.angleUnit)
-              mapped.angleUnit =
-                backendSettings.display.angleUnit === 'degrees' ||
-                backendSettings.display?.angleUnit === 'radians'
-                  ? backendSettings.display.angleUnit
-                  : 'degrees'
-            if (typeof backendSettings.general?.enableAnimations === 'boolean')
-              mapped.enableAnimations = backendSettings.general.enableAnimations
-            if (typeof backendSettings.general?.enableHaptic === 'boolean')
-              mapped.enableHaptics = backendSettings.general.enableHaptic
-            if (typeof backendSettings.layout?.compactMode === 'boolean')
-              mapped.compactMode = backendSettings.layout.compactMode
-            if (typeof backendSettings.layout?.showHistory === 'boolean')
-              mapped.showHistory = backendSettings.layout.showHistory
-            mapped.showMemory = true
-            if (typeof backendSettings.general?.enableKeyboardShortcuts === 'boolean')
-              mapped.enableKeyboardShortcuts = backendSettings.general.enableKeyboardShortcuts
-            this.state.settings = mapped
-          }
-
-          // 加载历史记录
-          const backendHistory = await invoke<HistoryItem[]>('get_history', { limit: 100 })
-          if (Array.isArray(backendHistory)) {
-            this.state.history = backendHistory
-          }
-
-          console.log('✅ 从后端加载状态成功')
-        } catch (error) {
-          console.warn('⚠️ 后端加载失败，使用本地状态:', error)
-        }
+      // 1. 尝试从 Tauri 后端加载
+      const backendData = await this.loadFromBackend()
+      if (backendData.success) {
+        console.log('✅ 后端状态加载成功')
+        trackPerformance({
+          operation: 'load-backend-state',
+          duration: performance.now() - startTime
+        })
+        return
       }
 
-      // 从 localStorage 加载备份状态
-      const savedState = localStorage.getItem('calculator-state')
-      if (savedState) {
-        try {
-          const parsedState = JSON.parse(savedState)
-          this.state = { ...this.state, ...parsedState }
-          console.log('✅ 从本地存储加载状态成功')
-        } catch (error) {
-          console.warn('⚠️ 本地状态解析失败:', error)
-        }
+      // 2. 回退到本地存储
+      const localData = this.loadFromLocalStorage()
+      if (localData.success) {
+        console.log('✅ 本地状态加载成功')
+      } else {
+        console.log('ℹ️ 使用默认状态')
       }
+
+      trackPerformance({
+        operation: 'load-state-complete',
+        duration: performance.now() - startTime
+      })
     } catch (error) {
-      console.error('❌ 加载状态失败:', error)
+      console.error('❌ 状态加载失败:', error)
+      trackError({
+        type: 'state-load-error',
+        message: error instanceof Error ? error.message : '未知错误',
+        context: { startTime, currentTime: performance.now() }
+      })
     }
   }
 
+  /**
+   * 从Tauri后端加载状态
+   */
+  private async loadFromBackend(): Promise<{ success: boolean }> {
+    if (!invoke) {
+      return { success: false }
+    }
+
+    try {
+      // 并行加载设置和历史记录
+      const [settingsResult, historyResult] = await Promise.allSettled([
+        invoke<AppSettings>('get_settings'),
+        invoke<HistoryItem[]>('get_history', { limit: 100 })
+      ])
+
+      // 处理设置加载结果
+      if (settingsResult.status === 'fulfilled' && settingsResult.value) {
+        this.mapBackendSettings(settingsResult.value)
+      }
+
+      // 处理历史记录加载结果
+      if (historyResult.status === 'fulfilled' && Array.isArray(historyResult.value)) {
+        this.state.history = historyResult.value
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.warn('⚠️ 后端数据加载失败:', error)
+      return { success: false }
+    }
+  }
+
+  /**
+   * 映射后端设置到前端格式
+   */
+  private mapBackendSettings(backendSettings: AppSettings): void {
+    const mapped = { ...this.state.settings }
+
+    // 使用类型安全的设置映射
+    if (backendSettings.theme?.mode) {
+      mapped.theme = backendSettings.theme.mode
+    }
+    
+    if (typeof backendSettings.display?.decimalPlaces === 'number') {
+      mapped.precision = Math.max(1, Math.min(20, backendSettings.display.decimalPlaces))
+    }
+    
+    if (backendSettings.display?.angleUnit) {
+      mapped.angleUnit = ['degrees', 'radians'].includes(backendSettings.display.angleUnit) 
+        ? backendSettings.display.angleUnit as 'degrees' | 'radians'
+        : 'degrees'
+    }
+
+    // 布尔值设置
+    const booleanMappings = [
+      ['general.enableAnimations', 'enableAnimations'],
+      ['general.enableHapticFeedback', 'enableHaptics'],
+      ['general.enableKeyboardShortcuts', 'enableKeyboardShortcuts'],
+      ['layout.compactMode', 'compactMode'],
+      ['layout.showHistory', 'showHistory'],
+    ] as const
+
+    booleanMappings.forEach(([backendPath, frontendKey]) => {
+      const value = this.getNestedValue(backendSettings, backendPath)
+      if (typeof value === 'boolean') {
+        ;(mapped as Record<string, unknown>)[frontendKey] = value
+      }
+    })
+
+    this.state.settings = mapped
+  }
+
+  /**
+   * 从本地存储加载状态
+   */
+  private loadFromLocalStorage(): { success: boolean } {
+    try {
+      const savedState = localStorage.getItem('calculator-state')
+      if (!savedState) {
+        return { success: false }
+      }
+
+      const parsedState = JSON.parse(savedState)
+      
+      // 验证状态结构
+      if (this.validateStateStructure(parsedState)) {
+        this.state = { ...this.state, ...parsedState }
+        return { success: true }
+      } else {
+        console.warn('⚠️ 本地状态结构无效，已忽略')
+        return { success: false }
+      }
+    } catch (error) {
+      console.warn('⚠️ 本地状态解析失败:', error)
+      return { success: false }
+    }
+  }
+
+  /**
+   * 验证状态结构有效性
+   */
+  private validateStateStructure(state: unknown): boolean {
+    return (
+      typeof state === 'object' &&
+      state !== null &&
+      (!(state as Record<string, unknown>).settings || typeof (state as Record<string, unknown>).settings === 'object') &&
+      (!(state as Record<string, unknown>).history || Array.isArray((state as Record<string, unknown>).history))
+    )
+  }
+
+  /**
+   * 获取嵌套对象属性值
+   */
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+    return path.split('.').reduce((current: Record<string, unknown> | undefined, key) => current?.[key] as Record<string, unknown>, obj)
+  }
+
+  /**
+   * 初始化计算器组件
+   */
   async init(): Promise<void> {
     try {
       await this.loadState()
