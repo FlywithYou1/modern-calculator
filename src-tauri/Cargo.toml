@@ -5,8 +5,8 @@ description = "现代化跨平台科学计算器 - 高精度运算引擎"
 authors = ["Scientific Calculator Team"]
 license = "MIT"
 repository = "https://github.com/your-org/tauri-scientific-calculator"
-edition = "2024"
-rust-version = "1.92.0"
+edition = "2021"
+rust-version = "1.89.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

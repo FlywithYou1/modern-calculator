@@ -52,13 +52,13 @@ jobs:
         run: |
           echo "=== 前端质量检查 ==="
           echo "1. ESLint 检查..."
-          npx eslint src --ext .ts,.tsx --config eslint.simple.config.js || echo "⚠️ ESLint 检查有警告"
+          npm run lint
           
           echo "2. 代码格式检查..."
-          npx prettier --check "src/**/*.{ts,tsx,css,scss,md}" || echo "⚠️ 格式检查有警告"
+          npm run format:check || echo "⚠️ 格式检查有警告"
           
           echo "3. 前端测试..."
-          npx vitest run --reporter=basic
+          npm run test:run
           
           echo "✅ 前端检查完成"
         continue-on-error: true
@@ -78,8 +78,7 @@ jobs:
       - name: 前端构建测试
         run: |
           echo "=== 前端构建测试 ==="
-          npx vite build || echo "⚠️ 前端构建需要修复"
-        continue-on-error: true
+          npm run build
 
   # 多平台构建 (简化版)
   build-release:
@@ -138,7 +137,7 @@ jobs:
       - name: 构建前端
         run: |
           echo "构建前端 for ${{ matrix.target }}..."
-          vite build
+          npm run build
 
       - name: 构建 Tauri 应用
         id: tauri_build

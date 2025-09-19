@@ -18,8 +18,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage",
-    "test:cross-platform": "vitest run --config vitest.cross-platform.config.ts",
+    "test:coverage": "vitest run --coverage", 
+    "test:cross-platform": "echo '🔄 跨平台兼容性测试' && npm run build && echo '前端构建通过'",
     "typecheck": "tsc --noEmit",
     "benchmark": "vitest bench",
     "a11y-test": "echo '♿ 无障碍合规检查' && npm run test:run -- --grep 'accessibility'",
@@ -34,7 +34,6 @@
     "mobile:setup": "npm run android:init && npm run android:setup-signing",
     "quality:check": "npm run typecheck && npm run lint && npm run test:run && npm run format:check",
     "test:mcp": "echo '🔧 测试 MCP 调试接口...' && npm run dev &; sleep 5; kill $!; echo 'MCP 测试完成'",
-    "test:cross-platform": "echo '🔄 跨平台兼容性测试' && npm run build && echo '前端构建通过'",
     "build:all-platforms": "./scripts/build-and-test.sh",
     "setup:android": "./scripts/setup-android-signing.sh"
   },
