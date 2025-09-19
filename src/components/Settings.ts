@@ -586,24 +586,23 @@ export class Settings {
    */
   private updateSetting(path: string, element: HTMLInputElement | HTMLSelectElement): void {
     const pathParts = path.split('.');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let current: any = this.settings;
+    // 使用类型安全的方式访问嵌套对象
+    let current: Record<string, unknown> = this.settings as Record<string, unknown>;
 
     // 导航到父对象
     for (let i = 0; i < pathParts.length - 1; i++) {
       const key = pathParts[i];
       if (key) {
-        if (!current[key]) {
+        if (!current[key] || typeof current[key] !== 'object') {
           current[key] = {};
         }
-        current = current[key];
+        current = current[key] as Record<string, unknown>;
       }
     }
 
     // 设置值
     const finalKey = pathParts[pathParts.length - 1];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let value: any = element.value;
+    let value: string | number | boolean = element.value;
 
     if (element.type === 'checkbox') {
       value = (element as HTMLInputElement).checked;
