@@ -587,7 +587,7 @@ export class Settings {
   private updateSetting(path: string, element: HTMLInputElement | HTMLSelectElement): void {
     const pathParts = path.split('.');
     // 使用类型安全的方式访问嵌套对象
-    let current: Record<string, unknown> = this.settings as Record<string, unknown>;
+    let current: Record<string, unknown> = this.settings as unknown as Record<string, unknown>;
 
     // 导航到父对象
     for (let i = 0; i < pathParts.length - 1; i++) {
