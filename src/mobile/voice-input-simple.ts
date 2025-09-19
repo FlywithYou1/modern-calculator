@@ -4,116 +4,116 @@
  */
 
 interface VoiceInputOptions {
-    language: string;
-    continuous: boolean;
-    interimResults: boolean;
+  language: string
+  continuous: boolean
+  interimResults: boolean
 }
 
 interface VoiceResult {
-    expression: string;
-    confidence: number;
-    alternatives: string[];
+  expression: string
+  confidence: number
+  alternatives: string[]
 }
 
 export class VoiceInputManager {
-    private isSupported: boolean = false;
-    private isListening: boolean = false;
-    private options: VoiceInputOptions;
+  private isSupported: boolean = false
+  private isListening: boolean = false
+  private options: VoiceInputOptions
 
-    constructor(options: Partial<VoiceInputOptions> = {}) {
-        this.options = {
-            language: 'zh-CN',
-            continuous: false,
-            interimResults: true,
-            ...options
-        };
-
-        console.log('Voice input initialized with options:', this.options);
-        this.checkSupport();
+  constructor(options: Partial<VoiceInputOptions> = {}) {
+    this.options = {
+      language: 'zh-CN',
+      continuous: false,
+      interimResults: true,
+      ...options,
     }
 
-    private checkSupport(): void {
-        this.isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-    }
+    console.log('Voice input initialized with options:', this.options)
+    this.checkSupport()
+  }
 
-    public async startListening(): Promise<void> {
-        if (!this.isSupported) {
-            throw new Error('语音识别不受支持');
-        }
-        this.isListening = true;
-        
-        // 触发语音开始事件
-        this.dispatchEvent('voicestart', {});
-    }
+  private checkSupport(): void {
+    this.isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+  }
 
-    public stopListening(): void {
-        this.isListening = false;
-        this.dispatchEvent('voiceend', {});
+  public async startListening(): Promise<void> {
+    if (!this.isSupported) {
+      throw new Error('语音识别不受支持')
     }
+    this.isListening = true
 
-    public isVoiceSupported(): boolean {
-        return this.isSupported;
-    }
+    // 触发语音开始事件
+    this.dispatchEvent('voicestart', {})
+  }
 
-    public isCurrentlyListening(): boolean {
-        return this.isListening;
-    }
+  public stopListening(): void {
+    this.isListening = false
+    this.dispatchEvent('voiceend', {})
+  }
 
-    private dispatchEvent(type: string, detail: unknown): void {
-        const event = new CustomEvent(`voice${type}`, {
-            detail: detail,
-            bubbles: true,
-            cancelable: true
-        });
-        
-        document.dispatchEvent(event);
-    }
+  public isVoiceSupported(): boolean {
+    return this.isSupported
+  }
+
+  public isCurrentlyListening(): boolean {
+    return this.isListening
+  }
+
+  private dispatchEvent(type: string, detail: unknown): void {
+    const event = new CustomEvent(`voice${type}`, {
+      detail: detail,
+      bubbles: true,
+      cancelable: true,
+    })
+
+    document.dispatchEvent(event)
+  }
 }
 
 /**
  * 计算器语音控制器
  */
 export class CalculatorVoiceController {
-    private voiceManager: VoiceInputManager;
-    private isActive: boolean = false;
+  private voiceManager: VoiceInputManager
+  private isActive: boolean = false
 
-    constructor() {
-        this.voiceManager = new VoiceInputManager({
-            language: 'zh-CN',
-            continuous: false,
-            interimResults: true
-        });
-    }
+  constructor() {
+    this.voiceManager = new VoiceInputManager({
+      language: 'zh-CN',
+      continuous: false,
+      interimResults: true,
+    })
+  }
 
-    public async toggleVoiceInput(): Promise<void> {
-        if (this.isActive) {
-            this.stopVoiceInput();
-        } else {
-            await this.startVoiceInput();
-        }
+  public async toggleVoiceInput(): Promise<void> {
+    if (this.isActive) {
+      this.stopVoiceInput()
+    } else {
+      await this.startVoiceInput()
     }
+  }
 
-    public async startVoiceInput(): Promise<void> {
-        try {
-            await this.voiceManager.startListening();
-            this.isActive = true;
-        } catch (error) {
-            console.error('语音输入激活失败:', error);
-        }
+  public async startVoiceInput(): Promise<void> {
+    try {
+      await this.voiceManager.startListening()
+      this.isActive = true
+    } catch (error) {
+      console.error('语音输入激活失败:', error)
     }
+  }
 
-    public stopVoiceInput(): void {
-        this.voiceManager.stopListening();
-        this.isActive = false;
-    }
+  public stopVoiceInput(): void {
+    this.voiceManager.stopListening()
+    this.isActive = false
+  }
 
-    public isVoiceActive(): boolean {
-        return this.isActive;
-    }
+  public isVoiceActive(): boolean {
+    return this.isActive
+  }
 
-    public isVoiceSupported(): boolean {
-        return this.voiceManager.isVoiceSupported();
-    }
+  public isVoiceSupported(): boolean {
+    return this.voiceManager.isVoiceSupported()
+  }
 }
 
-export type { VoiceInputOptions, VoiceResult };
+export type { VoiceInputOptions, VoiceResult }

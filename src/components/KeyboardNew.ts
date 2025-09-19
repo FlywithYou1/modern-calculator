@@ -1,6 +1,6 @@
 /**
  * 计算器键盘组件
- * 
+ *
  * 提供：
  * - 基础数字和运算符按钮
  * - 科学计算函数按钮
@@ -60,7 +60,9 @@ export class Keyboard {
 
     this.container.innerHTML = `
       <div class="calculator-keyboard ${this.options.isMobile ? 'mobile' : 'desktop'}">
-        ${this.options.showScientific ? `
+        ${
+          this.options.showScientific
+            ? `
           <!-- 科学计算面板 -->
           <div class="scientific-panel ${this.options.isMobile ? 'collapsed' : ''}">
             <div class="scientific-header">
@@ -75,7 +77,9 @@ export class Keyboard {
               ${this.createButtonGrid(scientificButtons, 'scientific')}
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- 基础计算面板 -->
         <div class="basic-panel">
@@ -83,13 +87,17 @@ export class Keyboard {
         </div>
 
         <!-- 移动端专用区域 -->
-        ${this.options.isMobile ? `
+        ${
+          this.options.isMobile
+            ? `
           <div class="mobile-actions">
             <div class="swipe-hint">
               <span>左滑查看更多功能</span>
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `
   }
@@ -100,11 +108,15 @@ export class Keyboard {
   private createButtonGrid(buttons: ButtonConfig[][], type: 'basic' | 'scientific'): string {
     return `
       <div class="button-grid ${type}-grid">
-        ${buttons.map(row => `
+        ${buttons
+          .map(
+            row => `
           <div class="button-row">
             ${row.map(button => this.createButton(button)).join('')}
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `
   }
@@ -113,15 +125,7 @@ export class Keyboard {
    * 创建单个按钮
    */
   private createButton(config: ButtonConfig): string {
-    const {
-      label,
-      value,
-      func,
-      action,
-      className = '',
-      colspan = 1,
-      rowspan = 1
-    } = config
+    const { label, value, func, action, className = '', colspan = 1, rowspan = 1 } = config
 
     const dataAttrs = []
     if (value) dataAttrs.push(`data-value="${value}"`)
@@ -155,39 +159,37 @@ export class Keyboard {
         { label: 'C', action: 'clear', className: 'clear-btn' },
         { label: '⌫', action: 'backspace', className: 'backspace-btn' },
         { label: '(', value: '(' },
-        { label: ')', value: ')' }
+        { label: ')', value: ')' },
       ],
       // 第二行 - 数字7-9和除法
       [
         { label: '7', value: '7', className: 'number-btn' },
         { label: '8', value: '8', className: 'number-btn' },
         { label: '9', value: '9', className: 'number-btn' },
-        { label: '÷', value: '/', className: 'operator-btn' }
+        { label: '÷', value: '/', className: 'operator-btn' },
       ],
       // 第三行 - 数字4-6和乘法
       [
         { label: '4', value: '4', className: 'number-btn' },
         { label: '5', value: '5', className: 'number-btn' },
         { label: '6', value: '6', className: 'number-btn' },
-        { label: '×', value: '*', className: 'operator-btn' }
+        { label: '×', value: '*', className: 'operator-btn' },
       ],
       // 第四行 - 数字1-3和减法
       [
         { label: '1', value: '1', className: 'number-btn' },
         { label: '2', value: '2', className: 'number-btn' },
         { label: '3', value: '3', className: 'number-btn' },
-        { label: '−', value: '-', className: 'operator-btn' }
+        { label: '−', value: '-', className: 'operator-btn' },
       ],
       // 第五行 - 0、小数点和等号
       [
         { label: '0', value: '0', className: 'number-btn zero-btn', colspan: 2 },
         { label: '.', value: '.', className: 'number-btn' },
-        { label: '+', value: '+', className: 'operator-btn' }
+        { label: '+', value: '+', className: 'operator-btn' },
       ],
       // 第六行 - 等号
-      [
-        { label: '=', action: 'calculate', className: 'equals-btn', colspan: 4 }
-      ]
+      [{ label: '=', action: 'calculate', className: 'equals-btn', colspan: 4 }],
     ]
   }
 
@@ -201,64 +203,64 @@ export class Keyboard {
         { label: 'sin', func: 'sin(', className: 'function-btn' },
         { label: 'cos', func: 'cos(', className: 'function-btn' },
         { label: 'tan', func: 'tan(', className: 'function-btn' },
-        { label: this.options.angleMode.toUpperCase(), action: 'angleMode', className: 'mode-btn' }
+        { label: this.options.angleMode.toUpperCase(), action: 'angleMode', className: 'mode-btn' },
       ],
       // 第二行 - 反三角函数和常数
       [
         { label: 'asin', func: 'asin(', className: 'function-btn' },
         { label: 'acos', func: 'acos(', className: 'function-btn' },
         { label: 'atan', func: 'atan(', className: 'function-btn' },
-        { label: 'π', value: 'π', className: 'constant-btn' }
+        { label: 'π', value: 'π', className: 'constant-btn' },
       ],
       // 第三行 - 对数和指数
       [
         { label: 'ln', func: 'ln(', className: 'function-btn' },
         { label: 'log', func: 'log(', className: 'function-btn' },
         { label: 'e', value: 'e', className: 'constant-btn' },
-        { label: '^', value: '^', className: 'operator-btn' }
+        { label: '^', value: '^', className: 'operator-btn' },
       ],
       // 第四行 - 根号和阶乘
       [
         { label: '√', func: 'sqrt(', className: 'function-btn' },
         { label: 'x²', func: '^2', className: 'function-btn' },
         { label: 'x!', func: 'factorial(', className: 'function-btn' },
-        { label: '%', value: '%', className: 'operator-btn' }
+        { label: '%', value: '%', className: 'operator-btn' },
       ],
       // 第五行 - 进制转换
       [
         { label: 'BIN', func: 'bin(', className: 'function-btn' },
         { label: 'OCT', func: 'oct(', className: 'function-btn' },
         { label: 'HEX', func: 'hex(', className: 'function-btn' },
-        { label: 'DEC', action: 'decMode', className: 'mode-btn' }
+        { label: 'DEC', action: 'decMode', className: 'mode-btn' },
       ],
       // 第六行 - 统计函数
       [
         { label: 'mean', func: 'mean(', className: 'function-btn' },
         { label: 'med', func: 'median(', className: 'function-btn' },
         { label: 'std', func: 'stdev(', className: 'function-btn' },
-        { label: 'var', func: 'variance(', className: 'function-btn' }
+        { label: 'var', func: 'variance(', className: 'function-btn' },
       ],
       // 第七行 - 最值和聚合函数
       [
         { label: 'min', func: 'min(', className: 'function-btn' },
         { label: 'max', func: 'max(', className: 'function-btn' },
         { label: 'sum', func: 'sum(', className: 'function-btn' },
-        { label: '∏', func: 'product(', className: 'function-btn' }
+        { label: '∏', func: 'product(', className: 'function-btn' },
       ],
       // 第八行 - 矩阵运算
       [
         { label: 'MAT', action: 'matrixMode', className: 'mode-btn' },
         { label: 'T', func: 'transpose(', className: 'function-btn' },
         { label: 'det', func: 'determinant(', className: 'function-btn' },
-        { label: 'inv', func: 'inverse(', className: 'function-btn' }
+        { label: 'inv', func: 'inverse(', className: 'function-btn' },
       ],
       // 第九行 - 单位转换
       [
         { label: 'UNIT', action: 'unitMode', className: 'mode-btn' },
         { label: '°C→°F', func: 'tempConvert(', className: 'function-btn' },
         { label: 'm→ft', func: 'lengthConvert(', className: 'function-btn' },
-        { label: 'kg→lb', func: 'weightConvert(', className: 'function-btn' }
-      ]
+        { label: 'kg→lb', func: 'weightConvert(', className: 'function-btn' },
+      ],
     ]
   }
 
@@ -270,11 +272,16 @@ export class Keyboard {
 
     if (action) {
       switch (action) {
-        case 'clear': return '清除 (Esc)'
-        case 'backspace': return '退格 (Backspace)'
-        case 'calculate': return '计算 (Enter)'
-        case 'angleMode': return `角度模式: ${this.options.angleMode}`
-        default: return label
+        case 'clear':
+          return '清除 (Esc)'
+        case 'backspace':
+          return '退格 (Backspace)'
+        case 'calculate':
+          return '计算 (Enter)'
+        case 'angleMode':
+          return `角度模式: ${this.options.angleMode}`
+        default:
+          return label
       }
     }
 
@@ -313,7 +320,7 @@ export class Keyboard {
    */
   private bindEvents(): void {
     // 按钮点击事件
-    this.container.addEventListener('click', (event) => {
+    this.container.addEventListener('click', event => {
       const button = (event.target as HTMLElement).closest('.calc-btn') as HTMLButtonElement
       if (button) {
         this.handleButtonClick(button)
@@ -385,7 +392,7 @@ export class Keyboard {
     const modes: ('deg' | 'rad' | 'grad')[] = ['deg', 'rad', 'grad']
     const currentIndex = modes.indexOf(this.options.angleMode)
     const nextMode = modes[(currentIndex + 1) % modes.length]
-    
+
     // nextMode 总是存在，这里显式断言类型，确保与签名一致
     this.updateAngleMode(nextMode as 'deg' | 'rad' | 'grad')
   }
@@ -397,7 +404,7 @@ export class Keyboard {
    */
   private animateButton(button: HTMLButtonElement): void {
     button.classList.add('pressed')
-    
+
     requestAnimationFrame(() => {
       setTimeout(() => {
         button.classList.remove('pressed')
@@ -412,33 +419,45 @@ export class Keyboard {
     let startX = 0
     let startY = 0
 
-    this.container.addEventListener('touchstart', (e) => {
-      startX = e.touches[0]?.clientX || 0
-      startY = e.touches[0]?.clientY || 0
-    }, { passive: true })
+    this.container.addEventListener(
+      'touchstart',
+      e => {
+        startX = e.touches[0]?.clientX || 0
+        startY = e.touches[0]?.clientY || 0
+      },
+      { passive: true }
+    )
 
-    this.container.addEventListener('touchmove', (e) => {
-      e.preventDefault()
-    }, { passive: false })
+    this.container.addEventListener(
+      'touchmove',
+      e => {
+        e.preventDefault()
+      },
+      { passive: false }
+    )
 
-    this.container.addEventListener('touchend', (e) => {
-      const endX = e.changedTouches[0]?.clientX || 0
-      const endY = e.changedTouches[0]?.clientY || 0
-      
-      const deltaX = endX - startX
-      const deltaY = endY - startY
+    this.container.addEventListener(
+      'touchend',
+      e => {
+        const endX = e.changedTouches[0]?.clientX || 0
+        const endY = e.changedTouches[0]?.clientY || 0
 
-      // 检测滑动手势
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-        if (deltaX > 0) {
-          // 右滑 - 显示科学面板
-          this.showScientificPanel()
-        } else {
-          // 左滑 - 隐藏科学面板
-          this.hideScientificPanel()
+        const deltaX = endX - startX
+        const deltaY = endY - startY
+
+        // 检测滑动手势
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+          if (deltaX > 0) {
+            // 右滑 - 显示科学面板
+            this.showScientificPanel()
+          } else {
+            // 左滑 - 隐藏科学面板
+            this.hideScientificPanel()
+          }
         }
-      }
-    }, { passive: true })
+      },
+      { passive: true }
+    )
   }
 
   /**
@@ -454,7 +473,7 @@ export class Keyboard {
   private toggleScientificPanel(): void {
     const panel = this.container.querySelector('.scientific-panel') as HTMLElement
     const isCollapsed = panel.classList.contains('collapsed')
-    
+
     if (isCollapsed) {
       this.showScientificPanel()
     } else {
@@ -468,7 +487,7 @@ export class Keyboard {
   private showScientificPanel(): void {
     const panel = this.container.querySelector('.scientific-panel') as HTMLElement
     const toggle = this.container.querySelector('#scientific-toggle') as HTMLElement
-    
+
     panel.classList.remove('collapsed')
     toggle.style.transform = 'rotate(180deg)'
   }
@@ -479,7 +498,7 @@ export class Keyboard {
   private hideScientificPanel(): void {
     const panel = this.container.querySelector('.scientific-panel') as HTMLElement
     const toggle = this.container.querySelector('#scientific-toggle') as HTMLElement
-    
+
     panel.classList.add('collapsed')
     toggle.style.transform = 'rotate(0deg)'
   }
@@ -489,7 +508,7 @@ export class Keyboard {
    */
   public updateScientificMode(show: boolean): void {
     this.options.showScientific = show
-    
+
     const scientificPanel = this.container.querySelector('.scientific-panel') as HTMLElement
     if (scientificPanel) {
       scientificPanel.style.display = show ? 'block' : 'none'
@@ -501,7 +520,7 @@ export class Keyboard {
    */
   public updateAngleMode(mode: 'deg' | 'rad' | 'grad'): void {
     this.options.angleMode = mode
-    
+
     const modeButton = this.container.querySelector('[data-action="angleMode"]') as HTMLElement
     if (modeButton) {
       modeButton.querySelector('.btn-label')!.textContent = mode.toUpperCase()
@@ -513,7 +532,9 @@ export class Keyboard {
    * 高亮按钮（用于键盘输入反馈）
    */
   public highlightButton(value: string): void {
-    const button = this.container.querySelector(`[data-value="${value}"], [data-action="${value}"]`) as HTMLButtonElement
+    const button = this.container.querySelector(
+      `[data-value="${value}"], [data-action="${value}"]`
+    ) as HTMLButtonElement
     if (button) {
       this.animateButton(button)
     }
