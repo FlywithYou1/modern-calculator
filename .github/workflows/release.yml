@@ -138,9 +138,7 @@ jobs:
       - name: 构建前端
         run: |
           echo "构建前端 for ${{ matrix.target }}..."
-          npx vite build || echo "⚠️ 前端构建失败，使用空构建"
-          mkdir -p dist && echo "<h1>Modern Calculator</h1><p>Build in progress...</p>" > dist/index.html
-        continue-on-error: true
+          vite build
 
       - name: 构建 Tauri 应用
         id: tauri_build

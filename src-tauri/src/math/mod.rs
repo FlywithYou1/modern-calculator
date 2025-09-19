@@ -204,7 +204,8 @@ impl Matrix {
                 if !matrix.data[i][i].is_zero() {
                     let factor = matrix.data[k][i] / matrix.data[i][i];
                     for j in i..n {
-                        matrix.data[k][j] -= factor * matrix.data[i][j];
+                        let val = matrix.data[i][j];
+                        matrix.data[k][j] -= factor * val;
                     }
                 }
             }
@@ -259,7 +260,8 @@ impl Matrix {
                 if k != i && !augmented.data[k][i].is_zero() {
                     let factor = augmented.data[k][i];
                     for j in 0..2 * n {
-                        augmented.data[k][j] -= factor * augmented.data[i][j];
+                        let val = augmented.data[i][j];
+                        augmented.data[k][j] -= factor * val;
                     }
                 }
             }
@@ -1220,11 +1222,6 @@ impl Calculator {
         // 这里应该基于解析后的表达式进行求值
         // 目前作为占位符返回简单结果
         Ok(Decimal::from(42))
-    }
-
-    /// 获取常数值
-    pub fn get_constant(&self, name: &str) -> Option<Decimal> {
-        self.constants.get(name).copied()
     }
 
     /// 设置角度模式

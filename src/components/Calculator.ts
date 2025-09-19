@@ -56,7 +56,12 @@ export class Calculator {
       if (invoke) {
         try {
           // 加载设置
-          const backendSettings = await invoke<any>('get_settings');
+          const backendSettings = await invoke<{
+            theme?: { mode?: 'light' | 'dark' | 'auto' },
+            display?: { decimalPlaces?: number, angleUnit?: 'degrees' | 'radians' },
+            general?: { enableAnimations?: boolean, enableHaptic?: boolean, enableKeyboardShortcuts?: boolean },
+            layout?: { compactMode?: boolean, showHistory?: boolean }
+          }>('get_settings');
           if (backendSettings) {
             // 将后端设置映射到前端 CalculatorSettings 结构，保留默认值
             const mapped = { ...this.state.settings };

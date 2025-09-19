@@ -414,7 +414,7 @@ if (import.meta.hot) {
 
 // 暴露到全局作用域供调试使用
 if (import.meta.env.DEV) {
-  ;(window as any).__calculator_app__ = app
+  ;(window as Window & { __calculator_app__?: typeof app }).__calculator_app__ = app
   console.log('🔧 开发模式：可通过 window.__calculator_app__ 访问应用实例')
 }
 

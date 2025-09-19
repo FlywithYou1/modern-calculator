@@ -36,28 +36,22 @@ jobs:
       - name: TypeScript 类型检查 (容错模式)
         run: |
           echo "=== TypeScript 检查 ==="
-          npx tsc --noEmit --skipLibCheck || echo "⚠️ TypeScript检查失败，但继续执行"
-        continue-on-error: true
+          tsc --noEmit
         
-      - name: ESLint 代码检查 (简化配置)
+      - name: ESLint 代码检查
         run: |
           echo "=== ESLint 检查 ==="
-          npx eslint src --ext .ts,.tsx --config eslint.simple.config.js || echo "⚠️ ESLint检查失败，使用基础检查"
-          echo "基础语法检查:" && find src -name "*.ts" -exec node -c {} \; || echo "语法检查完成"
-        continue-on-error: true
+          eslint src --ext .ts,.tsx
         
       - name: 前端单元测试
         run: |
           echo "=== 前端测试 ==="
-          npx vitest run --reporter=verbose
-          echo "测试总结: $?"
+          vitest run --reporter=verbose
           
       - name: 构建前端
         run: |
           echo "=== 前端构建 ==="
-          npx vite build || echo "⚠️ 前端构建失败，检查依赖"
-          echo "构建输出:" && ls -la dist/ || echo "无构建输出"
-        continue-on-error: true
+          vite build
 
   # 后端质量检查 (限 Linux)
   backend_quality:

@@ -157,7 +157,7 @@ export class SimpleAdvancedCalculator extends Calculator {
         const target = e.target as HTMLElement;
         const mode = target.dataset.mode;
         if (mode) {
-          this.switchAdvancedMode(mode as any);
+          this.switchAdvancedMode(mode as 'basic' | 'scientific' | 'matrix' | 'statistics' | 'units' | 'complex');
         }
       });
     });
@@ -227,7 +227,7 @@ export class SimpleAdvancedCalculator extends Calculator {
       element.style.display = element.id === `${mode}-content` ? 'block' : 'none';
     });
 
-    this.advancedMode = mode as any;
+    this.advancedMode = mode as 'basic' | 'scientific' | 'matrix' | 'statistics' | 'units' | 'complex';
     console.log('切换到模式:', this.advancedMode);
   }
 
