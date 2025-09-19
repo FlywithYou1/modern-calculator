@@ -33,9 +33,12 @@ const functions: Record<string, (args: number[], unit: AngleUnit) => number> = {
   sin: (args, unit) => Math.sin(toRadians(getArg(args, 0), unit)),
   cos: (args, unit) => Math.cos(toRadians(getArg(args, 0), unit)),
   tan: (args, unit) => Math.tan(toRadians(getArg(args, 0), unit)),
-  ln: (args) => Math.log(getArg(args, 0)),
-  log: (args) => (args.length === 1 ? Math.log10(getArg(args, 0)) : Math.log(getArg(args, 1)) / Math.log(getArg(args, 0))),
-  sqrt: (args) => Math.sqrt(getArg(args, 0)),
+  ln: args => Math.log(getArg(args, 0)),
+  log: args =>
+    args.length === 1
+      ? Math.log10(getArg(args, 0))
+      : Math.log(getArg(args, 1)) / Math.log(getArg(args, 0)),
+  sqrt: args => Math.sqrt(getArg(args, 0)),
 }
 
 const precedence: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2, '^': 3 }
@@ -63,7 +66,12 @@ function sanitize(s: string): string {
     .replace(/\s+/g, '')
 }
 
-type Tok = { type: 'num'; v: number } | { type: 'op'; v: string } | { type: 'lparen' | 'rparen' } | { type: 'id'; v: string } | { type: 'comma' }
+type Tok =
+  | { type: 'num'; v: number }
+  | { type: 'op'; v: string }
+  | { type: 'lparen' | 'rparen' }
+  | { type: 'id'; v: string }
+  | { type: 'comma' }
 
 function tokenize(s: string): Tok[] {
   const out: Tok[] = []
@@ -181,7 +189,8 @@ function toRPN(tokens: Tok[]): Tok[] {
 function evalRPN(rpn: Tok[], unit: AngleUnit): number {
   const st: number[] = []
   const pop2 = () => {
-    const b = st.pop(); const a = st.pop();
+    const b = st.pop()
+    const a = st.pop()
     if (a == null || b == null) throw new Error('表达式错误')
     return { a, b }
   }
@@ -190,12 +199,23 @@ function evalRPN(rpn: Tok[], unit: AngleUnit): number {
     else if (t.type === 'op') {
       const { a, b } = pop2()
       switch (t.v) {
-        case '+': st.push(a + b); break
-        case '-': st.push(a - b); break
-        case '*': st.push(a * b); break
-        case '/': st.push(a / b); break
-        case '^': st.push(Math.pow(a, b)); break
-        default: throw new Error('未知运算符')
+        case '+':
+          st.push(a + b)
+          break
+        case '-':
+          st.push(a - b)
+          break
+        case '*':
+          st.push(a * b)
+          break
+        case '/':
+          st.push(a / b)
+          break
+        case '^':
+          st.push(Math.pow(a, b))
+          break
+        default:
+          throw new Error('未知运算符')
       }
     } else if (t.type === 'id') {
       // 函数：从栈中回溯参数直到上一个函数/起点（此处简化为常见单参/双参函数）

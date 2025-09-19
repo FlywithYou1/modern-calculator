@@ -34,7 +34,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true,
-    "types": ["vitest", "vitest/globals", "node"]
+    "types": []
   },
   "include": [
     "src/**/*",

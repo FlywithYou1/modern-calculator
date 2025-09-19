@@ -3,27 +3,27 @@
  * 提供主题切换、精度设置、功能配置等选项，支持导入导出和实时预览
  */
 
-import type { AppSettings, Theme } from '../types/calculator.js';
+import type { AppSettings, Theme } from '../types/calculator.js'
 
 export class Settings {
-  private element: HTMLElement;
-  private settings: AppSettings;
-  private onSettingsChange?: (settings: AppSettings) => void;
-  private isVisible: boolean = false;
+  private element: HTMLElement
+  private settings: AppSettings
+  private onSettingsChange?: (settings: AppSettings) => void
+  private isVisible: boolean = false
 
   constructor(container: HTMLElement) {
-    this.settings = this.getDefaultSettings();
-    this.element = this.createElement();
-    container.appendChild(this.element);
-    this.setupEventListeners();
+    this.settings = this.getDefaultSettings()
+    this.element = this.createElement()
+    container.appendChild(this.element)
+    this.setupEventListeners()
   }
 
   /**
    * 初始化组件
    */
   async init(): Promise<void> {
-    await this.loadSettings();
-    this.render();
+    await this.loadSettings()
+    this.render()
   }
 
   /**
@@ -49,7 +49,7 @@ export class Settings {
           '--background-color': '#1a1a1a',
           '--surface-color': '#2d2d2d',
           '--text-color': '#ffffff',
-          '--text-secondary-color': '#cccccc'
+          '--text-secondary-color': '#cccccc',
         },
       },
       display: {
@@ -72,19 +72,19 @@ export class Settings {
         enableKeyboardShortcuts: true,
         enableAnimations: true,
       },
-    };
+    }
   }
 
   /**
    * 创建设置面板元素
    */
   private createElement(): HTMLElement {
-    const settings = document.createElement('div');
-    settings.className = 'calculator-settings';
-    settings.setAttribute('role', 'dialog');
-    settings.setAttribute('aria-label', '计算器设置');
-    settings.style.display = 'none';
-    return settings;
+    const settings = document.createElement('div')
+    settings.className = 'calculator-settings'
+    settings.setAttribute('role', 'dialog')
+    settings.setAttribute('aria-label', '计算器设置')
+    settings.style.display = 'none'
+    return settings
   }
 
   /**
@@ -150,7 +150,7 @@ export class Settings {
           </div>
         </div>
       </div>
-    `;
+    `
   }
 
   /**
@@ -231,7 +231,7 @@ export class Settings {
           </div>
         </div>
       </div>
-    `;
+    `
   }
 
   /**
@@ -288,7 +288,7 @@ export class Settings {
           </div>
         </div>
       </div>
-    `;
+    `
   }
 
   /**
@@ -344,7 +344,7 @@ export class Settings {
           <div class="setting-description">在界面上显示历史记录访问按钮</div>
         </div>
       </div>
-    `;
+    `
   }
 
   /**
@@ -403,7 +403,7 @@ export class Settings {
           <div class="setting-description">应用关闭时自动保存计算历史记录</div>
         </div>
       </div>
-    `;
+    `
   }
 
   /**
@@ -471,7 +471,7 @@ export class Settings {
           </div>
         </div>
       </div>
-    `;
+    `
   }
 
   /**
@@ -479,89 +479,89 @@ export class Settings {
    */
   private setupEventListeners(): void {
     // 关闭按钮
-    this.element.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      
+    this.element.addEventListener('click', e => {
+      const target = e.target as HTMLElement
+
       if (target.closest('.settings-close-btn') || target.closest('.cancel-btn')) {
-        this.hide();
+        this.hide()
       } else if (target.closest('.save-btn')) {
-        this.saveSettings();
+        this.saveSettings()
       } else if (target.closest('.reset-btn')) {
-        this.confirmReset();
+        this.confirmReset()
       } else if (target.closest('.settings-overlay') && !target.closest('.settings-panel')) {
-        this.hide();
+        this.hide()
       }
-    });
+    })
 
     // 标签切换
-    this.element.addEventListener('click', (e) => {
-      const tab = (e.target as HTMLElement).closest('.settings-tab') as HTMLElement;
+    this.element.addEventListener('click', e => {
+      const tab = (e.target as HTMLElement).closest('.settings-tab') as HTMLElement
       if (tab) {
-        this.switchTab(tab.dataset.tab || 'theme');
+        this.switchTab(tab.dataset.tab || 'theme')
       }
-    });
+    })
 
     // 设置变更
-    this.element.addEventListener('change', (e) => {
-      const target = e.target as HTMLInputElement | HTMLSelectElement;
-      const settingPath = target.getAttribute('data-setting');
-      
+    this.element.addEventListener('change', e => {
+      const target = e.target as HTMLInputElement | HTMLSelectElement
+      const settingPath = target.getAttribute('data-setting')
+
       if (settingPath) {
-        this.updateSetting(settingPath, target);
+        this.updateSetting(settingPath, target)
       }
-    });
+    })
 
     // 实时预览（滑块）
-    this.element.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      
+    this.element.addEventListener('input', e => {
+      const target = e.target as HTMLInputElement
+
       if (target.type === 'range') {
-        const valueSpan = target.parentElement?.querySelector('.number-value') as HTMLElement;
+        const valueSpan = target.parentElement?.querySelector('.number-value') as HTMLElement
         if (valueSpan) {
-          const unit = target.id === 'font-size' ? 'px' : '';
-          valueSpan.textContent = target.value + unit;
+          const unit = target.id === 'font-size' ? 'px' : ''
+          valueSpan.textContent = target.value + unit
         }
-        
-        const settingPath = target.getAttribute('data-setting');
+
+        const settingPath = target.getAttribute('data-setting')
         if (settingPath) {
-          this.updateSetting(settingPath, target);
+          this.updateSetting(settingPath, target)
         }
       }
-    });
+    })
 
     // 颜色输入同步
-    this.element.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      
+    this.element.addEventListener('input', e => {
+      const target = e.target as HTMLInputElement
+
       if (target.type === 'color' || target.classList.contains('color-text')) {
-        const group = target.closest('.color-input-group');
+        const group = target.closest('.color-input-group')
         if (group) {
-          const colorInput = group.querySelector('input[type="color"]') as HTMLInputElement;
-          const textInput = group.querySelector('.color-text') as HTMLInputElement;
-          
+          const colorInput = group.querySelector('input[type="color"]') as HTMLInputElement
+          const textInput = group.querySelector('.color-text') as HTMLInputElement
+
           if (target.type === 'color') {
-            textInput.value = target.value;
+            textInput.value = target.value
           } else {
-            colorInput.value = target.value;
+            colorInput.value = target.value
           }
-          
-          const settingPath = target.getAttribute('data-setting');
+
+          const settingPath = target.getAttribute('data-setting')
           if (settingPath) {
-            this.updateSetting(settingPath, target);
+            this.updateSetting(settingPath, target)
           }
         }
       }
-    });
+    })
 
     // 键盘快捷键
-    this.element.addEventListener('keydown', (e) => {
+    this.element.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
-        this.hide();
+        this.hide()
       } else if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        this.saveSettings();
+        e.preventDefault()
+        this.saveSettings()
       }
-    });
+    })
   }
 
   /**
@@ -569,55 +569,54 @@ export class Settings {
    */
   private switchTab(tabName: string): void {
     // 更新标签状态
-    const tabs = this.element.querySelectorAll('.settings-tab');
+    const tabs = this.element.querySelectorAll('.settings-tab')
     tabs.forEach(tab => {
-      tab.classList.toggle('active', tab.getAttribute('data-tab') === tabName);
-    });
+      tab.classList.toggle('active', tab.getAttribute('data-tab') === tabName)
+    })
 
     // 更新面板显示
-    const panels = this.element.querySelectorAll('.settings-panel-content');
+    const panels = this.element.querySelectorAll('.settings-panel-content')
     panels.forEach(panel => {
-      panel.classList.toggle('active', panel.getAttribute('data-panel') === tabName);
-    });
+      panel.classList.toggle('active', panel.getAttribute('data-panel') === tabName)
+    })
   }
 
   /**
    * 更新设置值
    */
   private updateSetting(path: string, element: HTMLInputElement | HTMLSelectElement): void {
-    const pathParts = path.split('.');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let current: any = this.settings;
+    const pathParts = path.split('.')
+    // 使用类型安全的方式访问嵌套对象
+    let current: Record<string, unknown> = this.settings as unknown as Record<string, unknown>
 
     // 导航到父对象
     for (let i = 0; i < pathParts.length - 1; i++) {
-      const key = pathParts[i];
+      const key = pathParts[i]
       if (key) {
-        if (!current[key]) {
-          current[key] = {};
+        if (!current[key] || typeof current[key] !== 'object') {
+          current[key] = {}
         }
-        current = current[key];
+        current = current[key] as Record<string, unknown>
       }
     }
 
     // 设置值
-    const finalKey = pathParts[pathParts.length - 1];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let value: any = element.value;
+    const finalKey = pathParts[pathParts.length - 1]
+    let value: string | number | boolean = element.value
 
     if (element.type === 'checkbox') {
-      value = (element as HTMLInputElement).checked;
+      value = (element as HTMLInputElement).checked
     } else if (element.type === 'number' || element.type === 'range') {
-      value = parseInt(element.value);
+      value = parseInt(element.value)
     }
 
     if (finalKey) {
-      current[finalKey] = value;
+      current[finalKey] = value
     }
 
     // 实时应用某些设置
     if (path.startsWith('theme.')) {
-      this.applyThemePreview();
+      this.applyThemePreview()
     }
   }
 
@@ -626,7 +625,7 @@ export class Settings {
    */
   private applyThemePreview(): void {
     if (this.onSettingsChange) {
-      this.onSettingsChange(this.settings);
+      this.onSettingsChange(this.settings)
     }
   }
 
@@ -637,16 +636,16 @@ export class Settings {
     try {
       // 这里可以调用 Tauri 命令保存设置
       // await invoke('save_app_settings', { settings: this.settings });
-      
+
       if (this.onSettingsChange) {
-        this.onSettingsChange(this.settings);
+        this.onSettingsChange(this.settings)
       }
-      
-      this.showToast('设置已保存', 'success');
-      this.hide();
+
+      this.showToast('设置已保存', 'success')
+      this.hide()
     } catch (error) {
-      console.error('保存设置失败:', error);
-      this.showToast('保存失败', 'error');
+      console.error('保存设置失败:', error)
+      this.showToast('保存失败', 'error')
     }
   }
 
@@ -655,7 +654,7 @@ export class Settings {
    */
   private confirmReset(): void {
     if (confirm('确定要重置所有设置为默认值吗？此操作不可撤销。')) {
-      this.resetSettings();
+      this.resetSettings()
     }
   }
 
@@ -663,9 +662,9 @@ export class Settings {
    * 重置设置
    */
   private resetSettings(): void {
-    this.settings = this.getDefaultSettings();
-    this.render();
-    this.showToast('设置已重置', 'info');
+    this.settings = this.getDefaultSettings()
+    this.render()
+    this.showToast('设置已重置', 'info')
   }
 
   /**
@@ -677,7 +676,7 @@ export class Settings {
       // const settings = await invoke('get_app_settings');
       // this.settings = { ...this.getDefaultSettings(), ...settings };
     } catch (error) {
-      console.warn('加载设置失败，使用默认设置:', error);
+      console.warn('加载设置失败，使用默认设置:', error)
     }
   }
 
@@ -685,89 +684,89 @@ export class Settings {
    * 显示设置面板
    */
   show(): void {
-    this.isVisible = true;
-    this.element.style.display = 'flex';
+    this.isVisible = true
+    this.element.style.display = 'flex'
     setTimeout(() => {
-      this.element.classList.add('visible');
-    }, 10);
-    
+      this.element.classList.add('visible')
+    }, 10)
+
     // 聚焦到关闭按钮
-    const closeBtn = this.element.querySelector('.settings-close-btn') as HTMLElement;
-    closeBtn?.focus();
+    const closeBtn = this.element.querySelector('.settings-close-btn') as HTMLElement
+    closeBtn?.focus()
   }
 
   /**
    * 隐藏设置面板
    */
   hide(): void {
-    this.isVisible = false;
-    this.element.classList.remove('visible');
+    this.isVisible = false
+    this.element.classList.remove('visible')
     setTimeout(() => {
       if (!this.isVisible) {
-        this.element.style.display = 'none';
+        this.element.style.display = 'none'
       }
-    }, 300);
+    }, 300)
   }
 
   /**
    * 设置变更回调
    */
   onSettingsChanged(callback: (settings: AppSettings) => void): void {
-    this.onSettingsChange = callback;
+    this.onSettingsChange = callback
   }
 
   /**
    * 获取当前设置
    */
   getSettings(): AppSettings {
-    return { ...this.settings };
+    return { ...this.settings }
   }
 
   /**
    * 更新设置
    */
   updateSettings(newSettings: Partial<AppSettings>): void {
-    this.settings = { ...this.settings, ...newSettings };
-    this.render();
+    this.settings = { ...this.settings, ...newSettings }
+    this.render()
   }
 
   /**
    * 更新主题
    */
   updateTheme(theme: Theme): void {
-    this.element.className = `calculator-settings theme-${theme.mode}`;
-    
+    this.element.className = `calculator-settings theme-${theme.mode}`
+
     // 应用主题颜色
     Object.entries(theme.cssVariables).forEach(([property, value]) => {
-      this.element.style.setProperty(property, value);
-    });
+      this.element.style.setProperty(property, value)
+    })
   }
 
   /**
    * 显示提示消息
    */
   private showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    toast.setAttribute('aria-live', 'polite');
-    
-    document.body.appendChild(toast);
-    
+    const toast = document.createElement('div')
+    toast.className = `toast toast-${type}`
+    toast.textContent = message
+    toast.setAttribute('aria-live', 'polite')
+
+    document.body.appendChild(toast)
+
     // 动画显示
     setTimeout(() => {
-      toast.classList.add('show');
-    }, 10);
-    
+      toast.classList.add('show')
+    }, 10)
+
     // 自动移除
     setTimeout(() => {
-      toast.classList.remove('show');
+      toast.classList.remove('show')
       setTimeout(() => {
         if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
+          toast.parentNode.removeChild(toast)
         }
-      }, 300);
-    }, 3000);
+      }, 300)
+    }, 3000)
   }
 
   /**
@@ -775,7 +774,7 @@ export class Settings {
    */
   destroy(): void {
     if (this.element && this.element.parentNode) {
-      this.element.parentNode.removeChild(this.element);
+      this.element.parentNode.removeChild(this.element)
     }
   }
 }

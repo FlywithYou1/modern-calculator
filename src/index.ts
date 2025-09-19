@@ -1,6 +1,6 @@
 /**
  * 科学计算器应用主入口
- * 
+ *
  * 支持桌面端和移动端的现代化科学计算器
  */
 
@@ -42,8 +42,8 @@ class App {
 
       // 创建计算器实例
       console.log('📱 创建计算器界面...')
-  this.calculator = new Calculator(rootElement)
-  await this.calculator.init()
+      this.calculator = new Calculator(rootElement)
+      await this.calculator.init()
 
       console.log('✅ 计算器启动完成')
     } catch (error) {
@@ -222,7 +222,7 @@ class App {
    * 等待DOM准备
    */
   private waitForDOM(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => resolve())
       } else {
@@ -405,7 +405,7 @@ app.init()
 // 开发环境热重载支持
 if (import.meta.hot) {
   import.meta.hot.accept()
-  
+
   // 热重载时清理旧实例
   import.meta.hot.dispose(() => {
     app.destroy()
@@ -414,16 +414,16 @@ if (import.meta.hot) {
 
 // 暴露到全局作用域供调试使用
 if (import.meta.env.DEV) {
-  ;(window as any).__calculator_app__ = app
+  ;(window as Window & { __calculator_app__?: typeof app }).__calculator_app__ = app
   console.log('🔧 开发模式：可通过 window.__calculator_app__ 访问应用实例')
 }
 
 // 错误处理
-window.addEventListener('error', (event) => {
+window.addEventListener('error', event => {
   console.error('💥 全局错误:', event.error)
 })
 
-window.addEventListener('unhandledrejection', (event) => {
+window.addEventListener('unhandledrejection', event => {
   console.error('💥 未处理的Promise拒绝:', event.reason)
 })
 
@@ -435,7 +435,7 @@ if ('performance' in window && 'measure' in performance) {
       console.log('📊 性能数据:', {
         domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
         loadComplete: perfData.loadEventEnd - perfData.loadEventStart,
-        totalTime: perfData.loadEventEnd - perfData.fetchStart
+        totalTime: perfData.loadEventEnd - perfData.fetchStart,
       })
     }, 0)
   })
