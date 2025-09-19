@@ -154,7 +154,7 @@ export class Calculator {
     ] as const
 
     booleanMappings.forEach(([backendPath, frontendKey]) => {
-      const value = this.getNestedValue(backendSettings, backendPath)
+      const value = this.getNestedValue(backendSettings as Record<string, unknown>, backendPath)
       if (typeof value === 'boolean') {
         ;(mapped as Record<string, unknown>)[frontendKey] = value
       }
