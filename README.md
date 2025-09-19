@@ -56,19 +56,138 @@ CI: `.github/workflows/ci.yml` 针对 Windows / macOS / Linux 并行执行 Lint 
 	 - Android: Android Studio + SDK/NDK (建议 SDK 34+), 启用 USB 调试或使用模拟器
 	 - iOS: macOS + Xcode (iOS 15+), 已安装命令行工具与签名证书（真机）
 
-## 快速开始
-\├── dist/                   # 前端构建输出
-\├── package.json            # 项目配置
-\└── README.md               # 文档
+## 🚀 快速开始
 
-Windows (PowerShell):
-## 安全、隐私与已知限制
+### 环境要求
+- **Node.js**: >= 18.0.0
+- **npm**: >= 9.0.0  
+- **Rust**: >= 1.90.0 (推荐 1.91.0+)
+- **系统**: Windows 10+, macOS 10.15+, Ubuntu 20.04+
 
-- 不在仓库保存明文密钥；签名/发布密钥请通过 GitHub Secrets 注入。
-- 历史/配置为本地存储，后续可接入系统安全存储。
-- 已配置严格 CSP：默认自源，限制脚本、样式、图片与连接来源，禁止内联脚本执行与对象嵌入。
-- 积分为数值法；病态矩阵行列式存在数值误差；移动端需另行集成（已提供 Tauri 2 Mobile 脚本）。
-- 无障碍：高对比度与屏幕阅读器支持
+### 💻 开发环境设置
+
+#### Windows (PowerShell):
+```powershell
+# 克隆项目
+git clone https://github.com/FlywithYou1/modern-calculator.git
+cd modern-calculator
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+# 或使用 Tauri 开发模式
+npm run tauri:dev
+```
+
+#### macOS / Linux (bash):
+```bash
+# 克隆项目  
+git clone https://github.com/FlywithYou1/modern-calculator.git
+cd modern-calculator
+
+# 安装依赖
+npm install
+
+# Linux 需要安装系统依赖
+sudo apt-get update
+sudo apt-get install -y \
+  libglib2.0-dev \
+  libgtk-3-dev \
+  libwebkit2gtk-4.0-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  patchelf
+
+# 启动开发服务器
+npm run dev
+# 或使用 Tauri 开发模式  
+npm run tauri:dev
+```
+
+### 🔧 质量检查与构建
+
+#### 开发工作流
+```bash
+# 类型检查
+npm run typecheck
+
+# 代码检查 (基础版)
+npx eslint src --ext .ts,.tsx --config eslint.simple.config.js
+
+# 代码格式化
+npm run format
+
+# 运行测试
+npm run test:run
+
+# 构建前端
+npm run build
+
+# 构建 Tauri 应用
+npm run tauri:build
+```
+
+#### 质量门检查 (CI/CD)
+所有提交都会自动执行以下检查：
+- ✅ 前端单元测试 (Vitest)
+- ⚠️ TypeScript 类型检查 (容错模式)
+- ⚠️ ESLint 代码检查 (简化配置)
+- ⚠️ Rust 单元测试 (需要系统依赖)
+- ✅ 多平台构建测试
+## ⚠️ 已知问题与限制
+
+### 当前状态 (v2.0.0)
+项目正在积极开发中，以下是当前已知的问题和限制：
+
+#### 🔧 配置问题
+- **TypeScript**: 类型检查存在依赖冲突，已启用 `skipLibCheck` 容错模式
+- **ESLint**: 使用简化配置，完整 TypeScript 解析需要额外配置
+- **Vitest**: 某些测试需要 DOM 环境，部分测试在 Node.js 环境下失败
+- **依赖版本**: `sass` vs `sass-embedded` 版本不匹配
+
+#### 🐧 Linux 系统依赖  
+Rust 后端需要以下系统库：
+```bash
+sudo apt-get install -y \
+  libglib2.0-dev \
+  libgtk-3-dev \
+  libwebkit2gtk-4.0-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  patchelf
+```
+
+#### 📱 移动端支持
+- Android 构建需要额外的 SDK 和 NDK 配置
+- iOS 构建需要 Apple 开发者证书
+- 完整移动端支持计划在后续版本中实现
+
+#### 🔐 安全与隐私
+- 历史记录和配置文件存储在本地
+- 不会收集或传输用户数据
+- 签名证书需要通过 GitHub Secrets 配置
+- CSP 策略限制脚本执行，增强安全性
+
+### 🚀 工作项功能
+尽管存在上述限制，以下功能已可正常使用：
+- ✅ 基础数学运算 (加减乘除、百分比、幂运算)
+- ✅ 科学计算函数 (三角函数、对数、指数)
+- ✅ 计算历史记录和导出
+- ✅ 主题切换 (浅色/深色模式)
+- ✅ 键盘快捷键支持
+- ✅ 响应式界面设计
+- ✅ GPU 加速动画 (60fps)
+- ✅ MCP 调试接口 (开发模式)
+
+### 🔄 持续改进
+我们正在积极解决这些问题：
+1. 优化构建配置和依赖管理
+2. 完善测试覆盖率和 CI/CD 流程
+3. 改进跨平台兼容性
+4. 增强移动端体验
+5. 扩展高级数学功能
 ```
 
 macOS / Linux (bash):
