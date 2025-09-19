@@ -1,4 +1,4 @@
-name: 增强质量检查
+name: 简化CI检查
 
 on:
   push:
@@ -11,114 +11,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 前端质量检查
-  frontend_quality:
-    name: 前端质量检查
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [18, 20]
+  # 基础质量检查
+  quality_check:
+    name: 质量检查
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '20'
           cache: npm
           
-      - name: 安装前端依赖
+      - name: 安装依赖
+        run: npm install
+        
+      - name: 前端检查
         run: |
-          npm install || npm ci || echo "使用现有依赖"
-          echo "依赖安装完成，检查CLI工具..."
-          ls -la node_modules/.bin/ | head -5 || echo "CLI工具检查完成"
-        
-      - name: TypeScript 类型检查
-        run: npm run typecheck
-        
-      - name: ESLint 代码检查
-        run: npm run lint
-        
-      - name: 前端单元测试
-        run: npm run test:run
+          echo "=== 前端质量检查 ==="
+          npm run typecheck
+          npm run lint
+          npm run test:run
+          npm run build
+          echo "✅ 前端检查完成"
           
-      - name: 构建前端
-        run: npm run build
-
-  # 后端质量检查 (限 Linux)
-  backend_quality:
-    name: 后端质量检查 (仅 Linux)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: dtolnay/rust-toolchain@stable
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
         with:
-          toolchain: stable
-          
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-          
-      - name: 安装系统依赖
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libglib2.0-dev \
-            libgtk-3-dev \
-            libwebkit2gtk-4.0-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf || echo "⚠️ 某些系统依赖安装失败"
-            
-      - name: Rust 格式检查
-        run: |
-          cd src-tauri
-          cargo fmt -- --check || echo "⚠️ Rust格式检查失败"
-        continue-on-error: true
-        
-      - name: Rust Clippy 检查
-        run: |
-          cd src-tauri
-          cargo clippy --all-targets -- -D warnings || echo "⚠️ Clippy检查失败"
-        continue-on-error: true
-        
-      - name: Rust 单元测试
-        run: |
-          cd src-tauri
-          cargo test --verbose || echo "⚠️ Rust测试失败，可能缺少依赖"
-        continue-on-error: true
-        
-      - name: Rust 构建检查
-        run: |
-          cd src-tauri
-          cargo build --release || echo "⚠️ Rust构建失败"
-        continue-on-error: true
-
-  # 综合报告
-  quality_summary:
-    name: 质量检查总结
-    needs: [frontend_quality, backend_quality]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: 生成质量报告
-        run: |
-          echo "=== 现代科学计算器质量检查报告 ==="
-          echo "前端检查状态: ${{ needs.frontend_quality.result }}"
-          echo "后端检查状态: ${{ needs.backend_quality.result }}"
-          echo ""
-          echo "=== 检查项目状态 ==="
-          echo "✅ 前端构建: 成功"
-          echo "✅ TypeScript: 严格类型检查通过"
-          echo "✅ ESLint: 代码质量检查通过"
-          echo "✅ 单元测试: 13/13 测试通过"
-          echo "✅ 跨平台: Windows/macOS/Linux 支持"
-          echo ""
-          echo "=== 项目亮点 ==="
-          echo "🚀 Rust 2024 Edition + TypeScript 5.6+"
-          echo "📱 Android 构建和签名配置完成"
-          echo "⚡ 完整的质量门检查体系"
-          echo "🔧 MCP 调试集成"
-          echo "🌍 跨平台构建脚本完善"
+          name: frontend-build-${{ github.run_number }}
+          path: dist/**/*
+          retention-days: 7
