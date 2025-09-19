@@ -15,89 +15,100 @@
 - **⚡ 高性能**: 60fps 流畅体验，智能性能降级
 - **🧩 模块化**: TypeScript 严格类型，组件化架构
 
-## 📦 构建产物说明
+## 📦 构建产物完整指南
 
-### 🎯 构建产物位置
+### 🎯 本地构建产物位置
 
-#### 前端构建产物 (dist/)
-运行 `npm run build` 后，生成的前端资源位于 `dist/` 目录：
-
+#### 前端构建产物 (`npm run build`)
+**位置**: `dist/` 目录
 ```
 dist/
 ├── index.html                     2.72 kB  # 主入口页面
 └── assets/
     ├── main-DwZrvMdA.js          90.17 kB  # 主应用代码 (gzip: 21.30 kB)
-    ├── main-D79PZLhZ.css         31.69 kB  # 样式文件 (gzip: 6.01 kB)
+    ├── main-D79PZLhZ.css         31.69 kB  # 样式文件 (gzip: 6.01 kB)  
     ├── evaluator-Bl1E3tPs.js      3.68 kB  # 计算引擎 (gzip: 1.47 kB)
     ├── vendor-B46sw_IK.js         1.67 kB  # 第三方库 (gzip: 0.83 kB)
     └── index-BUDdy0sR.js          1.47 kB  # 入口脚本 (gzip: 0.51 kB)
 
-总大小: ~141 kB → ~31 kB (gzip 压缩率: 78%)
+💾 总大小: ~141 kB → ~31 kB (gzip 压缩率: 78%)
 ```
 
-#### Android 构建产物
-- **项目结构**: `src-tauri/gen/android/` - Android Studio 项目
-- **APK 文件**: `src-tauri/gen/android/app/build/outputs/apk/`
-- **AAB 文件**: `src-tauri/gen/android/app/build/outputs/bundle/`
-- **签名配置**: `src-tauri/keystore/calculator.keystore`
+#### 跨平台桌面端构建产物 (`npm run tauri:build`)
+**位置**: `src-tauri/target/release/bundle/`
+```
+src-tauri/target/release/bundle/
+├── msi/                          # Windows 安装包 (.msi)
+├── dmg/                          # macOS 镜像文件 (.dmg) 
+├── deb/                          # Linux Debian 包 (.deb)
+├── appimage/                     # Linux AppImage (.AppImage)
+└── macos/                        # macOS 应用包 (.app)
+```
 
-#### 桌面端构建产物 (Tauri)
-运行 `npm run tauri:build` 后：
-- **Windows**: `src-tauri/target/release/bundle/msi/` (.msi 安装包)
-- **macOS**: `src-tauri/target/release/bundle/dmg/` (.dmg 镜像)
-- **Linux**: `src-tauri/target/release/bundle/deb/` (.deb 包) 和 `appimage/` (AppImage)
+#### Android 构建产物 (`npm run android:build`)
+**位置**: `src-tauri/gen/android/app/build/outputs/`
+```
+src-tauri/gen/android/app/build/outputs/
+├── apk/                          # Android APK 安装包
+│   ├── debug/                    # 调试版本
+│   └── release/                  # 发布版本 (签名)
+└── bundle/                       # Android AAB 包 (Google Play)
+    ├── debug/
+    └── release/
+```
 
-### 🚀 CI/CD 构建产物获取
+**Android 项目结构**: `src-tauri/gen/android/` - 完整 Android Studio 项目  
+**签名配置**: `src-tauri/keystore/calculator.keystore` - RSA 2048位开发证书
 
-#### GitHub Actions 自动构建
-每次推送到 main 分支或创建 Pull Request 时，会自动触发构建：
+### 🚀 CI/CD 自动构建产物获取
 
-1. **前端构建**: 自动运行质量检查和构建
-2. **Android 构建**: main 分支自动构建 (PR 时跳过)
+#### GitHub Actions 构建流程
+- **前端构建**: 每次 Push/PR 自动触发，生成优化的 Web 资源
+- **跨平台构建**: main 分支推送时自动构建 Android + 桌面端配置
+- **工作流触发**: 支持手动触发完整跨平台构建
 
-#### 下载构建产物
+#### 下载自动构建产物
 1. 访问 [GitHub Actions](https://github.com/FlywithYou1/modern-calculator/actions)
-2. 选择最新的工作流运行
-3. 在 "Artifacts" 部分下载：
-   - `frontend-build-{run_number}` - 前端构建产物
-   - `android-build-{run_number}` - Android 构建产物
-4. 产物保留期：7天
+2. 选择最新的 "CI/CD 完整流水线" 工作流运行
+3. 在页面底部 "Artifacts" 部分下载：
+   - **`frontend-build-{编号}`** - 前端 Web 资源 (dist/ 目录)
+   - **`cross-platform-build-{编号}`** - 跨平台构建产物 (Android + 桌面端配置)
+4. **保留期**: 7天自动清理
 
-#### 构建状态验证
+#### 构建产物内容说明
+| 产物类型 | 包含内容 | 适用场景 |
+|---------|----------|----------|
+| **前端构建** | `dist/` 完整 Web 资源 | 静态网站部署、Web 应用 |
+| **跨平台构建** | Android APK + 桌面端配置 + 前端资源 | 移动端安装、桌面应用 |
+
+#### 本地构建验证命令
 ```bash
-# 本地验证构建
-npm run quality:check  # 运行所有质量检查
-npm run build          # 构建前端
-npm run tauri:build    # 构建桌面应用 (需要 Rust 环境)
-npm run android:build  # 构建 Android (需要 Android SDK)
+# 质量检查 (TypeScript + ESLint + 测试)
+npm run quality:check
+
+# 前端构建 (生成 dist/ 目录)
+npm run build
+
+# 桌面端构建 (生成 .msi/.dmg/.deb 等)
+npm run tauri:build
+
+# Android 构建 (生成 APK/AAB)
+npm run android:build
+
+# 跨平台构建状态检查
+npm run build:all-platforms
 ```
 
+### 📍 **构建产物位置总结**
 
-### 🎯 前端构建产物位置
-
-构建完成后，所有前端资源位于 **`dist/`** 目录：
-
-```
-dist/
-├── index.html                   2.72 kB  # 主页面入口
-└── assets/
-    ├── main-B7b-1uxb.js        89.30 kB  # 主应用代码 (gzip: 20.96 kB)
-    ├── main-D79PZLhZ.css       31.69 kB  # 样式文件 (gzip: 6.01 kB)
-    ├── evaluator-Bl1E3tPs.js    3.68 kB  # 计算引擎 (gzip: 1.47 kB)
-    ├── vendor-B46sw_IK.js       1.67 kB  # 第三方库 (gzip: 0.83 kB)
-    └── index-BUDdy0sR.js        1.47 kB  # 入口脚本 (gzip: 0.51 kB)
-```
-
-**💾 优化效果**:
-- **总大小**: ~140 kB (原始) → ~31 kB (gzip压缩)
-- **压缩率**: 78% 体积减少
-- **代码分割**: 计算引擎独立模块，按需加载
-- **生产就绪**: 已优化混淆，可直接部署
-
-### 🤖 Android 构建产物
-
-Android 构建产物位于以下目录：
-- **APK 文件**: `src-tauri/gen/android/app/build/outputs/apk/`
+| 平台 | 构建命令 | 产物位置 | 文件类型 |
+|------|---------|----------|----------|
+| **Web 前端** | `npm run build` | `dist/` | HTML, JS, CSS |
+| **Windows** | `npm run tauri:build` | `src-tauri/target/release/bundle/msi/` | .msi |
+| **macOS** | `npm run tauri:build` | `src-tauri/target/release/bundle/dmg/` | .dmg, .app |
+| **Linux** | `npm run tauri:build` | `src-tauri/target/release/bundle/deb/` | .deb, .AppImage |
+| **Android** | `npm run android:build` | `src-tauri/gen/android/app/build/outputs/` | .apk, .aab |
+| **CI/CD** | 自动构建 | GitHub Actions Artifacts | 压缩包 |
 - **AAB 文件**: `src-tauri/gen/android/app/build/outputs/bundle/`
 - **项目源码**: `src-tauri/gen/android/` (完整 Android Studio 项目)
 
