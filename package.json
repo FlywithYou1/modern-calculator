@@ -53,7 +53,7 @@
     "npm": ">=9.0.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.8.5",
+    "@tauri-apps/cli": "^2.8.4",
     "@types/node": "^24.3.3",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
