@@ -26,7 +26,7 @@
 - **智能输入**体验，支持自然语言表达式和历史记录
 
 ### 技术架构
-- **前端技术栈**：原生 HTML5、CSS3 Grid/Flexbox 和 TypeScript 5.0+。**严禁**引入任何前端框架。
+- **前端技术栈**：原生 HTML5、CSS3 Grid/Flexbox 和 TypeScript 5.0+。
 - **后端技术栈**：Rust 2024 Edition，集成 Tauri 2.0+ API 和高精度数学计算库（rust_decimal, num-bigint, libm, bigdecimal）。
 - **跨平台支持**：Windows 10+、macOS 10.15+、Linux（主流发行版）、Android 8.0+，专注桌面和移动端体验。
 - **WebView 架构**：利用系统原生 WebView（Windows WebView2、macOS WKWebView、Linux WebKitGTK、Android WebView），支持多 WebView 窗口。
