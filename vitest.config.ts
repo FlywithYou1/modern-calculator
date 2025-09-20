@@ -19,11 +19,12 @@ export default defineConfig({
         'dist/',
       ],
     },
-    benchmark: {
-      include: ['src/**/*.{bench,benchmark}.{js,ts,tsx}'],
-    },
     testTimeout: 10000,
     hookTimeout: 10000,
+  },
+  // Add types for vitest globals
+  define: {
+    'import.meta.vitest': undefined,
   },
   resolve: {
     alias: {

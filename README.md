@@ -1,19 +1,103 @@
-# 🧮 现代科学计算器 (Modern Scientific Calculator)
+# 现代科学计算器
 
-基于 **Tauri 2.8** + **TypeScript 5.6** 构建的现代化科学计算器，支持高精度计算、跨平台部署和优雅的用户体验。
+> 基于 Tauri + TypeScript + Rust 构建的跨平台科学计算器应用
 
-[![CI/CD Status](https://img.shields.io/github/actions/workflow/status/FlywithYou1/modern-calculator/ci-cd.yml?branch=main&style=flat-square&logo=github)](https://github.com/FlywithYou1/modern-calculator/actions)
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/FlywithYou1/modern-calculator/ci-cd.yml?branch=main&style=flat-square)](https://github.com/FlywithYou1/modern-calculator/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-lightgrey?style=flat-square)](https://github.com/FlywithYou1/modern-calculator)
 
-## ✨ 主要特性
+## ✨ 核心特性
 
-- **🎯 高精度计算**: 金融级数值精度，避免浮点误差
-- **🔬 科学功能**: 三角函数、对数、统计、矩阵、复数运算
-- **📱 跨平台**: Windows、macOS、Linux、Android 全平台支持
-- **🎨 现代 UI**: 深色/浅色主题，GPU 加速动画，响应式设计
-- **⚡ 高性能**: 60fps 流畅体验，智能性能降级
-- **🧩 模块化**: TypeScript 严格类型，组件化架构
+- **🧮 高精度计算** - 基于 Rust 的金融级数值计算引擎
+- **🔬 科学功能** - 三角函数、对数、统计、复数运算  
+- **📱 跨平台支持** - Windows、macOS、Linux、Android
+- **🎨 现代界面** - 响应式设计 + 深色/浅色主题
+- **⚡ 高性能** - 60fps 流畅交互 + GPU 加速动画
+- **🔧 可扩展** - 模块化架构 + TypeScript 类型安全
+
+## 🚀 快速开始
+
+### 环境要求
+- Node.js >= 18.0
+- Rust >= 1.80  
+- 系统依赖 (Linux需要): `libgtk-3-dev libwebkit2gtk-4.0-dev`
+
+### 安装与运行
+```bash
+# 克隆项目
+git clone https://github.com/FlywithYou1/modern-calculator.git
+cd modern-calculator
+
+# 安装依赖
+npm install
+
+# 开发模式
+npm run tauri:dev
+
+# 构建应用
+npm run tauri:build
+```
+
+### 质量检查
+```bash
+npm run typecheck  # TypeScript类型检查
+npm run lint       # ESLint代码检查  
+npm run test:run   # 单元测试
+npm run build      # 前端构建
+```
+
+## 🏗️ 技术架构
+
+| 层次 | 技术栈 | 说明 |
+|------|--------|------|
+| **前端** | TypeScript 5.6 + HTML5 + CSS3 | 响应式UI + 类型安全 |
+| **后端** | Rust 2024 + Tauri 2.8 | 高性能计算引擎 |
+| **数学库** | rust_decimal + num-bigint | 高精度数值计算 |
+| **构建** | Vite 7 + Cargo + npm | 快速构建 + 热重载 |
+
+## 📦 构建产物
+
+### 桌面端
+- Windows: `.msi` 安装包 (约15MB)
+- macOS: `.dmg` 镜像文件 (约20MB)  
+- Linux: `.deb` + `.AppImage` (约25MB)
+
+### 移动端
+- Android: `.apk` / `.aab` (约10MB)
+
+### Web端  
+- 静态资源: `dist/` (约400KB, gzip后<50KB)
+
+## 🔧 开发指南
+
+### 项目结构
+```
+src/               # 前端源码
+├── components/    # UI组件 (Calculator, Display, Keyboard)
+├── styles/        # SCSS样式文件
+├── utils/         # 工具函数 (evaluator, theme, device)
+└── tests/         # 前端测试
+
+src-tauri/src/     # 后端源码  
+├── math/          # 数学计算模块
+├── parser/        # 表达式解析器
+├── history/       # 历史记录管理
+└── commands.rs    # Tauri命令接口
+```
+
+### 添加新功能
+1. 在 `src/components/` 添加前端组件
+2. 在 `src-tauri/src/math/` 添加计算逻辑
+3. 在 `src-tauri/src/commands.rs` 暴露 Tauri 命令
+4. 编写对应的单元测试
+
+## 📄 许可证
+
+本项目采用 [MIT 许可证](LICENSE)。
+
+---
+
+**项目状态**: 🚀 活跃开发中 | **最新版本**: v2.0.0 | **技术支持**: [Issues](https://github.com/FlywithYou1/modern-calculator/issues)
 
 ## 📦 构建产物完整指南
 

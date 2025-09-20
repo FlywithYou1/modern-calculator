@@ -1,14 +1,12 @@
 [package]
-name = "app"
+name = "modern-calculator"
 version = "2.0.0"
 description = "现代化跨平台科学计算器 - 高精度运算引擎"
 authors = ["Scientific Calculator Team"]
 license = "MIT"
-repository = "https://github.com/your-org/tauri-scientific-calculator"
+repository = "https://github.com/FlywithYou1/modern-calculator"
 edition = "2024"
 rust-version = "1.80.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 name = "app_lib"
@@ -18,6 +16,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.4", features = [] }
 
 [dependencies]
+# Tauri 核心
 serde_json = { version = "1.0", features = ["preserve_order"] }
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
@@ -30,48 +29,46 @@ tauri-plugin-barcode-scanner = "2.4"
 tauri-plugin-biometric = "2.3"
 tauri-plugin-haptics = "2.3"
 
-# 高精度数学计算库 - 最新版本
+# 高精度数学计算库
 rust_decimal = { version = "1.37", features = ["serde-with-str", "maths", "c-repr", "legacy-ops"] }
 num-bigint = { version = "0.4", features = ["serde", "rand"] }
 num-traits = "0.2"
 num-complex = "0.4"
 libm = "0.2"
-
-# 新增高精度计算库
 bigdecimal = "0.4"
 num-rational = "0.4"
 num-iter = "0.1"
 
-# 异步运行时 - 最新版本
+# 异步运行时
 tokio = { version = "1.40", features = ["full", "time", "rt-multi-thread"] }
 futures = "0.3"
 async-trait = "0.1"
 
-# 错误处理 - 稳定版本
+# 错误处理
 anyhow = "1.0"
 thiserror = "1.0"
 
-# 序列化/反序列化 - 稳定版本
+# 序列化
 bincode = "1.3"
 rmp-serde = "1.3"
 
-# 日期时间处理 - 稳定版本
+# 时间处理
 chrono = { version = "0.4", features = ["serde"] }
 time = { version = "0.3", features = ["serde", "formatting", "parsing"] }
 
-# UUID 生成 - 稳定版本
+# UUID 生成
 uuid = { version = "1.10", features = ["v4", "serde"] }
 
-# 新增：性能监控和内存管理 (可选特性)
+# 性能监控和内存管理 (可选)
 dhat = { version = "0.3", optional = true }
 mimalloc = { version = "0.1", default-features = false, optional = true }
 
-# MCP (Model Context Protocol) 调试支持
+# MCP 调试支持
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tokio-tungstenite = "0.23"
 
-# 移动端平台特定依赖 - 稳定版本
+# 移动端平台特定依赖
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21"
 android_logger = "0.13"
@@ -80,10 +77,8 @@ android_logger = "0.13"
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 precision-tests = []
-# 高级特性
 advanced-math = ["rust_decimal/maths"]
 high-performance = []
-# 内存分析工具 (可选)
 memory-profiler = ["dhat"]
 alt-allocator = ["mimalloc"]
 

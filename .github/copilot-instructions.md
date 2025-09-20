@@ -1,6 +1,8 @@
-# GitHub Copilot 自定义指令
+# 现代科学计算器 - 开发规范与架构指南
 
-（此文件由开发规范要求添加，内容与用户提供的规范保持一致，作为项目开发与质量基准文档。）
+> 本文档定义了现代科学计算器项目的开发标准、技术架构和质量要求。
+> 
+> **项目目标**: 构建一个界面设计优秀、富有科技感、性能优化、功能丰富且易用的现代计算器应用
 
 ## 1. 核心目标与行为准则
 
@@ -25,29 +27,77 @@
 - **高精度计算**引擎，确保金融级别的数值准确性
 - **智能输入**体验，支持自然语言表达式和历史记录
 
-### 技术架构
-- **前端技术栈**：原生 HTML5、CSS3 Grid/Flexbox 和 TypeScript 5.0+。
-- **后端技术栈**：Rust 2024 Edition，集成 Tauri 2.0+ API 和高精度数学计算库（rust_decimal, num-bigint, libm, bigdecimal）。
-- **跨平台支持**：Windows 10+、macOS 10.15+、Linux（主流发行版）、Android 8.0+，专注桌面和移动端体验。
-- **WebView 架构**：利用系统原生 WebView（Windows WebView2、macOS WKWebView、Linux WebKitGTK、Android WebView），支持多 WebView 窗口。
-- **前后端通信**：通过 Tauri 的 Commands 实现异步高性能计算，Events 机制处理实时状态同步，支持跨窗口通信。
-- **MCP 调试集成**：Model Context Protocol 支持，提供实时调试接口、性能监控和开发工具集成。
+### 技术架构标准
 
-### 关键目录结构
-- `src/`: 前端 WebView 的所有资源
-  - `components/`: 模块化 UI 组件（Calculator.ts、Display.ts、Keyboard.ts、History.ts、Settings.ts）
-  - `styles/`: CSS 模块和主题系统（响应式设计，适配桌面和移动端）
-  - `utils/`: 前端工具函数和类型定义（evaluator.ts、theme.ts、device.ts、tauri.ts、mcp-debugger.ts）
-  - `tests/`: 前端单元测试和集成测试
-  - `types/`: TypeScript 类型定义（calculator.ts）
-- `src-tauri/src/`: 后端 Rust 计算引擎
-  - `math/`: 高精度数学计算模块（基础运算、科学函数、统计分析）
-  - `parser/`: 表达式解析和语法分析（词法分析、AST构建、表达式求值）
-  - `history/`: 计算历史管理（持久化存储、搜索、分类）
-  - `settings/`: 应用配置和主题管理（用户偏好、设备适配）
-  - `mcp/`: Model Context Protocol 调试模块（性能监控、状态追踪、错误诊断）
-  - `commands.rs`: Tauri 命令接口定义
-  - `lib.rs`: 模块导出和应用入口
+#### 核心技术栈
+- **前端**: TypeScript 5.6+ + HTML5 + CSS3 (Grid/Flexbox)
+- **后端**: Rust 2024 Edition + Tauri 2.8+
+- **数学引擎**: rust_decimal + num-bigint + bigdecimal (高精度计算)
+- **构建工具**: Vite 7+ + cargo + npm
+
+#### 平台支持矩阵
+| 平台 | 最低版本 | 技术实现 |
+|------|----------|----------|
+| Windows | 10+ | WebView2 + UCRT64工具链 |
+| macOS | 10.15+ | WKWebView + 原生构建 |
+| Linux | Ubuntu 20.04+ | WebKitGTK + 系统依赖 |
+| Android | 8.0+ (API 26) | System WebView + NDK |
+
+#### 架构原则
+- **性能优先**: 60fps 交互 + GPU加速动画
+- **类型安全**: 严格TypeScript + Rust类型系统
+- **模块化**: 组件化前端 + 模块化后端
+- **跨平台**: 一套代码 + 多平台构建
+
+## 项目目录结构标准
+
+```
+modern-calculator/
+├── src/                           # 前端源码
+│   ├── components/                # UI组件
+│   │   ├── Calculator.ts          # 主计算器组件
+│   │   ├── Display.ts             # 显示屏组件
+│   │   ├── Keyboard.ts            # 键盘组件
+│   │   ├── History.ts             # 历史记录组件
+│   │   └── Settings.ts            # 设置组件
+│   ├── styles/                    # 样式文件
+│   │   ├── index.scss             # 主样式
+│   │   ├── calculator.scss        # 计算器样式
+│   │   └── variables.scss         # CSS变量
+│   ├── utils/                     # 工具函数
+│   │   ├── evaluator.ts           # 表达式求值器
+│   │   ├── theme.ts               # 主题管理
+│   │   ├── device.ts              # 设备检测
+│   │   ├── tauri.ts               # Tauri API封装
+│   │   └── mcp-debugger.ts        # MCP调试工具
+│   ├── types/                     # 类型定义
+│   │   └── calculator.ts          # 计算器类型
+│   ├── tests/                     # 前端测试
+│   │   ├── setup.ts               # 测试配置
+│   │   ├── evaluator.test.ts      # 求值器测试
+│   │   └── device.test.ts         # 设备检测测试
+│   └── mobile/                    # 移动端特定代码
+├── src-tauri/                     # 后端源码
+│   ├── src/
+│   │   ├── math/                  # 数学计算模块
+│   │   ├── parser/                # 表达式解析器
+│   │   ├── history/               # 历史记录管理
+│   │   ├── settings/              # 设置管理
+│   │   ├── mcp/                   # MCP调试模块
+│   │   ├── commands.rs            # Tauri命令接口
+│   │   ├── lib.rs                 # 库入口
+│   │   └── main.rs                # 应用入口
+│   ├── Cargo.toml                 # Rust依赖配置
+│   └── tauri.conf.json            # Tauri配置
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml              # CI/CD工作流
+├── scripts/                       # 构建脚本
+├── package.json                   # Node.js依赖
+├── vite.config.ts                 # Vite配置
+├── tsconfig.json                  # TypeScript配置
+└── README.md                      # 项目文档
+```
 - `src-tauri/gen/android/`: Android 平台配置和资源
 - `scripts/`: 构建脚本和开发工具
 - `.github/`: CI/CD 配置和文档模板
@@ -204,18 +254,28 @@ interface MCPDebugger {
 
 ## 8. 开发工作流
 
-### 质量门检查（必须全部通过）
-1. **TypeScript 类型检查**: `npm run typecheck`
-2. **代码风格检查**: `npm run lint`
-3. **前端单元测试**: `npm run test:run`
-4. **Rust 后端测试**: `cargo test`
-5. **精度验证测试**: `cargo test --features precision-tests`
-6. **性能基准测试**: `npm run benchmark`
-7. **无障碍合规检查**: `npm run a11y-test`
-8. **桌面端构建验证**: `npm run build`
-9. **Android 构建测试**: `npm run tauri android build`
-10. **MCP 调试接口测试**: `npm run test:mcp`
-11. **跨平台兼容性测试**: `npm run test:cross-platform`
+## 质量保证标准
+
+### 代码质量检查（必须全部通过）
+1. **TypeScript类型检查**: `npm run typecheck` - 0错误
+2. **ESLint代码规范**: `npm run lint` - 0警告 
+3. **Prettier格式化**: `npm run format:check` - 统一格式
+4. **前端单元测试**: `npm run test:run` - 覆盖率>80%
+5. **Rust单元测试**: `cargo test` - 全部通过
+6. **跨平台构建**: 至少支持Linux+Windows构建
+
+### 性能要求
+- 前端交互响应 < 100ms
+- 复杂计算响应 < 500ms  
+- 动画帧率保持 60fps
+- 内存使用 < 100MB
+- 构建产物 < 50MB
+
+### 安全要求
+- 无SQL注入风险
+- 无XSS漏洞
+- 敏感信息加密存储
+- 依赖库安全扫描通过
 
 ### 版本发布规范
 - **语义化版本**：严格遵循 SemVer，主版本.次版本.修订版本
