@@ -24,21 +24,25 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-});
+})
 
 // 模拟 ResizeObserver
-(globalThis as typeof globalThis & { ResizeObserver?: unknown }).ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+;(globalThis as typeof globalThis & { ResizeObserver?: unknown }).ResizeObserver = vi
+  .fn()
+  .mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  }))
 
 // 模拟 IntersectionObserver
-(globalThis as typeof globalThis & { IntersectionObserver?: unknown }).IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+;(globalThis as typeof globalThis & { IntersectionObserver?: unknown }).IntersectionObserver = vi
+  .fn()
+  .mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  }))
 
 // 模拟 navigator.vibrate
 Object.defineProperty(navigator, 'vibrate', {
@@ -58,10 +62,10 @@ const localStorageMock: Storage = {
 Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true,
-});
+})
 
 // 模拟 console 方法以减少测试输出噪音
-(globalThis as typeof globalThis & { console?: unknown }).console = {
+;(globalThis as typeof globalThis & { console?: unknown }).console = {
   ...console,
   log: vi.fn(),
   warn: vi.fn(),
