@@ -29,9 +29,10 @@ dist/
     ├── main-D79PZLhZ.css         31.69 kB  # 样式文件 (gzip: 6.01 kB)  
     ├── evaluator-Bl1E3tPs.js      3.68 kB  # 计算引擎 (gzip: 1.47 kB)
     ├── vendor-B46sw_IK.js         1.67 kB  # 第三方库 (gzip: 0.83 kB)
-    └── index-BUDdy0sR.js          1.47 kB  # 入口脚本 (gzip: 0.51 kB)
+    ├── index-BUDdy0sR.js          1.47 kB  # 入口脚本 (gzip: 0.51 kB)
+    └── index-DT-o4kUR.ts         12.02 kB  # TypeScript 类型定义文件
 
-💾 总大小: ~141 kB → ~31 kB (gzip 压缩率: 78%)
+💾 总大小: ~420 kB (包含 source maps) → ~31 kB (gzip 压缩率: 92%)
 ```
 
 #### 跨平台桌面端构建产物 (`npm run tauri:build`)
