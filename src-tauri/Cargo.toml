@@ -5,8 +5,8 @@ description = "现代化跨平台科学计算器 - 高精度运算引擎"
 authors = ["Scientific Calculator Team"]
 license = "MIT"
 repository = "https://github.com/your-org/tauri-scientific-calculator"
-edition = "2021"
-rust-version = "1.89.0"
+edition = "2024"
+rust-version = "1.80.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -62,9 +62,9 @@ time = { version = "0.3", features = ["serde", "formatting", "parsing"] }
 # UUID 生成 - 稳定版本
 uuid = { version = "1.10", features = ["v4", "serde"] }
 
-# 新增：性能监控和内存管理
-dhat = "0.3"
-mimalloc = { version = "0.1", default-features = false }
+# 新增：性能监控和内存管理 (可选特性)
+dhat = { version = "0.3", optional = true }
+mimalloc = { version = "0.1", default-features = false, optional = true }
 
 # MCP (Model Context Protocol) 调试支持
 tracing = "0.1"
@@ -83,6 +83,9 @@ precision-tests = []
 # 高级特性
 advanced-math = ["rust_decimal/maths"]
 high-performance = []
+# 内存分析工具 (可选)
+memory-profiler = ["dhat"]
+alt-allocator = ["mimalloc"]
 
 # 性能优化配置
 [profile.release]

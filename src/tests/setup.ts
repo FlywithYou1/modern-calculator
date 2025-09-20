@@ -14,7 +14,7 @@ Object.defineProperty(window, '__TAURI__', {
 // 模拟 matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -24,17 +24,17 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-})
+});
 
 // 模拟 ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
+(globalThis as typeof globalThis & { ResizeObserver?: unknown }).ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-}))
+}));
 
 // 模拟 IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+(globalThis as typeof globalThis & { IntersectionObserver?: unknown }).IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
@@ -55,13 +55,13 @@ const localStorageMock: Storage = {
   length: 0,
   key: vi.fn(),
 }
-Object.defineProperty(global, 'localStorage', {
+Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true,
-})
+});
 
 // 模拟 console 方法以减少测试输出噪音
-global.console = {
+(globalThis as typeof globalThis & { console?: unknown }).console = {
   ...console,
   log: vi.fn(),
   warn: vi.fn(),
