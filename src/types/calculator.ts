@@ -92,6 +92,9 @@ export interface KeyboardConfig {
   enableHaptic: boolean
   buttonSize?: 'small' | 'medium' | 'large'
   layout?: 'standard' | 'scientific' | 'programmer'
+  showScientific?: boolean
+  deviceType?: DeviceType
+  angleMode?: 'degrees' | 'radians' | 'gradians'
   onInput?: (value: string, type: Operation) => void
   config?: CalculatorConfig
 }
@@ -137,6 +140,8 @@ export interface HistoryItem {
   timestamp: string
   tags?: string[]
   notes?: string
+  metadata?: Record<string, unknown>
+  source?: string
 }
 
 /**
@@ -237,6 +242,64 @@ export interface AppSettings {
   display: DisplaySettings
   layout: LayoutSettings
   general: GeneralSettings
+  advanced?: AdvancedSettings
+}
+
+/**
+ * 高级设置
+ */
+export interface AdvancedSettings {
+  keyboard: KeyboardAdvancedSettings
+  history: HistoryAdvancedSettings
+  performance: PerformanceSettings
+  accessibility: AccessibilitySettings
+}
+
+/**
+ * 键盘高级设置
+ */
+export interface KeyboardAdvancedSettings {
+  customShortcuts: Record<string, string>
+  hapticIntensity: 'low' | 'medium' | 'high' | 'off'
+  gestureSensitivity: number // 1-10
+  autoRepeatDelay: number // milliseconds
+  autoRepeatRate: number // characters per second
+}
+
+/**
+ * 历史记录高级设置
+ */
+export interface HistoryAdvancedSettings {
+  autoCleanup: boolean
+  cleanupStrategy: 'age' | 'count' | 'size'
+  cleanupThreshold: number // days, count, or MB
+  exportFormat: 'json' | 'csv' | 'txt'
+  enableSearch: boolean
+  enableTags: boolean
+  maxTagLength: number
+}
+
+/**
+ * 性能设置
+ */
+export interface PerformanceSettings {
+  animationQuality: 'low' | 'medium' | 'high' | 'auto'
+  maxCalculationTime: number // milliseconds
+  enableCaching: boolean
+  cacheSize: number // MB
+  enableBackgroundSync: boolean
+}
+
+/**
+ * 无障碍设置
+ */
+export interface AccessibilitySettings {
+  highContrast: boolean
+  reduceMotion: boolean
+  screenReaderSupport: boolean
+  keyboardNavigation: boolean
+  largeText: boolean
+  colorBlindMode: 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia'
 }
 
 // ==================== 计算器配置 ====================

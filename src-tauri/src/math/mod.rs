@@ -1311,7 +1311,7 @@ mod tests {
     fn test_logarithms() {
         let calc = Calculator::default();
         
-        let e = Decimal::from_str_exact(MathConstants::E).unwrap();
+    let e = Decimal::from_str(MathConstants::E).unwrap();
         assert!((calc.ln(e).unwrap() - Decimal::ONE).abs() < Decimal::from_str("0.0000001").unwrap());
         
         let ten = Decimal::from(10);

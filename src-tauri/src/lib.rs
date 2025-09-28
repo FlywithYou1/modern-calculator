@@ -8,6 +8,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::Manager;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 // 模块声明
 pub mod math;
@@ -34,6 +35,9 @@ pub struct HistoryItem {
     pub result: String,
     pub timestamp: String, // 改为字符串以兼容 v1.x
     pub tags: Option<Vec<String>>,
+    pub notes: Option<String>,
+    pub metadata: Option<Value>,
+    pub source: Option<String>,
 }
 
 /// 应用状态
@@ -59,7 +63,18 @@ impl Default for AppState {
 /// Tauri 应用入口点 - 支持桌面和移动端
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    #[cfg(not(test))]
+    let builder = builder
+        // 注册 Tauri 插件
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_haptics::init());
+
+    #[cfg(test)]
+    let builder = builder;
+
+    builder
         // 注入全局状态
         .manage(AppState::default())
         // 注册命令
@@ -72,6 +87,7 @@ pub fn run() {
             commands::export_history,
             commands::import_history,
             commands::clear_history,
+            commands::record_history_entry,
             commands::update_history_item,
             commands::search_history,
             commands::get_history_stats,

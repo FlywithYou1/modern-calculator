@@ -1,458 +1,289 @@
-/**
- * 计算器键盘组件
- *
- * 提供：
- * - 基础数字和运算符按钮
- * - 科学计算函数按钮
- * - 响应式布局
- * - 触觉反馈（移动端）
- * - 键盘快捷键支持
- */
+import type { KeyboardConfig, Operation, Theme } from '../types/calculator.js'
 
-export interface KeyboardOptions {
-  showScientific: boolean
-  isMobile: boolean
-  angleMode: 'deg' | 'rad' | 'grad'
-  onInput: (value: string) => void
-  onFunction: (func: string) => void
-  onCalculate: () => void
-  onClear: () => void
-  onBackspace: () => void
-}
-
-export interface ButtonConfig {
+interface AdvancedButtonConfig {
+  id: string
   label: string
-  value?: string
-  func?: string
-  action?: string
+  value: string
+  type: Operation
   className?: string
   colspan?: number
   rowspan?: number
+  tooltip?: string
+  secondaryLabel?: string
 }
 
+type ButtonMatrix = AdvancedButtonConfig[][]
+
+const ACTION_CLEAR = 'clear'
+const ACTION_BACKSPACE = 'backspace'
+const ACTION_EQUALS = 'equals'
+const ACTION_TOGGLE_ANGLE = 'toggle-angle-mode'
+const ACTION_MATRIX_PANEL = 'open-matrix-panel'
+const ACTION_UNIT_PANEL = 'open-unit-panel'
+const ACTION_COMPLEX_PANEL = 'open-complex-panel'
+const ACTION_STATS_PANEL = 'open-stats-panel'
+const ACTION_BASE_CONVERTER = 'open-base-converter'
+
 /**
- * 键盘类
+ * 高级键盘组件，覆盖基础、科学、程序员和自定义快捷面板。
  */
-export class Keyboard {
+export class AdvancedKeyboard {
   private container: HTMLElement
-  private options: KeyboardOptions
+  private config: KeyboardConfig
+  private root: HTMLElement
+  private scientificPanel: HTMLElement | null = null
+  private pressedKeys = new Set<string>()
+  private isScientificCollapsed: boolean
 
-  constructor(container: HTMLElement, options: KeyboardOptions) {
+  constructor(container: HTMLElement, config: KeyboardConfig) {
     this.container = container
-    this.options = { ...options }
-    this.init()
-  }
-
-  /**
-   * 初始化键盘
-   */
-  private init(): void {
-    this.createLayout()
+    this.config = { ...config }
+    this.isScientificCollapsed = config.deviceType === 'mobile'
+    this.root = this.createRoot()
+    this.container.appendChild(this.root)
+    this.render()
     this.bindEvents()
   }
 
   /**
-   * 创建键盘布局
+   * 创建根节点
    */
-  private createLayout(): void {
-    const basicButtons = this.getBasicButtons()
-    const scientificButtons = this.getScientificButtons()
+  private createRoot(): HTMLElement {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'calculator-keyboard-wrap'
+    if (this.config.deviceType) {
+      wrapper.dataset.device = this.config.deviceType
+    }
+    return wrapper
+  }
 
-    this.container.innerHTML = `
-      <div class="calculator-keyboard ${this.options.isMobile ? 'mobile' : 'desktop'}">
-        ${
-          this.options.showScientific
-            ? `
-          <!-- 科学计算面板 -->
-          <div class="scientific-panel ${this.options.isMobile ? 'collapsed' : ''}">
-            <div class="scientific-header">
-              <span class="panel-title">科学计算</span>
-              <button class="panel-toggle" id="scientific-toggle">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"/>
-                </svg>
-              </button>
-            </div>
-            <div class="scientific-content">
-              ${this.createButtonGrid(scientificButtons, 'scientific')}
-            </div>
+  /**
+   * 渲染键盘内容
+   */
+  private render(): void {
+    const showScientific = this.config.showScientific ?? true
+    const isMobile = this.config.deviceType === 'mobile'
+    const themeMode = this.config.theme?.mode ?? 'dark'
+
+    const basicSection = this.buildSection('basic', this.getBasicButtons())
+    const scientificSection = showScientific
+      ? this.buildScientificSection(isMobile)
+      : null
+
+    const mobileHint = isMobile
+      ? `
+          <div class="keyboard-mobile-hint" aria-hidden="true">
+            <span>向左滑动可展开科学面板</span>
           </div>
         `
-            : ''
-        }
+      : ''
 
-        <!-- 基础计算面板 -->
-        <div class="basic-panel">
-          ${this.createButtonGrid(basicButtons, 'basic')}
+    this.root.innerHTML = `
+      <div class="calculator-keyboard" data-theme="${themeMode}">
+        ${scientificSection ?? ''}
+        ${basicSection}
+        ${mobileHint}
+      </div>
+    `
+
+    this.scientificPanel = this.root.querySelector('.keyboard-panel-scientific') as HTMLElement | null
+    if (this.scientificPanel && this.isScientificCollapsed) {
+      this.scientificPanel.classList.add('is-collapsed')
+    }
+
+    if (this.config.deviceType) {
+      this.root.dataset.device = this.config.deviceType
+    }
+  }
+
+  /**
+   * 构建基础区域
+   */
+  private buildSection(kind: 'basic' | 'scientific', buttons: ButtonMatrix): string {
+    return `
+      <section class="keyboard-panel keyboard-panel-${kind}" role="group" aria-label="${
+        kind === 'basic' ? '基础键盘' : '科学键盘'
+      }">
+        <div class="keyboard-grid">
+          ${buttons.map(row => this.renderRow(row)).join('')}
         </div>
+      </section>
+    `
+  }
 
-        <!-- 移动端专用区域 -->
-        ${
-          this.options.isMobile
-            ? `
-          <div class="mobile-actions">
-            <div class="swipe-hint">
-              <span>左滑查看更多功能</span>
-            </div>
+  /**
+   * 构建科学区域（含折叠头）
+   */
+  private buildScientificSection(isMobile: boolean): string {
+    return `
+      <section class="keyboard-panel keyboard-panel-scientific" role="group" aria-label="科学与高级功能">
+        <header class="keyboard-panel__header">
+          <div class="keyboard-panel__title">科学/高级</div>
+          <button class="keyboard-panel__toggle" type="button" aria-expanded="${!this.isScientificCollapsed}" aria-label="切换科学面板" data-action="toggle-scientific">
+            <span class="keyboard-panel__icon"></span>
+          </button>
+        </header>
+        <div class="keyboard-panel__content${isMobile ? ' is-scrollable' : ''}">
+          <div class="keyboard-grid keyboard-grid-scientific">
+            ${this.getScientificButtons().map(row => this.renderRow(row)).join('')}
           </div>
-        `
-            : ''
-        }
+        </div>
+      </section>
+    `
+  }
+
+  /**
+   * 渲染一行按钮
+   */
+  private renderRow(row: AdvancedButtonConfig[]): string {
+    return `
+      <div class="keyboard-row">
+        ${row.map(btn => this.renderButton(btn)).join('')}
       </div>
     `
   }
 
   /**
-   * 创建按钮网格
+   * 渲染单个按钮
    */
-  private createButtonGrid(buttons: ButtonConfig[][], type: 'basic' | 'scientific'): string {
-    return `
-      <div class="button-grid ${type}-grid">
-        ${buttons
-          .map(
-            row => `
-          <div class="button-row">
-            ${row.map(button => this.createButton(button)).join('')}
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-    `
-  }
-
-  /**
-   * 创建单个按钮
-   */
-  private createButton(config: ButtonConfig): string {
-    const { label, value, func, action, className = '', colspan = 1, rowspan = 1 } = config
-
-    const dataAttrs = []
-    if (value) dataAttrs.push(`data-value="${value}"`)
-    if (func) dataAttrs.push(`data-func="${func}"`)
-    if (action) dataAttrs.push(`data-action="${action}"`)
-
-    const style = []
-    if (colspan > 1) style.push(`grid-column: span ${colspan}`)
-    if (rowspan > 1) style.push(`grid-row: span ${rowspan}`)
+  private renderButton(config: AdvancedButtonConfig): string {
+    const { id, label, value, className = '', colspan = 1, rowspan = 1, tooltip, secondaryLabel } = config
+    const ariaLabel = tooltip || label
+    const dataAttrs = [`data-value="${value}"`, `data-type="${config.type}"`, `data-id="${id}"`]
+    const styleParts = []
+    if (colspan > 1) styleParts.push(`grid-column: span ${colspan}`)
+    if (rowspan > 1) styleParts.push(`grid-row: span ${rowspan}`)
 
     return `
-      <button 
-        class="calc-btn ${className}" 
+      <button
+        class="keyboard-button ${className}"
         ${dataAttrs.join(' ')}
-        ${style.length > 0 ? `style="${style.join('; ')}"` : ''}
-        title="${this.getButtonTooltip(config)}"
+        ${styleParts.length ? `style="${styleParts.join('; ')}"` : ''}
+        type="button"
+        title="${ariaLabel}"
+        aria-label="${ariaLabel}"
       >
-        <span class="btn-label">${label}</span>
-        ${this.getButtonSecondaryLabel(config)}
+        <span class="keyboard-button__label">${label}</span>
+        ${secondaryLabel ? `<span class="keyboard-button__secondary" aria-hidden="true">${secondaryLabel}</span>` : ''}
       </button>
     `
   }
 
   /**
-   * 获取基础按钮配置
-   */
-  private getBasicButtons(): ButtonConfig[][] {
-    return [
-      // 第一行 - 清除和退格
-      [
-        { label: 'C', action: 'clear', className: 'clear-btn' },
-        { label: '⌫', action: 'backspace', className: 'backspace-btn' },
-        { label: '(', value: '(' },
-        { label: ')', value: ')' },
-      ],
-      // 第二行 - 数字7-9和除法
-      [
-        { label: '7', value: '7', className: 'number-btn' },
-        { label: '8', value: '8', className: 'number-btn' },
-        { label: '9', value: '9', className: 'number-btn' },
-        { label: '÷', value: '/', className: 'operator-btn' },
-      ],
-      // 第三行 - 数字4-6和乘法
-      [
-        { label: '4', value: '4', className: 'number-btn' },
-        { label: '5', value: '5', className: 'number-btn' },
-        { label: '6', value: '6', className: 'number-btn' },
-        { label: '×', value: '*', className: 'operator-btn' },
-      ],
-      // 第四行 - 数字1-3和减法
-      [
-        { label: '1', value: '1', className: 'number-btn' },
-        { label: '2', value: '2', className: 'number-btn' },
-        { label: '3', value: '3', className: 'number-btn' },
-        { label: '−', value: '-', className: 'operator-btn' },
-      ],
-      // 第五行 - 0、小数点和等号
-      [
-        { label: '0', value: '0', className: 'number-btn zero-btn', colspan: 2 },
-        { label: '.', value: '.', className: 'number-btn' },
-        { label: '+', value: '+', className: 'operator-btn' },
-      ],
-      // 第六行 - 等号
-      [{ label: '=', action: 'calculate', className: 'equals-btn', colspan: 4 }],
-    ]
-  }
-
-  /**
-   * 获取科学计算按钮配置
-   */
-  private getScientificButtons(): ButtonConfig[][] {
-    return [
-      // 第一行 - 三角函数
-      [
-        { label: 'sin', func: 'sin(', className: 'function-btn' },
-        { label: 'cos', func: 'cos(', className: 'function-btn' },
-        { label: 'tan', func: 'tan(', className: 'function-btn' },
-        { label: this.options.angleMode.toUpperCase(), action: 'angleMode', className: 'mode-btn' },
-      ],
-      // 第二行 - 反三角函数和常数
-      [
-        { label: 'asin', func: 'asin(', className: 'function-btn' },
-        { label: 'acos', func: 'acos(', className: 'function-btn' },
-        { label: 'atan', func: 'atan(', className: 'function-btn' },
-        { label: 'π', value: 'π', className: 'constant-btn' },
-      ],
-      // 第三行 - 对数和指数
-      [
-        { label: 'ln', func: 'ln(', className: 'function-btn' },
-        { label: 'log', func: 'log(', className: 'function-btn' },
-        { label: 'e', value: 'e', className: 'constant-btn' },
-        { label: '^', value: '^', className: 'operator-btn' },
-      ],
-      // 第四行 - 根号和阶乘
-      [
-        { label: '√', func: 'sqrt(', className: 'function-btn' },
-        { label: 'x²', func: '^2', className: 'function-btn' },
-        { label: 'x!', func: 'factorial(', className: 'function-btn' },
-        { label: '%', value: '%', className: 'operator-btn' },
-      ],
-      // 第五行 - 进制转换
-      [
-        { label: 'BIN', func: 'bin(', className: 'function-btn' },
-        { label: 'OCT', func: 'oct(', className: 'function-btn' },
-        { label: 'HEX', func: 'hex(', className: 'function-btn' },
-        { label: 'DEC', action: 'decMode', className: 'mode-btn' },
-      ],
-      // 第六行 - 统计函数
-      [
-        { label: 'mean', func: 'mean(', className: 'function-btn' },
-        { label: 'med', func: 'median(', className: 'function-btn' },
-        { label: 'std', func: 'stdev(', className: 'function-btn' },
-        { label: 'var', func: 'variance(', className: 'function-btn' },
-      ],
-      // 第七行 - 最值和聚合函数
-      [
-        { label: 'min', func: 'min(', className: 'function-btn' },
-        { label: 'max', func: 'max(', className: 'function-btn' },
-        { label: 'sum', func: 'sum(', className: 'function-btn' },
-        { label: '∏', func: 'product(', className: 'function-btn' },
-      ],
-      // 第八行 - 矩阵运算
-      [
-        { label: 'MAT', action: 'matrixMode', className: 'mode-btn' },
-        { label: 'T', func: 'transpose(', className: 'function-btn' },
-        { label: 'det', func: 'determinant(', className: 'function-btn' },
-        { label: 'inv', func: 'inverse(', className: 'function-btn' },
-      ],
-      // 第九行 - 单位转换
-      [
-        { label: 'UNIT', action: 'unitMode', className: 'mode-btn' },
-        { label: '°C→°F', func: 'tempConvert(', className: 'function-btn' },
-        { label: 'm→ft', func: 'lengthConvert(', className: 'function-btn' },
-        { label: 'kg→lb', func: 'weightConvert(', className: 'function-btn' },
-      ],
-    ]
-  }
-
-  /**
-   * 获取按钮提示文本
-   */
-  private getButtonTooltip(config: ButtonConfig): string {
-    const { label, value, func, action } = config
-
-    if (action) {
-      switch (action) {
-        case 'clear':
-          return '清除 (Esc)'
-        case 'backspace':
-          return '退格 (Backspace)'
-        case 'calculate':
-          return '计算 (Enter)'
-        case 'angleMode':
-          return `角度模式: ${this.options.angleMode}`
-        default:
-          return label
-      }
-    }
-
-    if (func) {
-      return `${label} 函数`
-    }
-
-    if (value) {
-      return `输入 ${value}`
-    }
-
-    return label
-  }
-
-  /**
-   * 获取按钮的辅助标签
-   */
-  private getButtonSecondaryLabel(_config: ButtonConfig): string {
-    // 实现shift模式下的标签切换
-    // 暂时返回空字符串，需要时实现
-    return ''
-  }
-
-  /**
-   * 提供触觉和视觉反馈
-   */
-  private provideFeedback(_button: HTMLButtonElement): void {
-    // 震动反馈（如果支持）
-    if ('vibrate' in navigator) {
-      navigator.vibrate(5)
-    }
-  }
-
-  /**
-   * 绑定事件
+   * 绑定交互事件
    */
   private bindEvents(): void {
-    // 按钮点击事件
-    this.container.addEventListener('click', event => {
-      const button = (event.target as HTMLElement).closest('.calc-btn') as HTMLButtonElement
-      if (button) {
-        this.handleButtonClick(button)
+    this.root.addEventListener('click', event => {
+      const target = event.target as HTMLElement
+      const toggle = target.closest('[data-action="toggle-scientific"]') as HTMLElement | null
+      if (toggle) {
+        this.toggleScientificPanel()
+        return
       }
+
+      const button = target.closest('.keyboard-button') as HTMLButtonElement | null
+      if (!button) return
+
+      this.processButton(button)
     })
 
-    // 科学面板切换
-    const scientificToggle = this.container.querySelector('#scientific-toggle')
-    scientificToggle?.addEventListener('click', () => {
-      this.toggleScientificPanel()
-    })
-
-    // 触摸事件（移动端）
-    if (this.options.isMobile) {
-      this.setupTouchGestures()
+    if (this.config.deviceType === 'mobile') {
+      this.bindSwipeGestures()
     }
-
-    // 键盘事件
-    this.setupKeyboardEvents()
   }
 
   /**
    * 处理按钮点击
    */
-  private handleButtonClick(button: HTMLButtonElement): void {
-    // 触觉反馈
-    this.provideFeedback(button)
+  private processButton(button: HTMLButtonElement): void {
+    this.applyFeedback(button)
 
-    const value = button.dataset.value
-    const func = button.dataset.func
-    const action = button.dataset.action
+    const value = button.dataset.value ?? ''
+    const type = (button.dataset.type as Operation | undefined) ?? 'action'
 
-    if (value) {
-      this.options.onInput(value)
-    } else if (func) {
-      this.options.onFunction(func)
-    } else if (action) {
-      this.handleAction(action)
+    if (type === 'number' || type === 'operator' || type === 'bracket' || type === 'constant') {
+      this.config.onInput?.(value, type)
+      return
     }
 
-    // 按钮动画
-    this.animateButton(button)
+    if (type === 'function') {
+      this.config.onInput?.(value, 'function')
+      return
+    }
+
+    // 统一处理 action
+    this.handleAction(value)
   }
 
   /**
-   * 处理动作
+   * 动作分发
    */
   private handleAction(action: string): void {
+    const value = action
+
     switch (action) {
-      case 'clear':
-        this.options.onClear()
+      case ACTION_CLEAR:
+      case ACTION_BACKSPACE:
+      case ACTION_EQUALS:
+      case ACTION_TOGGLE_ANGLE:
+      case ACTION_MATRIX_PANEL:
+      case ACTION_UNIT_PANEL:
+      case ACTION_COMPLEX_PANEL:
+      case ACTION_STATS_PANEL:
+      case ACTION_BASE_CONVERTER:
+        this.config.onInput?.(value, 'action')
         break
-      case 'backspace':
-        this.options.onBackspace()
-        break
-      case 'calculate':
-        this.options.onCalculate()
-        break
-      case 'angleMode':
-        this.toggleAngleMode()
-        break
+      default:
+        this.config.onInput?.(value, 'action')
     }
   }
 
   /**
-   * 切换角度模式
+   * 触觉 + 动画反馈
    */
-  private toggleAngleMode(): void {
-    const modes: ('deg' | 'rad' | 'grad')[] = ['deg', 'rad', 'grad']
-    const currentIndex = modes.indexOf(this.options.angleMode)
-    const nextMode = modes[(currentIndex + 1) % modes.length]
+  private applyFeedback(button: HTMLButtonElement): void {
+    if (this.config.enableHaptic && 'vibrate' in navigator) {
+      navigator.vibrate(10)
+    }
 
-    // nextMode 总是存在，这里显式断言类型，确保与签名一致
-    this.updateAngleMode(nextMode as 'deg' | 'rad' | 'grad')
-  }
-
-  // 取消未使用的 cycleAngleMode 方法，避免未使用方法的编译告警
-
-  /**
-   * 按钮动画
-   */
-  private animateButton(button: HTMLButtonElement): void {
-    button.classList.add('pressed')
-
+    button.classList.add('is-pressed')
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        button.classList.remove('pressed')
-      }, 150)
+      setTimeout(() => button.classList.remove('is-pressed'), 160)
     })
   }
 
   /**
-   * 设置触摸手势
+   * 绑定滑动手势
    */
-  private setupTouchGestures(): void {
+  private bindSwipeGestures(): void {
     let startX = 0
     let startY = 0
 
-    this.container.addEventListener(
+    this.root.addEventListener(
       'touchstart',
-      e => {
-        startX = e.touches[0]?.clientX || 0
-        startY = e.touches[0]?.clientY || 0
+      evt => {
+        startX = evt.touches[0]?.clientX ?? 0
+        startY = evt.touches[0]?.clientY ?? 0
       },
       { passive: true }
     )
 
-    this.container.addEventListener(
-      'touchmove',
-      e => {
-        e.preventDefault()
-      },
-      { passive: false }
-    )
-
-    this.container.addEventListener(
+    this.root.addEventListener(
       'touchend',
-      e => {
-        const endX = e.changedTouches[0]?.clientX || 0
-        const endY = e.changedTouches[0]?.clientY || 0
+      evt => {
+        const endX = evt.changedTouches[0]?.clientX ?? 0
+        const endY = evt.changedTouches[0]?.clientY ?? 0
 
         const deltaX = endX - startX
         const deltaY = endY - startY
 
-        // 检测滑动手势
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-          if (deltaX > 0) {
-            // 右滑 - 显示科学面板
-            this.showScientificPanel()
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+          if (deltaX < 0) {
+            this.isScientificCollapsed = false
+            this.updateScientificState()
           } else {
-            // 左滑 - 隐藏科学面板
-            this.hideScientificPanel()
+            this.isScientificCollapsed = true
+            this.updateScientificState()
           }
         }
       },
@@ -461,103 +292,288 @@ export class Keyboard {
   }
 
   /**
-   * 设置键盘事件
-   */
-  private setupKeyboardEvents(): void {
-    // 键盘事件由父组件处理
-  }
-
-  /**
    * 切换科学面板
    */
   private toggleScientificPanel(): void {
-    const panel = this.container.querySelector('.scientific-panel') as HTMLElement
-    const isCollapsed = panel.classList.contains('collapsed')
+    this.isScientificCollapsed = !this.isScientificCollapsed
+    this.updateScientificState()
+  }
 
-    if (isCollapsed) {
-      this.showScientificPanel()
-    } else {
-      this.hideScientificPanel()
+  private updateScientificState(): void {
+    if (!this.scientificPanel) return
+    this.scientificPanel.classList.toggle('is-collapsed', this.isScientificCollapsed)
+    const toggle = this.scientificPanel.querySelector('[data-action="toggle-scientific"]') as HTMLElement | null
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', (!this.isScientificCollapsed).toString())
     }
   }
 
   /**
-   * 显示科学面板
+   * 获取基础按钮矩阵
    */
-  private showScientificPanel(): void {
-    const panel = this.container.querySelector('.scientific-panel') as HTMLElement
-    const toggle = this.container.querySelector('#scientific-toggle') as HTMLElement
-
-    panel.classList.remove('collapsed')
-    toggle.style.transform = 'rotate(180deg)'
+  private getBasicButtons(): ButtonMatrix {
+    return [
+      [
+        this.actionButton('clear', 'C', ACTION_CLEAR, 'btn-action'),
+        this.actionButton('backspace', '⌫', ACTION_BACKSPACE, 'btn-action'),
+        this.basicButton('lparen', '(', '(', 'bracket'),
+        this.basicButton('rparen', ')', ')', 'bracket'),
+      ],
+      [
+        this.basicButton('seven', '7', '7', 'number'),
+        this.basicButton('eight', '8', '8', 'number'),
+        this.basicButton('nine', '9', '9', 'number'),
+        this.basicButton('divide', '÷', '/', 'operator'),
+      ],
+      [
+        this.basicButton('four', '4', '4', 'number'),
+        this.basicButton('five', '5', '5', 'number'),
+        this.basicButton('six', '6', '6', 'number'),
+        this.basicButton('multiply', '×', '*', 'operator'),
+      ],
+      [
+        this.basicButton('one', '1', '1', 'number'),
+        this.basicButton('two', '2', '2', 'number'),
+        this.basicButton('three', '3', '3', 'number'),
+        this.basicButton('minus', '−', '-', 'operator'),
+      ],
+      [
+        this.basicButton('zero', '0', '0', 'number', { colspan: 2 }),
+        this.basicButton('decimal', '.', '.', 'number'),
+        this.basicButton('plus', '+', '+', 'operator'),
+      ],
+      [this.actionButton('equals', '=', ACTION_EQUALS, 'btn-equals', { colspan: 4 })],
+    ]
   }
 
   /**
-   * 隐藏科学面板
+   * 获取科学按钮矩阵
    */
-  private hideScientificPanel(): void {
-    const panel = this.container.querySelector('.scientific-panel') as HTMLElement
-    const toggle = this.container.querySelector('#scientific-toggle') as HTMLElement
-
-    panel.classList.add('collapsed')
-    toggle.style.transform = 'rotate(0deg)'
+  private getScientificButtons(): ButtonMatrix {
+    const angleLabel = this.getAngleLabel()
+    return [
+      [
+        this.functionButton('sin', 'sin', 'sin'),
+        this.functionButton('cos', 'cos', 'cos'),
+        this.functionButton('tan', 'tan', 'tan'),
+        this.actionButton('angle-mode', angleLabel, ACTION_TOGGLE_ANGLE, 'btn-mode', {
+          tooltip: `切换角度模式（当前：${angleLabel}）`,
+        }),
+      ],
+      [
+        this.functionButton('asin', 'asin', 'asin'),
+        this.functionButton('acos', 'acos', 'acos'),
+        this.functionButton('atan', 'atan', 'atan'),
+        this.constantButton('pi', 'π', 'pi'),
+      ],
+      [
+        this.functionButton('ln', 'ln', 'ln'),
+        this.functionButton('log', 'log', 'log'),
+        this.constantButton('e', 'e', 'e'),
+        this.basicButton('power', '^', '^', 'operator'),
+      ],
+      [
+        this.functionButton('sqrt', '√', 'sqrt'),
+        this.functionButton('square', 'x²', 'square', { tooltip: '平方' }),
+        this.functionButton('factorial', 'x!', 'factorial'),
+        this.basicButton('percent', '%', '%', 'operator'),
+      ],
+      [
+        this.actionButton('base', '进制转换', ACTION_BASE_CONVERTER, 'btn-mode', { colspan: 2 }),
+        this.functionButton('bin', 'BIN', 'bin'),
+        this.functionButton('hex', 'HEX', 'hex'),
+      ],
+      [
+        this.functionButton('mean', 'mean', 'mean'),
+        this.functionButton('median', 'med', 'median'),
+        this.functionButton('stdev', 'std', 'stdev'),
+        this.functionButton('variance', 'var', 'variance'),
+      ],
+      [
+        this.functionButton('min', 'min', 'min'),
+        this.functionButton('max', 'max', 'max'),
+        this.functionButton('sum', 'sum', 'sum'),
+        this.functionButton('product', '∏', 'product'),
+      ],
+      [
+        this.actionButton('matrix', '矩阵', ACTION_MATRIX_PANEL, 'btn-mode'),
+        this.functionButton('transpose', 'T', 'transpose'),
+        this.functionButton('determinant', 'det', 'determinant'),
+        this.functionButton('inverse', 'inv', 'inverse'),
+      ],
+      [
+        this.actionButton('units', '单位转换', ACTION_UNIT_PANEL, 'btn-mode'),
+        this.actionButton('complex', '复数', ACTION_COMPLEX_PANEL, 'btn-mode'),
+        this.actionButton('stats', '统计面板', ACTION_STATS_PANEL, 'btn-mode'),
+        this.functionButton('percent-of', 'a%b', 'percentage'),
+      ],
+    ]
   }
 
-  /**
-   * 更新科学计算模式
-   */
-  public updateScientificMode(show: boolean): void {
-    this.options.showScientific = show
+  private basicButton(
+    id: string,
+    label: string,
+    value: string,
+    type: Operation,
+    extra: Partial<AdvancedButtonConfig> = {}
+  ): AdvancedButtonConfig {
+    return {
+      id,
+      label,
+      value,
+      type,
+      className: type === 'operator' ? 'btn-operator' : type === 'number' ? 'btn-number' : 'btn-symbol',
+      ...extra,
+    }
+  }
 
-    const scientificPanel = this.container.querySelector('.scientific-panel') as HTMLElement
-    if (scientificPanel) {
-      scientificPanel.style.display = show ? 'block' : 'none'
+  private constantButton(id: string, label: string, value: string): AdvancedButtonConfig {
+    return {
+      id,
+      label,
+      value,
+      type: 'constant',
+      className: 'btn-constant',
+      tooltip: `插入常数 ${label}`,
+    }
+  }
+
+  private functionButton(
+    id: string,
+    label: string,
+    value: string,
+    extra: Partial<AdvancedButtonConfig> = {}
+  ): AdvancedButtonConfig {
+    return {
+      id,
+      label,
+      value,
+      type: 'function',
+      className: 'btn-function',
+      tooltip: `${label} 函数`,
+      ...extra,
+    }
+  }
+
+  private actionButton(
+    id: string,
+    label: string,
+    value: string,
+    className: string,
+    extra: Partial<AdvancedButtonConfig> = {}
+  ): AdvancedButtonConfig {
+    const config: AdvancedButtonConfig = {
+      id,
+      label,
+      value,
+      type: 'action',
+      className,
+    }
+
+    if (extra.tooltip !== undefined) {
+      config.tooltip = extra.tooltip
+    }
+
+    if (extra.colspan !== undefined) {
+      config.colspan = extra.colspan
+    }
+
+    if (extra.rowspan !== undefined) {
+      config.rowspan = extra.rowspan
+    }
+
+    return config
+  }
+
+  private getAngleLabel(): string {
+    switch (this.config.angleMode) {
+      case 'radians':
+        return 'RAD'
+      case 'gradians':
+        return 'GRAD'
+      default:
+        return 'DEG'
     }
   }
 
   /**
-   * 更新角度模式
+   * 主题更新
    */
-  public updateAngleMode(mode: 'deg' | 'rad' | 'grad'): void {
-    this.options.angleMode = mode
+  updateTheme(theme: Theme): void {
+    this.config.theme = theme
+    this.root.querySelector('.calculator-keyboard')?.setAttribute('data-theme', theme.mode)
+  }
 
-    const modeButton = this.container.querySelector('[data-action="angleMode"]') as HTMLElement
-    if (modeButton) {
-      modeButton.querySelector('.btn-label')!.textContent = mode.toUpperCase()
-      modeButton.title = `角度模式: ${mode}`
+  /**
+   * 更新角度按钮显示
+   */
+  updateAngleMode(angleMode: 'degrees' | 'radians' | 'gradians'): void {
+  this.config.angleMode = angleMode
+    const label = this.getAngleLabel()
+    const btn = this.root.querySelector('[data-id="angle-mode"] .keyboard-button__label') as HTMLElement | null
+    if (btn) {
+      btn.textContent = label
+      const wrapper = btn.closest('.keyboard-button') as HTMLElement | null
+      if (wrapper) {
+        wrapper.setAttribute('title', `切换角度模式（当前：${label}）`)
+        wrapper.setAttribute('aria-label', `切换角度模式（当前：${label}）`)
+      }
     }
   }
 
   /**
-   * 高亮按钮（用于键盘输入反馈）
+   * 高亮按钮（键盘输入反馈）
    */
-  public highlightButton(value: string): void {
-    const button = this.container.querySelector(
-      `[data-value="${value}"], [data-action="${value}"]`
-    ) as HTMLButtonElement
+  highlightButton(value: string): void {
+    const button = this.root.querySelector(`.keyboard-button[data-value="${value}"]`) as HTMLButtonElement | null
     if (button) {
-      this.animateButton(button)
+      this.applyFeedback(button)
     }
   }
 
   /**
-   * 设置主题
+   * 响应布局变化
    */
-  public setTheme(theme: 'light' | 'dark' | 'auto'): void {
-    this.container.setAttribute('data-theme', theme)
+  handleResize(): void {
+    // 根据容器宽度调整按钮大小
+    const grid = this.root.querySelector('.keyboard-grid') as HTMLElement | null
+    if (!grid) return
+    const width = grid.clientWidth
+    const size = width < 320 ? 'small' : width > 520 ? 'large' : 'medium'
+    this.root.dataset.size = size
   }
 
   /**
-   * 获取键盘配置
+   * 更新配置
    */
-  public getConfig(): KeyboardOptions {
-    return { ...this.options }
+  updateConfig(partial: Partial<KeyboardConfig>): void {
+    const prevDevice = this.config.deviceType
+    Object.assign(this.config, partial)
+
+    if (partial.theme) {
+      this.updateTheme(partial.theme)
+    }
+
+    if (partial.angleMode) {
+      this.updateAngleMode(partial.angleMode)
+    }
+
+    if (partial.showScientific !== undefined) {
+      this.isScientificCollapsed = partial.showScientific
+        ? this.config.deviceType === 'mobile'
+        : true
+      this.render()
+    } else if (partial.deviceType && partial.deviceType !== prevDevice) {
+      this.isScientificCollapsed = partial.deviceType === 'mobile'
+      this.render()
+    }
   }
 
   /**
-   * 销毁组件
+   * 销毁
    */
-  public destroy(): void {
-    this.container.innerHTML = ''
+  destroy(): void {
+    this.pressedKeys.clear()
+    this.root.remove()
   }
 }

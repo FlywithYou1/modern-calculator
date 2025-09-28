@@ -76,7 +76,9 @@ impl HistoryManager {
                 item.result.to_lowercase().contains(&query_lower) ||
                 item.tags.as_ref().map_or(false, |tags| {
                     tags.iter().any(|tag| tag.to_lowercase().contains(&query_lower))
-                })
+                }) ||
+                item.notes.as_ref().map_or(false, |notes| notes.to_lowercase().contains(&query_lower)) ||
+                item.metadata.as_ref().map_or(false, |meta| meta.to_string().to_lowercase().contains(&query_lower))
             })
             .cloned()
             .collect()

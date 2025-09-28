@@ -2,20 +2,24 @@
 //! 
 //! 提供前端与后端交互的命令接口
 
-use tauri::{State, Manager};
-use serde_json::Value;
+use tauri::{State, Manager, Wry};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use rust_decimal::prelude::ToPrimitive;
 
 use crate::{AppState, CalculationResult, HistoryItem};
 
+type AppHandle = tauri::AppHandle<Wry>;
+
 /// 执行数学计算
 #[tauri::command]
 pub async fn calculate(
     expression: String,
+    display_expression: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<CalculationResult, String> {
     let start_time = std::time::Instant::now();
+    let display_expression = display_expression.unwrap_or_else(|| expression.clone());
     
     // 增加计算次数
     {
@@ -33,7 +37,7 @@ pub async fn calculate(
     #[cfg(debug_assertions)]
     {
         let debugger = crate::mcp::get_mcp_debugger();
-        debugger.track_state_change(&expression, "计算中...", "0", None);
+        debugger.track_state_change(&display_expression, "计算中...", "0", None);
     }
 
     // 执行计算
@@ -46,8 +50,8 @@ pub async fn calculate(
             #[cfg(debug_assertions)]
             {
                 let debugger = crate::mcp::get_mcp_debugger();
-                debugger.track_calculation_execution(&expression, &result_str, execution_time, 0);
-                debugger.track_state_change(&expression, &result_str, "0", None);
+                debugger.track_calculation_execution(&display_expression, &result_str, execution_time, 0);
+                debugger.track_state_change(&display_expression, &result_str, "0", None);
             }
             
             CalculationResult {
@@ -65,10 +69,10 @@ pub async fn calculate(
             {
                 let debugger = crate::mcp::get_mcp_debugger();
                 let mut context = std::collections::HashMap::new();
-                context.insert("expression".to_string(), expression.clone());
+                context.insert("expression".to_string(), display_expression.clone());
                 context.insert("error_type".to_string(), format!("{:?}", e));
                 debugger.track_error("CalculationError", &error_msg, context);
-                debugger.track_state_change(&expression, "错误", "0", Some(&error_msg));
+                debugger.track_state_change(&display_expression, "错误", "0", Some(&error_msg));
             }
             
             CalculationResult {
@@ -84,12 +88,21 @@ pub async fn calculate(
     if calculation_result.success {
         if let Some(ref result_value) = calculation_result.result {
             let mut history = state.history_manager.lock().await;
+            let metadata = if display_expression != expression {
+                Some(json!({ "normalizedExpression": expression }))
+            } else {
+                None
+            };
+
             let history_item = HistoryItem {
                 id: uuid::Uuid::new_v4().to_string(),
-                expression,
+                expression: display_expression,
                 result: result_value.clone(),
                 timestamp: chrono::Utc::now().to_rfc3339(),
                 tags: None,
+                notes: None,
+                metadata,
+                source: Some("calculator".to_string()),
             };
             history.add_item(history_item);
         }
@@ -112,7 +125,7 @@ pub async fn get_history(
 #[tauri::command]
 pub async fn save_history(
     state: State<'_, AppState>,
-    app: tauri::AppHandle,
+    app: AppHandle,
 ) -> Result<(), String> {
     let path = app
         .path()
@@ -181,7 +194,7 @@ pub async fn get_settings(
 pub async fn save_settings(
     settings: Value,
     state: State<'_, AppState>,
-    app: tauri::AppHandle,
+    app: AppHandle,
 ) -> Result<(), String> {
     let mut settings_manager = state.settings_manager.lock().await;
     settings_manager
@@ -229,6 +242,31 @@ pub async fn clear_history(
     let mut history_manager = state.history_manager.lock().await;
     history_manager.clear();
     Ok(())
+}
+
+#[tauri::command]
+pub async fn record_history_entry(
+    expression: String,
+    result: String,
+    tags: Option<Vec<String>>,
+    notes: Option<String>,
+    metadata: Option<Value>,
+    source: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<HistoryItem, String> {
+    let mut history_manager = state.history_manager.lock().await;
+    let history_item = HistoryItem {
+        id: uuid::Uuid::new_v4().to_string(),
+        expression,
+        result,
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        tags,
+        notes,
+        metadata,
+        source,
+    };
+    history_manager.add_item(history_item.clone());
+    Ok(history_item)
 }
 
 #[tauri::command]
@@ -310,7 +348,7 @@ pub async fn update_layout_settings(
 #[tauri::command]
 pub async fn reset_settings(
     state: State<'_, AppState>,
-    app: tauri::AppHandle,
+    app: AppHandle,
 ) -> Result<(), String> {
     let mut settings_manager = state.settings_manager.lock().await;
     settings_manager.reset_to_defaults();

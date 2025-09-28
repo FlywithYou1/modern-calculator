@@ -72,6 +72,46 @@ export class Settings {
         enableKeyboardShortcuts: true,
         enableAnimations: true,
       },
+      advanced: {
+        keyboard: {
+          customShortcuts: {
+            'Ctrl+Enter': 'calculate',
+            'Ctrl+C': 'copy',
+            'Ctrl+V': 'paste',
+            'Ctrl+Z': 'undo',
+            'Ctrl+Y': 'redo',
+            'Escape': 'clear',
+          },
+          hapticIntensity: 'medium',
+          gestureSensitivity: 5,
+          autoRepeatDelay: 500,
+          autoRepeatRate: 20,
+        },
+        history: {
+          autoCleanup: true,
+          cleanupStrategy: 'count',
+          cleanupThreshold: 1000,
+          exportFormat: 'json',
+          enableSearch: true,
+          enableTags: true,
+          maxTagLength: 50,
+        },
+        performance: {
+          animationQuality: 'auto',
+          maxCalculationTime: 5000,
+          enableCaching: true,
+          cacheSize: 50,
+          enableBackgroundSync: false,
+        },
+        accessibility: {
+          highContrast: false,
+          reduceMotion: false,
+          screenReaderSupport: true,
+          keyboardNavigation: true,
+          largeText: false,
+          colorBlindMode: 'none',
+        },
+      },
     }
   }
 

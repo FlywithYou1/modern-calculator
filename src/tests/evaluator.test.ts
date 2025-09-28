@@ -30,6 +30,8 @@ describe('evaluateExpressionSafe', () => {
 
   it('should round consistently with precision option', () => {
     expect(evaluateExpressionSafe('0.1+0.2', { precision: 10 })).toBe('0.3')
+    expect(evaluateExpressionSafe('1/3', { precision: 8 })).toBe('0.33333333')
+    expect(evaluateExpressionSafe('2/3', { precision: 12 })).toBe('0.666666666667')
   })
 
   it('should throw on invalid input', () => {

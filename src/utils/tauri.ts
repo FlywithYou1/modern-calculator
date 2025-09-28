@@ -147,6 +147,26 @@ export class TauriService {
   }
 
   /**
+   * 新增历史记录条目（高级面板等自定义来源使用）
+   */
+  static async recordHistoryEntry(payload: {
+    expression: string
+    result: string
+    tags?: string[]
+    notes?: string
+    metadata?: Record<string, unknown>
+    source?: string
+  }): Promise<HistoryItem> {
+    try {
+      const item = await invoke<HistoryItem>('record_history_entry', payload)
+      return item
+    } catch (error) {
+      console.error('记录历史条目失败:', error)
+      throw error instanceof Error ? error : new Error(String(error))
+    }
+  }
+
+  /**
    * 获取应用设置
    */
   static async getSettings(): Promise<unknown> {

@@ -308,7 +308,7 @@ modern-calculator/
 │   ├── 🧩 components/         # 模块化组件
 │   │   ├── Calculator.ts      # 主计算器组件
 │   │   ├── Display.ts         # 显示屏组件
-│   │   ├── Keyboard.ts        # 键盘组件
+│   │   ├── KeyboardNew.ts     # 高级键盘组件
 │   │   ├── History.ts         # 历史记录组件
 │   │   └── Settings.ts        # 设置面板组件
 │   ├── 🎨 styles/             # SCSS 样式系统
@@ -326,6 +326,12 @@ modern-calculator/
 ├── 📦 dist/                   # 前端构建产物
 └── 📋 package.json            # 项目配置
 ```
+
+### 📦 构建产物位置
+
+- `vite build` 生成的静态资源会输出到 `dist/` 目录（HTML、JS、CSS、Source Map）。
+- Tauri 桌面端与移动端构建成功时，产物位于 `src-tauri/target/<platform>/`（当前未启用自动打包，需手动执行 `cargo tauri build` 或 `npm run tauri build`）。
+- Android 打包脚本（`npm run android:build`）会在 `src-tauri/gen/android/app/build/outputs/` 生成 APK/AAB。
 
 ### 🤖 CI/CD 流水线
 

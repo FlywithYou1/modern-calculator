@@ -1,8 +1,15 @@
-import type { CalculatorState, AppSettings, HistoryItem, Operation } from '../types/calculator.js'
+import type {
+  CalculatorState,
+  AppSettings,
+  HistoryItem,
+  Operation,
+  KeyboardConfig,
+} from '../types/calculator.js'
 import { Display } from './Display.js'
-import { Keyboard } from './Keyboard.js'
+import { AdvancedKeyboard } from './KeyboardNew.js'
 import { History } from './History.js'
 import { Settings } from './Settings.js'
+import { AdvancedPanelManager, type AdvancedPanelResult } from './AdvancedPanels.js'
 import { ThemeManager } from '../utils/theme.js'
 import { DeviceDetector } from '../utils/device.js'
 import { invoke } from '../utils/tauri.js'
@@ -17,9 +24,10 @@ export class Calculator {
   protected state: CalculatorState
   protected themeManager: ThemeManager
   private display!: Display
-  private keyboard!: Keyboard
+  private keyboard!: AdvancedKeyboard
   private history!: History
   private settings!: Settings
+  private advancedPanels!: AdvancedPanelManager
 
   constructor(container: HTMLElement) {
     this.container = container
@@ -316,6 +324,9 @@ export class Calculator {
           <div class="loading-spinner"></div>
           <div class="loading-text">计算中...</div>
         </div>
+
+        <!-- 高级功能面板容器 -->
+        <div class="advanced-panel-root" id="advanced-panel-root"></div>
       </div>
     `
   }
@@ -325,6 +336,7 @@ export class Calculator {
     const keyboardContainer = this.container.querySelector('#keyboard-container') as HTMLElement
     const historyContainer = this.container.querySelector('#history-container') as HTMLElement
     const settingsContainer = this.container.querySelector('#settings-container') as HTMLElement
+  const panelRoot = this.container.querySelector('#advanced-panel-root') as HTMLElement
 
     // 初始化显示器
     this.display = new Display(displayContainer, {
@@ -334,12 +346,20 @@ export class Calculator {
     await this.display.init()
 
     // 初始化键盘
-    this.keyboard = new Keyboard(keyboardContainer, {
-      theme: await this.themeManager.getCurrentTheme(),
+    const currentTheme = await this.themeManager.getCurrentTheme()
+    const deviceDetector = new DeviceDetector()
+    const keyboardConfig: KeyboardConfig = {
+      theme: currentTheme,
       enableHaptic: this.state.settings.enableHaptics,
+      buttonSize: this.state.settings.compactMode ? 'small' : 'medium',
+      layout: this.state.settings.compactMode ? 'standard' : 'scientific',
+      showScientific: !this.state.settings.compactMode,
+      deviceType: deviceDetector.getDeviceType(),
+      angleMode: this.state.settings.angleUnit,
       onInput: this.handleInput.bind(this),
-    })
-    await this.keyboard.init()
+    }
+
+    this.keyboard = new AdvancedKeyboard(keyboardContainer, keyboardConfig)
 
     // 初始化历史记录
     this.history = new History(historyContainer, {
@@ -353,6 +373,11 @@ export class Calculator {
     this.settings = new Settings(settingsContainer)
     await this.settings.init()
     this.settings.onSettingsChanged(this.handleSettingsChange.bind(this))
+
+    this.advancedPanels = new AdvancedPanelManager(panelRoot, {
+      onResult: this.handleAdvancedPanelResult.bind(this),
+      onError: message => this.setStatus(`错误: ${message}`),
+    })
 
     // 设置初始显示状态
     this.updateDisplay()
@@ -443,6 +468,51 @@ export class Calculator {
     }
   }
 
+  private async handleAdvancedPanelResult(result: AdvancedPanelResult): Promise<void> {
+    this.state.errorMessage = null
+
+    if (result.history?.expression) {
+      this.state.expression = result.history.expression
+    } else if (result.expression) {
+      this.state.expression = result.expression
+    } else {
+      this.state.expression = ''
+    }
+
+    if (result.result) {
+      this.state.result = result.result
+    }
+
+    this.updateDisplay()
+    this.updateStatusBar()
+    this.setStatus(result.summary)
+
+    if (result.history) {
+      const metadataPanel =
+        result.metadata && typeof (result.metadata as { panel?: unknown }).panel === 'string'
+          ? String((result.metadata as { panel?: unknown }).panel)
+          : undefined
+
+      const tags = metadataPanel ? [metadataPanel, 'advanced'] : ['advanced']
+      const historyOptions: {
+        tags?: string[]
+        metadata?: Record<string, unknown>
+        persist?: boolean
+        source?: string
+      } = {
+        persist: true,
+        source: 'advanced-panel',
+        tags,
+      }
+
+      if (result.metadata) {
+        historyOptions.metadata = result.metadata as Record<string, unknown>
+      }
+
+      await this.addToHistory(result.history.expression, result.history.result, historyOptions)
+    }
+  }
+
   private handleAction(action: string): void {
     switch (action) {
       case 'clear':
@@ -459,6 +529,29 @@ export class Calculator {
       case 'negate':
         this.negate()
         this.setStatus('已取反')
+        break
+      case 'toggle-angle-mode':
+        this.toggleAngleMode()
+        break
+      case 'open-matrix-panel':
+        this.advancedPanels.open('matrix')
+        this.setStatus('已打开矩阵面板')
+        break
+      case 'open-unit-panel':
+        this.advancedPanels.open('unit')
+        this.setStatus('单位转换面板')
+        break
+      case 'open-complex-panel':
+        this.advancedPanels.open('complex')
+        this.setStatus('复数运算面板')
+        break
+      case 'open-stats-panel':
+        this.advancedPanels.open('statistics')
+        this.setStatus('统计分析面板')
+        break
+      case 'open-base-converter':
+        this.advancedPanels.open('base')
+        this.setStatus('进制转换面板')
         break
     }
   }
@@ -509,6 +602,121 @@ export class Calculator {
     this.state.expression += constantValues[constant] || constant
   }
 
+  private toggleAngleMode(): void {
+    const modes: Array<'degrees' | 'radians' | 'gradians'> = ['degrees', 'radians', 'gradians']
+  const currentIndex = modes.indexOf(this.state.settings.angleUnit)
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % modes.length : 0
+  const nextMode = modes[nextIndex] as 'degrees' | 'radians' | 'gradians'
+
+    this.state.settings.angleUnit = nextMode
+    this.keyboard.updateConfig({ angleMode: nextMode })
+    this.updateStatusBar()
+    this.setStatus(`角度单位已切换为${this.getAngleLabel(nextMode)}`)
+  }
+
+  private getAngleLabel(mode: 'degrees' | 'radians' | 'gradians'): string {
+    switch (mode) {
+      case 'radians':
+        return '弧度'
+      case 'gradians':
+        return '梯度'
+      default:
+        return '角度'
+    }
+  }
+
+  private normalizeNaturalLanguage(expression: string): {
+    normalizedExpression: string
+    changed: boolean
+  } {
+    if (!expression.trim()) {
+      return { normalizedExpression: expression, changed: false }
+    }
+
+    let normalized = expression
+
+    const operatorReplacements: Array<[RegExp, string]> = [
+      [/\bmultiplied\s+by\b/gi, '*'],
+      [/\bdivided\s+by\b/gi, '/'],
+      [/(power\s+of|to\s+the\s+power\s+of)/gi, '^'],
+      [/\btimes\b/gi, '*'],
+      [/\bover\b/gi, '/'],
+      [/\bplus\b/gi, '+'],
+      [/\bminus\b/gi, '-'],
+      [/\bmodulo\b/gi, '%'],
+      [/\bmod\b/gi, '%'],
+    ]
+
+    operatorReplacements.forEach(([pattern, symbol]) => {
+      normalized = normalized.replace(pattern, ` ${symbol} `)
+    })
+
+    const numberWords: Record<string, string> = {
+      zero: '0',
+      one: '1',
+      two: '2',
+      three: '3',
+      four: '4',
+      five: '5',
+      six: '6',
+      seven: '7',
+      eight: '8',
+      nine: '9',
+      ten: '10',
+      eleven: '11',
+      twelve: '12',
+    }
+
+    Object.entries(numberWords).forEach(([word, digit]) => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi')
+      normalized = normalized.replace(regex, digit)
+    })
+
+    normalized = normalized.replace(
+      /(\d+(?:\.\d+)?)\s+percent\s+of\s+(\d+(?:\.\d+)?)/gi,
+      (_match, percent, base) => `(${percent}/100)*(${base})`
+    )
+
+    normalized = normalized.replace(/(\d+(?:\.\d+)?)\s*percent\b/gi, (_match, value) => `(${value}/100)`)
+
+    normalized = normalized.replace(/square\s+root\s+of\s+(\d+(?:\.\d+)?)/gi, (_, value) => `sqrt(${value})`)
+    normalized = normalized.replace(/\bcube\s+root\s+of\s+(\d+(?:\.\d+)?)/gi, (_, value) => `cbrt(${value})`)
+    normalized = normalized.replace(/\bpi\b/gi, 'π')
+
+    normalized = normalized.replace(/\s+/g, ' ').trim()
+
+    return {
+      normalizedExpression: normalized,
+      changed: normalized !== expression,
+    }
+  }
+
+  private mapErrorMessage(message: string): string {
+    const normalized = message.toLowerCase()
+
+    if (normalized.includes('division by zero') || normalized.includes('divide by zero')) {
+      return '无法完成运算：分母不能为 0。'
+    }
+
+    if (normalized.includes('mismatched') || normalized.includes('括号')) {
+      return '表达式中的括号似乎未成对，请检查后重试。'
+    }
+
+    if (normalized.includes('unknown function')) {
+      return '检测到未知函数，请确认拼写或切换到支持的函数名称。'
+    }
+
+    if (normalized.includes('invalid number') || normalized.includes('无效数字')) {
+      return '存在无法识别的数字，请检查输入格式。'
+    }
+
+    if (normalized.includes('function argument')) {
+      return '函数参数数量不匹配，请确认函数需要的参数个数。'
+    }
+
+    return message
+  }
+
   private appendBracket(bracket: string): void {
     if (this.state.errorMessage) {
       this.clear()
@@ -523,6 +731,9 @@ export class Calculator {
     }
 
     const startTime = performance.now()
+    const rawExpression = this.state.expression
+    const { normalizedExpression, changed: normalizedChanged } = this.normalizeNaturalLanguage(rawExpression)
+    const expressionForEvaluation = normalizedExpression
 
     try {
       this.state.isCalculating = true
@@ -532,7 +743,7 @@ export class Calculator {
 
       // MCP调试：记录计算开始
       trackState({
-        expression: this.state.expression,
+        expression: rawExpression,
         result: '计算中...',
         memory: this.state.memory,
       })
@@ -540,18 +751,29 @@ export class Calculator {
       // 模拟计算延迟
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      const result = await this.evaluateExpression(this.state.expression)
+      if (normalizedChanged) {
+        this.setStatus(`解析自然语言为 ${expressionForEvaluation}`)
+      }
+
+      const result = await this.evaluateExpression(expressionForEvaluation, rawExpression)
       const duration = performance.now() - startTime
 
       this.state.result = result
       this.state.errorMessage = null
-      await this.addToHistory(this.state.expression, result)
+      const historyOptions: {
+        metadata?: Record<string, unknown>
+      } = {}
+      if (normalizedChanged) {
+        historyOptions.metadata = { normalizedExpression: expressionForEvaluation }
+      }
+
+      await this.addToHistory(rawExpression, result, historyOptions)
       this.state.expression = ''
       this.setStatus('计算完成')
 
       // MCP调试：记录计算成功
       trackState({
-        expression: this.state.expression,
+        expression: rawExpression,
         result: this.state.result,
         memory: this.state.memory,
       })
@@ -562,27 +784,29 @@ export class Calculator {
       })
     } catch (error) {
       const duration = performance.now() - startTime
-      const errorMessage = error instanceof Error ? error.message : '计算错误'
+      const rawError = error instanceof Error ? error.message : '计算错误'
+      const friendlyError = this.mapErrorMessage(rawError)
 
-      this.state.errorMessage = errorMessage
       this.state.result = '0'
-      this.setStatus('计算错误')
+      this.showError(friendlyError)
 
       // MCP调试：记录计算错误
       trackError({
         type: 'CalculationError',
-        message: errorMessage,
+        message: friendlyError,
         context: {
-          expression: this.state.expression,
+          expression: rawExpression,
+          normalizedExpression: expressionForEvaluation,
           duration,
+          rawError,
         },
       })
 
       trackState({
-        expression: this.state.expression,
+        expression: rawExpression,
         result: this.state.result,
         memory: this.state.memory,
-        error: errorMessage,
+        error: friendlyError,
       })
     } finally {
       this.state.isCalculating = false
@@ -591,13 +815,13 @@ export class Calculator {
     }
   }
 
-  private async evaluateExpression(expression: string): Promise<string> {
+  private async evaluateExpression(expression: string, displayExpression: string): Promise<string> {
     try {
       // 使用 Tauri 后端的高精度计算
-      const result = await invoke<{ success: boolean; result?: string; error?: string }>(
-        'calculate',
-        { expression }
-      )
+      const result = await invoke<{ success: boolean; result?: string; error?: string }>('calculate', {
+        expression,
+        displayExpression,
+      })
 
       if (result.success && result.result) {
         return result.result
@@ -672,29 +896,69 @@ export class Calculator {
     this.updateDisplay()
   }
 
-  private async addToHistory(expression: string, result: string): Promise<void> {
-    const historyItem: HistoryItem = {
-      id: Date.now().toString(),
-      expression,
-      result,
-      timestamp: new Date().toISOString(),
-      tags: [],
-      notes: '',
+  private async addToHistory(
+    expression: string,
+    result: string,
+    options: {
+      tags?: string[]
+      notes?: string
+      metadata?: Record<string, unknown>
+      persist?: boolean
+      source?: string
+    } = {}
+  ): Promise<void> {
+    const { tags, notes, metadata, persist, source } = options
+
+    let historyItem: HistoryItem | null = null
+
+    if (persist) {
+      try {
+        historyItem = await invoke<HistoryItem>('record_history_entry', {
+          expression,
+          result,
+          tags,
+          notes,
+          metadata,
+          source,
+        })
+      } catch (error) {
+        console.warn('持久化历史记录失败，退回本地缓存:', error)
+      }
     }
 
-    // 后端计算时已经自动保存到历史，这里只更新前端状态
-    this.state.history.unshift(historyItem)
-    if (this.state.history.length > 100) {
-      this.state.history = this.state.history.slice(0, 100)
+    if (!historyItem) {
+      const fallbackItem: HistoryItem = {
+        id: Date.now().toString(),
+        expression,
+        result,
+        timestamp: new Date().toISOString(),
+      }
+
+      if (tags && tags.length) {
+        fallbackItem.tags = Array.from(new Set(tags))
+      }
+
+      if (typeof notes === 'string' && notes.trim()) {
+        fallbackItem.notes = notes
+      }
+
+      if (metadata) {
+        fallbackItem.metadata = metadata
+      }
+
+      if (source) {
+        fallbackItem.source = source
+      }
+
+      historyItem = fallbackItem
     }
 
-    this.history.setHistory(this.state.history)
+    this.pushHistoryItem(historyItem)
 
-    // 定期从后端同步历史记录
-    if (this.state.history.length % 10 === 0) {
+    if (!persist && this.state.history.length % 10 === 0) {
       try {
         const backendHistory = await invoke<HistoryItem[]>('get_history', { limit: 100 })
-        if (Array.isArray(backendHistory)) {
+        if (Array.isArray(backendHistory) && backendHistory.length) {
           this.state.history = backendHistory
           this.history.setHistory(this.state.history)
         }
@@ -702,6 +966,15 @@ export class Calculator {
         console.warn('同步历史记录失败:', error)
       }
     }
+  }
+
+  private pushHistoryItem(item: HistoryItem): void {
+    this.state.history = this.state.history.filter(existing => existing.id !== item.id)
+    this.state.history.unshift(item)
+    if (this.state.history.length > 100) {
+      this.state.history = this.state.history.slice(0, 100)
+    }
+    this.history.setHistory(this.state.history)
   }
 
   private updateDisplay(): void {
@@ -725,7 +998,17 @@ export class Calculator {
     }
 
     // 更新角度单位指示器
-    angleIndicator.textContent = this.state.settings.angleUnit === 'degrees' ? 'DEG' : 'RAD'
+    switch (this.state.settings.angleUnit) {
+      case 'radians':
+        angleIndicator.textContent = 'RAD'
+        break
+      case 'gradians':
+        angleIndicator.textContent = 'GRAD'
+        break
+      default:
+        angleIndicator.textContent = 'DEG'
+        break
+    }
   }
 
   protected setStatus(message: string): void {
@@ -839,6 +1122,13 @@ export class Calculator {
 
     this.display.updateTheme(currentTheme)
     this.keyboard.updateTheme(currentTheme)
+    this.keyboard.updateConfig({
+      enableHaptic: this.state.settings.enableHaptics,
+      buttonSize: this.state.settings.compactMode ? 'small' : 'medium',
+      layout: this.state.settings.compactMode ? 'standard' : 'scientific',
+      showScientific: !this.state.settings.compactMode,
+      angleMode: this.state.settings.angleUnit,
+    })
     this.history.updateTheme(currentTheme)
     this.settings.updateTheme(currentTheme)
 
@@ -854,9 +1144,11 @@ export class Calculator {
     this.container.setAttribute('data-device', deviceType)
     this.container.setAttribute('data-orientation', isLandscape ? 'landscape' : 'portrait')
 
-    if (deviceType === 'mobile') {
-      this.keyboard.setLayout('standard')
-    }
+    this.keyboard.updateConfig({
+      deviceType,
+      buttonSize: this.state.settings.compactMode ? 'small' : 'medium',
+      showScientific: !this.state.settings.compactMode,
+    })
   }
 
   private handleKeyboard(event: KeyboardEvent): boolean {
@@ -910,7 +1202,7 @@ export class Calculator {
       const deviceDetector = new DeviceDetector()
       const isLandscape = deviceDetector.getOrientation() === 'landscape'
       this.container.setAttribute('data-orientation', isLandscape ? 'landscape' : 'portrait')
-      this.keyboard.handleOrientationChange()
+      this.keyboard.handleResize()
     }, 100)
   }
 

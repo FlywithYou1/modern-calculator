@@ -4,6 +4,7 @@
  */
 
 import type { Theme, HistoryItem, HistoryConfig, HistoryStats } from '../types/calculator.js'
+import { TauriService } from '../utils/tauri.js'
 
 export class History {
   private element: HTMLElement
@@ -12,6 +13,9 @@ export class History {
   private filteredHistory: HistoryItem[] = []
   private searchTerm: string = ''
   private isVisible: boolean = false
+  private remoteStats: Record<string, number> | null = null
+  private activeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  private searchRequestId = 0
 
   constructor(container: HTMLElement, config: HistoryConfig) {
     this.config = config
@@ -42,6 +46,9 @@ export class History {
         <div class="history-actions">
           <button class="history-search-btn" aria-label="搜索历史记录">
             <span class="icon-search">🔍</span>
+          </button>
+          <button class="history-import-btn" aria-label="导入历史记录">
+            <span class="icon-import">📥</span>
           </button>
           <button class="history-export-btn" aria-label="导出历史记录">
             <span class="icon-export">💾</span>
@@ -101,15 +108,20 @@ export class History {
     })
 
     // 导出按钮
+    const importBtn = this.element.querySelector('.history-import-btn') as HTMLElement
+    importBtn?.addEventListener('click', () => {
+      this.openImportDialog()
+    })
+
     const exportBtn = this.element.querySelector('.history-export-btn') as HTMLElement
     exportBtn?.addEventListener('click', () => {
-      this.exportHistory()
+      void this.exportHistory()
     })
 
     // 清空按钮
     const clearBtn = this.element.querySelector('.history-clear-btn') as HTMLElement
     clearBtn?.addEventListener('click', () => {
-      this.confirmClearHistory()
+      void this.confirmClearHistory()
     })
 
     // 关闭按钮
@@ -185,6 +197,7 @@ export class History {
     const tags = item.tags
       ? item.tags.map(tag => `<span class="history-tag">${tag}</span>`).join('')
       : ''
+    const metadata = item.metadata ? this.renderMetadata(item.metadata) : ''
 
     return `
       <div class="history-item" role="listitem" data-id="${item.id}" tabindex="0">
@@ -200,6 +213,7 @@ export class History {
             <div class="history-tags">${tags}</div>
           </div>
           ${item.notes ? `<div class="history-notes">${item.notes}</div>` : ''}
+          ${metadata}
         </div>
         <div class="history-item-actions">
           <button class="history-action-btn reuse-btn" data-action="reuse" data-id="${item.id}" aria-label="重新使用此表达式">
@@ -214,6 +228,36 @@ export class History {
         </div>
       </div>
     `
+  }
+
+  private renderMetadata(metadata: Record<string, unknown>): string {
+    const json = JSON.stringify(metadata, null, 2)
+    if (!json) return ''
+
+    return `
+      <details class="history-metadata">
+        <summary>附加信息</summary>
+        <pre>${this.escapeHtml(json)}</pre>
+      </details>
+    `
+  }
+
+  private stringifyMetadata(metadata: Record<string, unknown>): string {
+    try {
+      return JSON.stringify(metadata).toLowerCase()
+    } catch (error) {
+      console.warn('序列化元数据失败:', error)
+      return ''
+    }
+  }
+
+  private escapeHtml(input: string): string {
+    return input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
   }
 
   /**
@@ -292,6 +336,7 @@ export class History {
     if (this.history.length > this.config.maxItems) {
       this.history = this.history.slice(0, this.config.maxItems)
     }
+    this.remoteStats = null
     this.filterHistory()
     this.render()
   }
@@ -301,6 +346,7 @@ export class History {
    */
   private deleteHistoryItem(id: string): void {
     this.history = this.history.filter(item => item.id !== id)
+    this.remoteStats = null
     this.filterHistory()
     this.render()
   }
@@ -351,19 +397,29 @@ export class History {
    * 过滤历史记录
    */
   private filterHistory(): void {
-    let filtered = [...this.history]
+    let filtered = this.applyTimeFilter([...this.history])
 
-    // 按搜索词过滤
     if (this.searchTerm) {
       const term = this.searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        item =>
-          item.expression.toLowerCase().includes(term) ||
-          item.result.toLowerCase().includes(term) ||
-          (item.notes && item.notes.toLowerCase().includes(term))
-      )
+      filtered = filtered.filter(item => {
+        const matchesExpression = item.expression.toLowerCase().includes(term)
+        const matchesResult = item.result.toLowerCase().includes(term)
+        const matchesNotes = typeof item.notes === 'string' && item.notes.toLowerCase().includes(term)
+        const matchesTags = Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(term))
+        const matchesMetadata = item.metadata
+          ? this.stringifyMetadata(item.metadata).includes(term)
+          : false
+
+        return matchesExpression || matchesResult || matchesNotes || matchesTags || matchesMetadata
+      })
+
+      this.filteredHistory = filtered
+      this.renderHistoryList()
+      void this.fetchRemoteSearch(this.searchTerm)
+      return
     }
 
+    this.searchRequestId += 1
     this.filteredHistory = filtered
     this.renderHistoryList()
   }
@@ -372,52 +428,81 @@ export class History {
    * 设置时间过滤器
    */
   private setFilter(filter: string): void {
-    // 更新过滤按钮状态
+    const allowed = new Set(['all', 'today', 'week', 'month'])
+    const normalized = allowed.has(filter) ? (filter as 'all' | 'today' | 'week' | 'month') : 'all'
+    this.activeFilter = normalized
+
     const filterBtns = this.element.querySelectorAll('.filter-btn')
     filterBtns.forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-filter') === filter)
+      btn.classList.toggle('active', btn.getAttribute('data-filter') === normalized)
     })
 
-    // 按时间过滤
-    const now = new Date()
-    let filtered = [...this.history]
+    this.filterHistory()
+    if (this.searchTerm) {
+      void this.fetchRemoteSearch(this.searchTerm)
+    }
+  }
 
-    switch (filter) {
+  private applyTimeFilter(items: HistoryItem[]): HistoryItem[] {
+    switch (this.activeFilter) {
       case 'today': {
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        filtered = filtered.filter(item => new Date(item.timestamp) >= today)
-        break
+        const today = new Date()
+        const floor = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+        return items.filter(item => new Date(item.timestamp) >= floor)
       }
       case 'week': {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        filtered = filtered.filter(item => new Date(item.timestamp) >= weekAgo)
-        break
+        const now = Date.now()
+        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
+        return items.filter(item => new Date(item.timestamp) >= weekAgo)
       }
       case 'month': {
-        const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
-        filtered = filtered.filter(item => new Date(item.timestamp) >= monthAgo)
-        break
+        const today = new Date()
+        const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())
+        return items.filter(item => new Date(item.timestamp) >= monthAgo)
       }
       default:
-        // 显示全部
-        break
+        return items
+    }
+  }
+
+  private async fetchRemoteSearch(term: string): Promise<void> {
+    const trimmed = term.trim()
+    const requestId = ++this.searchRequestId
+
+    if (!trimmed) {
+      return
     }
 
-    this.filteredHistory = filtered
-    this.renderHistoryList()
+    try {
+      const results = await TauriService.searchHistory(trimmed)
+      if (this.searchRequestId !== requestId) {
+        return
+      }
+
+      if (Array.isArray(results)) {
+        this.filteredHistory = this.applyTimeFilter(results)
+        this.renderHistoryList()
+      }
+    } catch (error) {
+      if (this.searchRequestId === requestId) {
+        console.warn('搜索历史记录失败:', error)
+      }
+    }
   }
 
   /**
    * 更新统计信息
    */
   private updateStats(): void {
-    const stats = this.calculateStats()
+    const fallback = this.calculateStats()
+    const total = this.remoteStats?.total_items ?? fallback.totalCalculations
+    const today = this.remoteStats?.today_calculations ?? fallback.calculationsToday
 
     const totalElement = this.element.querySelector('[data-stat="total"]') as HTMLElement
     const todayElement = this.element.querySelector('[data-stat="today"]') as HTMLElement
 
-    if (totalElement) totalElement.textContent = stats.totalCalculations.toString()
-    if (todayElement) todayElement.textContent = stats.calculationsToday.toString()
+    if (totalElement) totalElement.textContent = total.toString()
+    if (todayElement) todayElement.textContent = today.toString()
   }
 
   /**
@@ -443,18 +528,47 @@ export class History {
     }
   }
 
+  private openImportDialog(): void {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json'
+    input.style.display = 'none'
+
+    input.addEventListener(
+      'change',
+      () => {
+        const file = input.files?.[0]
+        if (file) {
+          void this.importHistoryFile(file)
+        }
+        input.remove()
+      },
+      { once: true }
+    )
+
+    document.body.appendChild(input)
+    input.click()
+  }
+
+  private async importHistoryFile(file: File): Promise<void> {
+    try {
+      const content = await file.text()
+      await TauriService.importHistory(content)
+      await this.loadHistory()
+      this.showToast('历史记录已导入')
+    } catch (error) {
+      console.error('导入历史记录失败:', error)
+      this.showToast('导入历史记录失败')
+    }
+  }
+
   /**
    * 导出历史记录
    */
   private async exportHistory(): Promise<void> {
     try {
-      const data = {
-        exportDate: new Date().toISOString(),
-        history: this.history,
-        stats: this.calculateStats(),
-      }
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const payload = await TauriService.exportHistory()
+      const blob = new Blob([payload], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
 
       const a = document.createElement('a')
@@ -475,19 +589,27 @@ export class History {
   /**
    * 确认清空历史记录
    */
-  private confirmClearHistory(): void {
+  private async confirmClearHistory(): Promise<void> {
     if (confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
-      this.clearHistory()
+      await this.clearHistory()
     }
   }
 
   /**
    * 清空历史记录
    */
-  private clearHistory(): void {
-    this.history = []
-    this.filteredHistory = []
-    this.render()
+  private async clearHistory(): Promise<void> {
+    try {
+      await TauriService.clearHistory()
+    } catch (error) {
+      console.error('清空历史记录失败，采用前端回退:', error)
+    }
+
+  this.history = []
+  this.filteredHistory = []
+  this.remoteStats = { total_items: 0, today_calculations: 0 }
+  this.render()
+  this.updateStats()
 
     if (this.config.onHistoryClear) {
       this.config.onHistoryClear()
@@ -501,9 +623,25 @@ export class History {
    */
   private async loadHistory(): Promise<void> {
     try {
-      // 这里可以调用 Tauri 命令加载历史记录
-      // const history = await invoke('get_calculation_history');
-      // this.setHistory(history);
+      const [history, stats] = await Promise.all([
+        TauriService.getHistory(this.config.maxItems).catch(error => {
+          console.warn('获取后端历史记录失败，使用本地数据:', error)
+          return null
+        }),
+        TauriService.getHistoryStats().catch(error => {
+          console.warn('获取历史统计失败:', error)
+          return null
+        }),
+      ])
+
+      if (Array.isArray(history)) {
+        this.setHistory(history)
+      }
+
+      if (stats) {
+        this.remoteStats = stats
+        this.updateStats()
+      }
     } catch (error) {
       console.error('加载历史记录失败:', error)
     }
