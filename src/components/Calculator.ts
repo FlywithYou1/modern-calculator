@@ -6,7 +6,7 @@ import type {
   KeyboardConfig,
 } from '../types/calculator.js'
 import { Display } from './Display.js'
-import { AdvancedKeyboard } from './KeyboardNew.js'
+import { AdvancedKeyboard } from './Keyboard.js'
 import { History } from './History.js'
 import { Settings } from './Settings.js'
 import { AdvancedPanelManager, type AdvancedPanelResult } from './AdvancedPanels.js'
@@ -28,10 +28,14 @@ export class Calculator {
   private history!: History
   private settings!: Settings
   private advancedPanels!: AdvancedPanelManager
+  private voiceController: import('../mobile/voice-input-simple.js').CalculatorVoiceController | null = null
+  private gestureHandler: import('../mobile/gesture.js').CalculatorGestureHandler | null = null
+  private deviceDetector: DeviceDetector
 
   constructor(container: HTMLElement) {
     this.container = container
     this.themeManager = new ThemeManager()
+    this.deviceDetector = new DeviceDetector()
     this.state = this.getInitialState()
   }
 
@@ -237,7 +241,14 @@ export class Calculator {
       await this.initializeComponents()
       this.setupEventListeners()
       await this.themeManager.setThemeMode(this.state.settings.theme)
+      this.themeManager.initReduceMotion() // 初始化减少动效模式
       this.adaptToDevice()
+      
+      // 移动端专属功能
+      if (this.deviceDetector.isMobile() || this.deviceDetector.isTablet()) {
+        await this.initMobileFeatures()
+      }
+      
       console.log('✅ 计算器初始化完成')
     } catch (error) {
       console.error('❌ 计算器初始化失败:', error)
@@ -1151,6 +1162,180 @@ export class Calculator {
     })
   }
 
+  /**
+   * 初始化移动端专属功能
+   */
+  private async initMobileFeatures(): Promise<void> {
+    try {
+      // 初始化手势操作
+      const { CalculatorGestureHandler } = await import('../mobile/gesture.js')
+      this.gestureHandler = new CalculatorGestureHandler(this.container)
+      
+      // 监听手势事件
+      this.container.addEventListener('calculatorGesture', ((event: CustomEvent) => {
+        this.handleGestureAction(event.detail)
+      }) as EventListener)
+      
+      console.log('✅ 手势操作已启用')
+
+      // 初始化语音输入
+      const { CalculatorVoiceController } = await import('../mobile/voice-input-simple.js')
+      this.voiceController = new CalculatorVoiceController()
+      
+      if (this.voiceController.isVoiceSupported()) {
+        this.addVoiceInputButton()
+        console.log('✅ 语音输入已启用')
+      } else {
+        console.log('ℹ️ 当前设备不支持语音输入')
+      }
+    } catch (error) {
+      console.error('❌ 移动端功能初始化失败:', error)
+    }
+  }
+
+  /**
+   * 处理手势动作
+   */
+  private handleGestureAction(detail: { action: string; direction?: string; suggestion: string }): void {
+    const { action, suggestion } = detail
+
+    switch (action) {
+      case 'swipe':
+        this.handleSwipeGesture(suggestion)
+        break
+      case 'doubleTap':
+        if (suggestion === 'copyResult') {
+          this.copyResultToClipboard()
+        }
+        break
+      case 'longPress':
+        this.handleLongPressGesture(suggestion)
+        break
+      case 'pinch':
+        this.handlePinchGesture(suggestion)
+        break
+    }
+  }
+
+  /**
+   * 处理滑动手势
+   */
+  private handleSwipeGesture(suggestion: string): void {
+    switch (suggestion) {
+      case 'deleteLastDigit':
+        this.backspace()
+        break
+      case 'undoLastOperation':
+        // TODO: 实现撤销功能
+        console.log('撤销操作')
+        break
+      case 'showHistory':
+        // 打开历史记录面板（显示侧边栏）
+        const historyBtn = document.getElementById('history-btn')
+        if (historyBtn) {
+          historyBtn.click()
+        }
+        break
+      case 'hideExtendedPanel':
+        // TODO: 关闭扩展面板
+        console.log('关闭扩展面板')
+        break
+    }
+  }
+
+  /**
+   * 处理长按手势
+   */
+  private handleLongPressGesture(suggestion: string): void {
+    switch (suggestion) {
+      case 'editExpression':
+        // TODO: 编辑表达式
+        console.log('编辑表达式')
+        break
+      case 'showButtonMenu':
+        // TODO: 显示按钮菜单
+        console.log('显示按钮菜单')
+        break
+    }
+  }
+
+  /**
+   * 处理缩放手势
+   */
+  private handlePinchGesture(suggestion: string): void {
+    // TODO: 实现缩放功能
+    console.log('缩放:', suggestion)
+  }
+
+  /**
+   * 复制结果到剪贴板
+   */
+  private copyResultToClipboard(): void {
+    const result = this.state.result
+    navigator.clipboard.writeText(result).then(() => {
+      this.showToast('✅ 已复制到剪贴板')
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
+    }).catch(() => {
+      this.showToast('❌ 复制失败')
+    })
+  }
+
+  /**
+   * 添加语音输入按钮
+   */
+  private addVoiceInputButton(): void {
+    const headerControls = this.container.querySelector('.header-controls')
+    if (headerControls) {
+      const voiceBtn = document.createElement('button')
+      voiceBtn.className = 'header-btn'
+      voiceBtn.id = 'voice-btn'
+      voiceBtn.title = '语音输入'
+      voiceBtn.setAttribute('aria-label', '语音输入')
+      voiceBtn.textContent = '🎤'
+      
+      voiceBtn.addEventListener('click', async () => {
+        if (this.voiceController) {
+          await this.voiceController.toggleVoiceInput()
+          const isActive = this.voiceController.isVoiceActive()
+          voiceBtn.style.color = isActive ? 'var(--color-accent)' : ''
+          this.showToast(isActive ? '🎤 语音输入已启动' : '🎤 语音输入已关闭')
+        }
+      })
+      
+      headerControls.insertBefore(voiceBtn, headerControls.firstChild)
+    }
+  }
+
+  /**
+   * 显示Toast提示
+   */
+  private showToast(message: string): void {
+    const toast = document.createElement('div')
+    toast.className = 'toast-message'
+    toast.textContent = message
+    toast.style.cssText = `
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-surface);
+      color: var(--color-text);
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: var(--shadow-large);
+      z-index: 9999;
+      animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s;
+    `
+    
+    document.body.appendChild(toast)
+    
+    setTimeout(() => {
+      toast.remove()
+    }, 3000)
+  }
+
   private handleKeyboard(event: KeyboardEvent): boolean {
     if (!this.state.settings.enableKeyboardShortcuts) {
       return false
@@ -1211,6 +1396,17 @@ export class Calculator {
     this.keyboard?.destroy()
     this.history?.destroy()
     this.settings?.destroy()
+
+    // 清理移动端功能
+    if (this.gestureHandler) {
+      this.gestureHandler.destroy()
+      this.gestureHandler = null
+    }
+
+    if (this.voiceController) {
+      this.voiceController.stopVoiceInput()
+      this.voiceController = null
+    }
 
     document.removeEventListener('keydown', this.handleKeyboard.bind(this))
     window.removeEventListener('resize', this.handleResize.bind(this))

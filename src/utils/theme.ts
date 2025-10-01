@@ -49,6 +49,25 @@ export class ThemeManager {
     cssVariables: {},
   }
 
+  private readonly highContrastTheme: Theme = {
+    name: 'high-contrast',
+    mode: 'dark',
+    type: 'builtin',
+    colors: {
+      primary: '#ffff00',
+      secondary: '#ffffff',
+      background: '#000000',
+      surface: '#000000',
+      text: '#ffffff',
+      textSecondary: '#ffff00',
+      accent: '#00ff00',
+      error: '#ff0000',
+      warning: '#ffff00',
+      success: '#00ff00',
+    },
+    cssVariables: {},
+  }
+
   constructor() {
     // 监听系统主题变化
     this.mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
@@ -94,7 +113,7 @@ export class ThemeManager {
   /**
    * 设置主题模式
    */
-  async setThemeMode(mode: ThemeMode): Promise<void> {
+  async setThemeMode(mode: ThemeMode | 'high-contrast'): Promise<void> {
     let newTheme: Theme
 
     switch (mode) {
@@ -103,6 +122,9 @@ export class ThemeManager {
         break
       case 'dark':
         newTheme = this.darkTheme
+        break
+      case 'high-contrast':
+        newTheme = this.highContrastTheme
         break
       case 'auto':
         newTheme = this.getSystemTheme()
@@ -115,7 +137,7 @@ export class ThemeManager {
     this.applyTheme(newTheme)
 
     // 保存主题设置
-    await this.saveThemeMode(mode)
+    await this.saveThemeMode(mode as ThemeMode)
 
     // 通知监听器
     this.notifyThemeChange(newTheme)
@@ -179,6 +201,9 @@ export class ThemeManager {
     // 添加主题类名
     root.classList.remove('theme-light', 'theme-dark')
     root.classList.add(`theme-${theme.mode}`)
+
+    // 设置 data-theme 属性（用于 CSS 选择器）
+    root.setAttribute('data-theme', theme.name)
 
     // 更新 meta 标签
     this.updateMetaThemeColor(theme)
@@ -372,5 +397,69 @@ export class ThemeManager {
    */
   async resetToDefault(): Promise<void> {
     await this.setThemeMode('auto')
+  }
+
+  /**
+   * 启用/禁用减少动效模式
+   */
+  setReduceMotion(enabled: boolean): void {
+    const root = document.documentElement
+    
+    if (enabled) {
+      root.setAttribute('data-reduce-motion', 'true')
+      root.style.setProperty('--transition-fast', '0s')
+      root.style.setProperty('--transition-normal', '0s')
+      root.style.setProperty('--transition-slow', '0s')
+      root.style.setProperty('--transition-bounce', '0s')
+      root.style.setProperty('--transition-smooth', '0s')
+    } else {
+      root.removeAttribute('data-reduce-motion')
+      root.style.removeProperty('--transition-fast')
+      root.style.removeProperty('--transition-normal')
+      root.style.removeProperty('--transition-slow')
+      root.style.removeProperty('--transition-bounce')
+      root.style.removeProperty('--transition-smooth')
+    }
+
+    // 保存设置
+    try {
+      localStorage.setItem('calculator-reduce-motion', String(enabled))
+    } catch (error) {
+      console.error('保存减少动效设置失败:', error)
+    }
+  }
+
+  /**
+   * 获取减少动效模式设置
+   */
+  getReduceMotion(): boolean {
+    try {
+      const stored = localStorage.getItem('calculator-reduce-motion')
+      if (stored !== null) {
+        return stored === 'true'
+      }
+    } catch (error) {
+      console.warn('读取减少动效设置失败:', error)
+    }
+    
+    // 默认检查系统偏好
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }
+
+  /**
+   * 初始化减少动效模式
+   */
+  initReduceMotion(): void {
+    const reduceMotion = this.getReduceMotion()
+    this.setReduceMotion(reduceMotion)
+
+    // 监听系统偏好变化
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+      const stored = localStorage.getItem('calculator-reduce-motion')
+      // 只有当用户没有手动设置时才响应系统变化
+      if (stored === null) {
+        this.setReduceMotion(e.matches)
+      }
+    })
   }
 }

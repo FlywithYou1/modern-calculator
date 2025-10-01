@@ -14,15 +14,72 @@ export interface MCPPerformanceStats {
   averageCalculationTimeMs: number
 }
 
+export type MCPDebugEventType = 
+  | 'StateChanged'
+  | 'ExpressionParsed'
+  | 'CalculationExecuted'
+  | 'ErrorOccurred'
+  | 'PerformanceMetrics'
+  | 'button-click'
+  | 'keydown'
+  | 'panel-open'
+  | 'panel-close'
+  | 'panel-switch'
+  | 'input-start'
+  | 'error-displayed'
+
 export interface MCPDebugEvent {
-  type:
-    | 'StateChanged'
-    | 'ExpressionParsed'
-    | 'CalculationExecuted'
-    | 'ErrorOccurred'
-    | 'PerformanceMetrics'
+  type: MCPDebugEventType | string
   timestamp: number
+  target?: string
+  metadata?: Record<string, unknown>
   [key: string]: unknown
+}
+
+export interface MCPStateRecord {
+  expression: string
+  result: string
+  memory: string
+  error?: string
+  timestamp: string
+}
+
+export interface MCPPerformanceRecord {
+  operation: string
+  duration: number
+  memoryUsage?: number
+  timestamp: string
+}
+
+export interface MCPErrorRecord {
+  type: string
+  message: string
+  stack?: string
+  context?: Record<string, unknown>
+  timestamp: string
+}
+
+export interface MCPDebugSnapshot {
+  timestamp: string
+  states: MCPStateRecord[]
+  performance: MCPPerformanceRecord[]
+  errors: MCPErrorRecord[]
+  events: MCPDebugEvent[]
+  system: {
+    userAgent: string
+    timestamp: string
+    url: string
+  }
+}
+
+export interface MCPPerformanceMetrics {
+  [operation: string]: {
+    count: number
+    average: number
+    min: number
+    max: number
+    total: number
+  }
 }
 
 /**
@@ -32,6 +89,18 @@ export class MCPDebugger {
   private isEnabled: boolean = false
   private statsUpdateInterval: number | null = null
   private eventCallbacks: Map<string, ((data: unknown) => void)[]> = new Map()
+  
+  // 本地调试数据存储
+  private states: MCPStateRecord[] = []
+  private performanceRecords: MCPPerformanceRecord[] = []
+  private errorRecords: MCPErrorRecord[] = []
+  private eventRecords: MCPDebugEvent[] = []
+  
+  // 存储限制
+  private readonly MAX_STATES = 100
+  private readonly MAX_PERFORMANCE = 200
+  private readonly MAX_ERRORS = 50
+  private readonly MAX_EVENTS = 100
 
   constructor() {
     this.isEnabled = import.meta.env.DEV // 开发环境下默认启用
@@ -149,11 +218,18 @@ export class MCPDebugger {
   }): void {
     if (!this.isEnabled) return
 
-    console.debug('📊 [MCP] 前端状态变化:', state)
-    this.emitEvent('frontend-state-change', {
+    const record: MCPStateRecord = {
       ...state,
-      timestamp: Date.now(),
-    })
+      timestamp: new Date().toISOString(),
+    }
+
+    this.states.unshift(record)
+    if (this.states.length > this.MAX_STATES) {
+      this.states = this.states.slice(0, this.MAX_STATES)
+    }
+
+    console.debug('📊 [MCP] 前端状态变化:', state)
+    this.emitEvent('frontend-state-change', record)
   }
 
   /**
@@ -166,11 +242,18 @@ export class MCPDebugger {
   }): void {
     if (!this.isEnabled) return
 
-    console.debug('⚡ [MCP] 前端性能:', metrics)
-    this.emitEvent('frontend-performance', {
+    const record: MCPPerformanceRecord = {
       ...metrics,
-      timestamp: Date.now(),
-    })
+      timestamp: new Date().toISOString(),
+    }
+
+    this.performanceRecords.unshift(record)
+    if (this.performanceRecords.length > this.MAX_PERFORMANCE) {
+      this.performanceRecords = this.performanceRecords.slice(0, this.MAX_PERFORMANCE)
+    }
+
+    console.debug('⚡ [MCP] 前端性能:', metrics)
+    this.emitEvent('frontend-performance', record)
   }
 
   /**
@@ -184,11 +267,110 @@ export class MCPDebugger {
   }): void {
     if (!this.isEnabled) return
 
-    console.error('❌ [MCP] 前端错误:', error)
-    this.emitEvent('frontend-error', {
+    const record: MCPErrorRecord = {
       ...error,
+      timestamp: new Date().toISOString(),
+    }
+
+    this.errorRecords.unshift(record)
+    if (this.errorRecords.length > this.MAX_ERRORS) {
+      this.errorRecords = this.errorRecords.slice(0, this.MAX_ERRORS)
+    }
+
+    console.error('❌ [MCP] 前端错误:', error)
+    this.emitEvent('frontend-error', record)
+  }
+
+  /**
+   * 记录事件
+   */
+  trackEvent(event: {
+    type: string
+    target?: string
+    metadata?: Record<string, unknown>
+  }): void {
+    if (!this.isEnabled) return
+
+    const record: MCPDebugEvent = {
+      type: event.type,
       timestamp: Date.now(),
-    })
+    }
+
+    if (event.target !== undefined) {
+      record.target = event.target
+    }
+
+    if (event.metadata !== undefined) {
+      record.metadata = event.metadata
+    }
+
+    this.eventRecords.unshift(record)
+    if (this.eventRecords.length > this.MAX_EVENTS) {
+      this.eventRecords = this.eventRecords.slice(0, this.MAX_EVENTS)
+    }
+
+    console.debug('🎯 [MCP] 事件:', event)
+    this.emitEvent('event-tracked', record)
+  }
+
+  /**
+   * 获取调试数据快照
+   */
+  getDebugSnapshot(): MCPDebugSnapshot {
+    return {
+      timestamp: new Date().toISOString(),
+      states: [...this.states],
+      performance: [...this.performanceRecords],
+      errors: [...this.errorRecords],
+      events: [...this.eventRecords],
+      system: {
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+      },
+    }
+  }
+
+  /**
+   * 获取性能统计
+   */
+  getPerformanceMetrics(): MCPPerformanceMetrics {
+    const metrics: MCPPerformanceMetrics = {}
+
+    for (const record of this.performanceRecords) {
+      const { operation, duration } = record
+      
+      if (!metrics[operation]) {
+        metrics[operation] = {
+          count: 0,
+          average: 0,
+          min: Infinity,
+          max: -Infinity,
+          total: 0,
+        }
+      }
+
+      const metric = metrics[operation]
+      metric.count++
+      metric.total += duration
+      metric.min = Math.min(metric.min, duration)
+      metric.max = Math.max(metric.max, duration)
+      metric.average = metric.total / metric.count
+    }
+
+    return metrics
+  }
+
+  /**
+   * 清除所有调试数据
+   */
+  clearDebugData(): void {
+    this.states = []
+    this.performanceRecords = []
+    this.errorRecords = []
+    this.eventRecords = []
+    
+    console.log('🧹 [MCP] 调试数据已清除')
   }
 
   /**
@@ -288,6 +470,18 @@ export const trackError = (error: {
   stack?: string
   context?: Record<string, unknown>
 }) => mcpDebugger.trackFrontendError(error)
+
+export const trackEvent = (event: {
+  type: string
+  target?: string
+  metadata?: Record<string, unknown>
+}) => mcpDebugger.trackEvent(event)
+
+export const getDebugSnapshot = () => mcpDebugger.getDebugSnapshot()
+
+export const clearDebugData = () => mcpDebugger.clearDebugData()
+
+export const getPerformanceMetrics = () => mcpDebugger.getPerformanceMetrics()
 
 /**
  * 性能监控装饰器

@@ -94,6 +94,58 @@
   --shadow-large: 0 20px 25px rgba(0, 0, 0, 0.3);
 }
 
+/* 高对比度主题 - WCAG 2.1 AA级别 */
+[data-theme='high-contrast'] {
+  --color-primary: #ffff00;
+  --color-secondary: #ffffff;
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-hover: #1a1a1a;
+  --color-surface-active: #333333;
+  --color-text: #ffffff;
+  --color-text-secondary: #ffff00;
+  --color-accent: #00ff00;
+  --color-error: #ff0000;
+  --color-success: #00ff00;
+  --color-warning: #ffff00;
+  --color-neon-blue: #00ffff;
+  --color-neon-purple: #ff00ff;
+  --color-neon-green: #00ff00;
+  --color-glass-bg: #000000;
+  --color-glass-border: #ffffff;
+
+  --shadow-small: 0 0 0 2px #ffffff;
+  --shadow-medium: 0 0 0 3px #ffffff;
+  --shadow-large: 0 0 0 4px #ffffff;
+
+  /* 高对比度主题禁用毛玻璃效果 */
+  --glass-blur: blur(0px);
+  --glass-blur-strong: blur(0px);
+}
+
+/* 高对比度主题特殊样式 */
+[data-theme='high-contrast'] .calc-btn {
+  border: 3px solid #ffffff !important;
+  font-weight: 700;
+}
+
+[data-theme='high-contrast'] .calculator-display {
+  border: 3px solid #ffffff !important;
+}
+
+[data-theme='high-contrast'] .calculator-toolbar {
+  border-bottom: 3px solid #ffffff !important;
+}
+
+[data-theme='high-contrast'] .panel {
+  border: 3px solid #ffffff !important;
+}
+
+[data-theme='high-contrast'] button:focus {
+  outline: 4px solid #ffff00 !important;
+  outline-offset: 2px;
+}
+
 /* 基础样式重置 */
 * {
   margin: 0;
@@ -168,6 +220,7 @@ button {
   display: flex;
   flex-direction: column;
   transition: all var(--transition-normal);
+  position: relative;
 }
 
 /* 工具栏样式 */
@@ -176,14 +229,16 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-surface);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(100, 116, 139, 0.1);
-  box-shadow: var(--shadow-small);
+  background: var(--color-glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--color-glass-border);
+  box-shadow: var(--shadow-small), 0 4px 20px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .toolbar-left,
@@ -293,16 +348,19 @@ button {
 
 /* 显示屏样式 */
 .calculator-display {
-  background: var(--color-surface);
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-medium);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-medium), 0 0 40px rgba(59, 130, 246, 0.15);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   transition: all var(--transition-normal);
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .display-status {
@@ -441,14 +499,16 @@ button {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  background: color-mix(in srgb, var(--color-surface) 90%, rgba(255, 255, 255, 0.08));
+  background: var(--color-glass-bg);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-large), 0 0 40px rgba(0, 212, 255, 0.15);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: var(--shadow-large), 0 0 60px rgba(0, 212, 255, 0.25), 0 0 100px rgba(59, 130, 246, 0.15);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--color-glass-border);
   padding: var(--spacing-lg);
   color: var(--color-text);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .advanced-panel-header {
@@ -803,13 +863,16 @@ button {
 }
 
 .scientific-panel {
-  background: var(--color-surface);
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-medium);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-medium), 0 0 30px rgba(59, 130, 246, 0.1);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   overflow: hidden;
   transition: all var(--transition-normal);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .scientific-panel.collapsed .scientific-content {
@@ -855,12 +918,15 @@ button {
 }
 
 .basic-panel {
-  background: var(--color-surface);
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-medium);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-medium), 0 0 30px rgba(59, 130, 246, 0.1);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   padding: var(--spacing-lg);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .button-grid {
@@ -895,6 +961,8 @@ button {
   position: relative;
   overflow: hidden;
   transition: all var(--transition-fast);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
 }
 
 .calc-btn::before {
@@ -1011,15 +1079,17 @@ button {
 
 /* 面板样式 */
 .panel {
-  background: var(--color-surface);
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-medium);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-medium), 0 0 30px rgba(59, 130, 246, 0.1);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   overflow: hidden;
   transition: all var(--transition-normal);
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateX(20px) translateZ(0);
+  will-change: transform, opacity;
 }
 
 .panel.visible {
@@ -1041,8 +1111,8 @@ button {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1050,6 +1120,7 @@ button {
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-normal);
+  will-change: opacity;
 }
 
 .mobile-modal.visible {
@@ -1058,15 +1129,19 @@ button {
 }
 
 .modal-content {
-  background: var(--color-surface);
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-large);
+  box-shadow: var(--shadow-large), 0 0 40px rgba(59, 130, 246, 0.2);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   width: 90%;
   max-width: 400px;
   max-height: 80vh;
   overflow: hidden;
-  transform: scale(0.9);
+  transform: scale(0.9) translateZ(0);
   transition: transform var(--transition-normal);
+  will-change: transform;
 }
 
 .mobile-modal.visible .modal-content {
