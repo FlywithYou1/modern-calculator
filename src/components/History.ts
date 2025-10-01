@@ -15,6 +15,7 @@ export class History {
   private isVisible: boolean = false
   private remoteStats: Record<string, number> | null = null
   private activeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  private activeTagFilter: string = 'all'
   private searchRequestId = 0
 
   constructor(container: HTMLElement, config: HistoryConfig) {
@@ -70,6 +71,12 @@ export class History {
           <button class="filter-btn" data-filter="week">本周</button>
           <button class="filter-btn" data-filter="month">本月</button>
         </div>
+        <div class="history-tag-filters">
+          <button class="tag-filter-btn active" data-tag="all">所有标签</button>
+          <button class="tag-filter-btn" data-tag="basic">基础运算</button>
+          <button class="tag-filter-btn" data-tag="scientific">科学计算</button>
+          <button class="tag-filter-btn" data-tag="advanced">高级功能</button>
+        </div>
       </div>
 
       <div class="history-stats">
@@ -81,6 +88,10 @@ export class History {
           <span class="stat-label">今日计算</span>
           <span class="stat-value" data-stat="today">0</span>
         </div>
+        <div class="stat-item">
+          <span class="stat-label">搜索结果</span>
+          <span class="stat-value" data-stat="filtered">0</span>
+        </div>
       </div>
 
       <div class="history-content">
@@ -91,6 +102,11 @@ export class History {
           <div class="empty-icon">📝</div>
           <div class="empty-text">暂无计算历史</div>
           <div class="empty-description">开始计算，这里将显示您的计算历史</div>
+        </div>
+        <div class="history-search-empty" style="display: none;">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-text">未找到匹配的记录</div>
+          <div class="empty-description">尝试调整搜索条件或清除筛选</div>
         </div>
       </div>
     `
@@ -137,12 +153,21 @@ export class History {
       this.filterHistory()
     })
 
-    // 过滤按钮
+    // 时间过滤按钮
     const filterBtns = this.element.querySelectorAll('.filter-btn')
     filterBtns.forEach(btn => {
       btn.addEventListener('click', e => {
         const filter = (e.target as HTMLElement).dataset.filter
         this.setFilter(filter || 'all')
+      })
+    })
+
+    // 标签过滤按钮
+    const tagFilterBtns = this.element.querySelectorAll('.tag-filter-btn')
+    tagFilterBtns.forEach(btn => {
+      btn.addEventListener('click', e => {
+        const tag = (e.target as HTMLElement).dataset.tag
+        this.setTagFilter(tag || 'all')
       })
     })
 
@@ -166,19 +191,28 @@ export class History {
   private renderHistoryList(): void {
     const listElement = this.element.querySelector('.history-list') as HTMLElement
     const emptyElement = this.element.querySelector('.history-empty') as HTMLElement
+    const searchEmptyElement = this.element.querySelector('.history-search-empty') as HTMLElement
 
-    if (!listElement || !emptyElement) return
+    if (!listElement || !emptyElement || !searchEmptyElement) return
 
     const itemsToShow = this.filteredHistory.length > 0 ? this.filteredHistory : this.history
+    const isSearching = this.searchTerm || this.activeTagFilter !== 'all' || this.activeFilter !== 'all'
 
     if (itemsToShow.length === 0) {
       listElement.style.display = 'none'
-      emptyElement.style.display = 'flex'
+      if (isSearching) {
+        emptyElement.style.display = 'none'
+        searchEmptyElement.style.display = 'flex'
+      } else {
+        emptyElement.style.display = 'flex'
+        searchEmptyElement.style.display = 'none'
+      }
       return
     }
 
     listElement.style.display = 'block'
     emptyElement.style.display = 'none'
+    searchEmptyElement.style.display = 'none'
 
     listElement.innerHTML = itemsToShow
       .slice(0, this.config.maxItems)
@@ -398,6 +432,7 @@ export class History {
    */
   private filterHistory(): void {
     let filtered = this.applyTimeFilter([...this.history])
+    filtered = this.applyTagFilter(filtered)
 
     if (this.searchTerm) {
       const term = this.searchTerm.toLowerCase()
@@ -443,6 +478,23 @@ export class History {
     }
   }
 
+  /**
+   * 设置标签过滤器
+   */
+  private setTagFilter(tag: string): void {
+    this.activeTagFilter = tag
+
+    const tagFilterBtns = this.element.querySelectorAll('.tag-filter-btn')
+    tagFilterBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-tag') === tag)
+    })
+
+    this.filterHistory()
+    if (this.searchTerm) {
+      void this.fetchRemoteSearch(this.searchTerm)
+    }
+  }
+
   private applyTimeFilter(items: HistoryItem[]): HistoryItem[] {
     switch (this.activeFilter) {
       case 'today': {
@@ -463,6 +515,19 @@ export class History {
       default:
         return items
     }
+  }
+
+  private applyTagFilter(items: HistoryItem[]): HistoryItem[] {
+    if (this.activeTagFilter === 'all') {
+      return items
+    }
+
+    return items.filter(item => {
+      if (!item.tags || !Array.isArray(item.tags)) {
+        return false
+      }
+      return item.tags.includes(this.activeTagFilter)
+    })
   }
 
   private async fetchRemoteSearch(term: string): Promise<void> {
@@ -497,12 +562,15 @@ export class History {
     const fallback = this.calculateStats()
     const total = this.remoteStats?.total_items ?? fallback.totalCalculations
     const today = this.remoteStats?.today_calculations ?? fallback.calculationsToday
+    const filtered = this.filteredHistory.length > 0 ? this.filteredHistory.length : this.history.length
 
     const totalElement = this.element.querySelector('[data-stat="total"]') as HTMLElement
     const todayElement = this.element.querySelector('[data-stat="today"]') as HTMLElement
+    const filteredElement = this.element.querySelector('[data-stat="filtered"]') as HTMLElement
 
     if (totalElement) totalElement.textContent = total.toString()
     if (todayElement) todayElement.textContent = today.toString()
+    if (filteredElement) filteredElement.textContent = filtered.toString()
   }
 
   /**
@@ -566,24 +634,143 @@ export class History {
    * 导出历史记录
    */
   private async exportHistory(): Promise<void> {
+    const format = await this.showExportFormatDialog()
+    if (!format) return
+
     try {
-      const payload = await TauriService.exportHistory()
-      const blob = new Blob([payload], { type: 'application/json' })
+      let payload: string
+      let filename: string
+      let mimeType: string
+
+      const itemsToExport = this.filteredHistory.length > 0 ? this.filteredHistory : this.history
+      const date = new Date().toISOString().split('T')[0]
+
+      switch (format) {
+        case 'json':
+          payload = JSON.stringify(itemsToExport, null, 2)
+          filename = `calculator-history-${date}.json`
+          mimeType = 'application/json'
+          break
+        case 'csv':
+          payload = this.convertToCSV(itemsToExport)
+          filename = `calculator-history-${date}.csv`
+          mimeType = 'text/csv'
+          break
+        case 'txt':
+          payload = this.convertToText(itemsToExport)
+          filename = `calculator-history-${date}.txt`
+          mimeType = 'text/plain'
+          break
+        default:
+          throw new Error('不支持的导出格式')
+      }
+
+      const blob = new Blob([payload], { type: mimeType })
       const url = URL.createObjectURL(blob)
 
       const a = document.createElement('a')
       a.href = url
-      a.download = `calculator-history-${new Date().toISOString().split('T')[0]}.json`
+      a.download = filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      this.showToast('历史记录已导出')
+      this.showToast(`历史记录已导出为${format.toUpperCase()}格式`)
     } catch (error) {
       console.error('导出历史记录失败:', error)
       this.showToast('导出失败')
     }
+  }
+
+  /**
+   * 显示导出格式选择对话框
+   */
+  private async showExportFormatDialog(): Promise<string | null> {
+    return new Promise(resolve => {
+      const dialog = document.createElement('div')
+      dialog.className = 'export-dialog'
+      dialog.innerHTML = `
+        <div class="export-dialog-content">
+          <h3>选择导出格式</h3>
+          <div class="export-options">
+            <button class="export-option" data-format="json">
+              <span class="export-icon">📊</span>
+              <span class="export-label">JSON</span>
+              <span class="export-description">完整数据格式</span>
+            </button>
+            <button class="export-option" data-format="csv">
+              <span class="export-icon">📈</span>
+              <span class="export-label">CSV</span>
+              <span class="export-description">表格数据格式</span>
+            </button>
+            <button class="export-option" data-format="txt">
+              <span class="export-icon">📝</span>
+              <span class="export-label">文本</span>
+              <span class="export-description">可读文本格式</span>
+            </button>
+          </div>
+          <div class="export-dialog-actions">
+            <button class="export-cancel-btn">取消</button>
+          </div>
+        </div>
+      `
+
+      const closeDialog = (format: string | null) => {
+        dialog.remove()
+        resolve(format)
+      }
+
+      // 添加事件监听器
+      const options = dialog.querySelectorAll('.export-option')
+      options.forEach(option => {
+        option.addEventListener('click', () => {
+          const format = (option as HTMLElement).dataset.format
+          closeDialog(format || null)
+        })
+      })
+
+      const cancelBtn = dialog.querySelector('.export-cancel-btn')
+      cancelBtn?.addEventListener('click', () => closeDialog(null))
+
+      dialog.addEventListener('click', e => {
+        if (e.target === dialog) {
+          closeDialog(null)
+        }
+      })
+
+      document.body.appendChild(dialog)
+    })
+  }
+
+  /**
+   * 转换为CSV格式
+   */
+  private convertToCSV(items: HistoryItem[]): string {
+    const headers = ['时间戳', '表达式', '结果', '标签', '备注']
+    const rows = items.map(item => [
+      item.timestamp,
+      `"${item.expression.replace(/"/g, '""')}"`,
+      `"${item.result.replace(/"/g, '""')}"`,
+      item.tags ? `"${item.tags.join(', ').replace(/"/g, '""')}"` : '',
+      item.notes ? `"${item.notes.replace(/"/g, '""')}"` : '',
+    ])
+
+    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+  }
+
+  /**
+   * 转换为文本格式
+   */
+  private convertToText(items: HistoryItem[]): string {
+    return items
+      .map(item => {
+        const timestamp = new Date(item.timestamp).toLocaleString('zh-CN')
+        const tags = item.tags ? ` [${item.tags.join(', ')}]` : ''
+        const notes = item.notes ? `\n   备注: ${item.notes}` : ''
+        return `${timestamp}${tags}\n   表达式: ${item.expression}\n   结果: ${item.result}${notes}\n`
+      })
+      .join('\n')
   }
 
   /**

@@ -219,6 +219,14 @@ export class Settings {
               </div>
             </label>
             
+            <label class="radio-option ${this.settings.theme.mode === 'high-contrast' ? 'selected' : ''}">
+              <input type="radio" name="theme-mode" value="high-contrast" ${this.settings.theme.mode === 'high-contrast' ? 'checked' : ''}>
+              <div class="radio-content">
+                <div class="theme-preview high-contrast-preview"></div>
+                <span>高对比度</span>
+              </div>
+            </label>
+            
             <label class="radio-option ${this.settings.theme.mode === 'auto' ? 'selected' : ''}">
               <input type="radio" name="theme-mode" value="auto" ${this.settings.theme.mode === 'auto' ? 'checked' : ''}>
               <div class="radio-content">
@@ -285,7 +293,7 @@ export class Settings {
         <div class="setting-item">
           <label for="decimal-places">小数位数</label>
           <div class="number-input-group">
-            <input type="range" id="decimal-places" min="0" max="20" value="${this.settings.display.decimalPlaces}" data-setting="display.decimalPlaces">
+            <input type="range" id="decimal-places" min="1" max="28" value="${this.settings.display.decimalPlaces}" data-setting="display.decimalPlaces">
             <span class="number-value">${this.settings.display.decimalPlaces}</span>
           </div>
         </div>
@@ -295,6 +303,7 @@ export class Settings {
           <select id="angle-unit" data-setting="display.angleUnit">
             <option value="degrees" ${this.settings.display.angleUnit === 'degrees' ? 'selected' : ''}>度 (°)</option>
             <option value="radians" ${this.settings.display.angleUnit === 'radians' ? 'selected' : ''}>弧度 (rad)</option>
+            <option value="gradians" ${this.settings.display.angleUnit === 'gradians' ? 'selected' : ''}>梯度 (grad)</option>
           </select>
         </div>
         

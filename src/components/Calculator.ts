@@ -147,12 +147,12 @@ export class Calculator {
     }
 
     if (typeof backendSettings.display?.decimalPlaces === 'number') {
-      mapped.precision = Math.max(1, Math.min(20, backendSettings.display.decimalPlaces))
+      mapped.precision = Math.max(1, Math.min(28, backendSettings.display.decimalPlaces))
     }
 
     if (backendSettings.display?.angleUnit) {
-      mapped.angleUnit = ['degrees', 'radians'].includes(backendSettings.display.angleUnit)
-        ? (backendSettings.display.angleUnit as 'degrees' | 'radians')
+      mapped.angleUnit = ['degrees', 'radians', 'gradians'].includes(backendSettings.display.angleUnit)
+        ? (backendSettings.display.angleUnit as 'degrees' | 'radians' | 'gradians')
         : 'degrees'
     }
 
@@ -1084,16 +1084,17 @@ export class Calculator {
   }
 
   private async toggleTheme(): Promise<void> {
-    const themes: Array<'light' | 'dark' | 'auto'> = ['light', 'dark', 'auto']
-    const currentIndex = themes.indexOf(this.state.settings.theme)
-    const nextTheme = themes[(currentIndex + 1) % themes.length]
+  const themes = ['light', 'dark', 'auto'] as const
+  type ThemeCycle = typeof themes[number]
+  const currentThemeMode = this.state.settings.theme
+  const currentIndex = themes.indexOf(currentThemeMode as ThemeCycle)
+  const nextTheme = themes[(currentIndex + 1 + themes.length) % themes.length]
 
-    if (nextTheme) {
-      this.state.settings.theme = nextTheme
-      await this.themeManager.setThemeMode(nextTheme)
-      this.container.setAttribute('data-theme', nextTheme)
-      this.setStatus(`已切换到${nextTheme}主题`)
-    }
+  this.state.settings.theme = nextTheme
+  await this.themeManager.setThemeMode(nextTheme)
+    const resolvedTheme = await this.themeManager.getCurrentTheme()
+    this.container.setAttribute('data-theme', resolvedTheme.name)
+    this.setStatus(`已切换到${this.getThemeLabel(resolvedTheme.name)}主题`)
   }
 
   private handleHistorySelect(item: HistoryItem): void {
@@ -1113,7 +1114,7 @@ export class Calculator {
   private handleSettingsChange(settings: AppSettings): void {
     this.state.settings = {
       theme: settings.theme.mode,
-      precision: settings.display.decimalPlaces,
+      precision: Math.max(1, Math.min(28, settings.display.decimalPlaces)),
       angleUnit: settings.display.angleUnit,
       enableAnimations: settings.general.enableAnimations,
       enableHaptics: settings.general.enableHaptic,
@@ -1142,9 +1143,23 @@ export class Calculator {
     })
     this.history.updateTheme(currentTheme)
     this.settings.updateTheme(currentTheme)
+    this.container.setAttribute('data-theme', currentTheme.name)
 
     this.adaptToDevice()
     this.updateStatusBar()
+  }
+
+  private getThemeLabel(mode: string): string {
+    switch (mode) {
+      case 'dark':
+        return '深色'
+      case 'light':
+        return '浅色'
+      case 'high-contrast':
+        return '高对比度'
+      default:
+        return mode
+    }
   }
 
   private adaptToDevice(): void {
@@ -1184,6 +1199,7 @@ export class Calculator {
       
       if (this.voiceController.isVoiceSupported()) {
         this.addVoiceInputButton()
+        this.setupVoiceInputListeners()
         console.log('✅ 语音输入已启用')
       } else {
         console.log('ℹ️ 当前设备不支持语音输入')
@@ -1191,6 +1207,61 @@ export class Calculator {
     } catch (error) {
       console.error('❌ 移动端功能初始化失败:', error)
     }
+  }
+
+  /**
+   * 设置语音输入监听器
+   */
+  private setupVoiceInputListeners(): void {
+    // 监听语音表达式事件
+    document.addEventListener('calculatorvoiceExpression', (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        expression: string
+        original: string
+        confidence: number
+      }>
+      this.handleVoiceExpression(customEvent.detail)
+    })
+  }
+
+  /**
+   * 处理语音表达式
+   */
+  private handleVoiceExpression(detail: {
+    expression: string
+    original: string
+    confidence: number
+  }): void {
+    this.state.expression = detail.expression
+    this.updateDisplay()
+    this.setStatus(`语音输入: ${detail.original} → ${detail.expression}`)
+    
+    // 自动计算（如果表达式完整）
+    if (this.isCompleteExpression(detail.expression)) {
+      setTimeout(() => {
+        this.calculate()
+      }, 500)
+    }
+  }
+
+  /**
+   * 检查表达式是否完整
+   */
+  private isCompleteExpression(expression: string): boolean {
+    // 检查括号是否匹配
+    let bracketCount = 0
+    for (const char of expression) {
+      if (char === '(') bracketCount++
+      if (char === ')') bracketCount--
+    }
+    
+    // 检查是否有未完成的函数调用
+    const hasUnfinishedFunction = /[a-z]+\s*\([^)]*$/.test(expression)
+    
+    // 检查是否有未完成的运算符
+    const hasUnfinishedOperator = /[+\-*/^]\s*$/.test(expression)
+    
+    return bracketCount === 0 && !hasUnfinishedFunction && !hasUnfinishedOperator
   }
 
   /**

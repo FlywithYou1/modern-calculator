@@ -13,7 +13,7 @@ export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 /**
  * 主题模式枚举
  */
-export type ThemeMode = 'light' | 'dark' | 'auto'
+export type ThemeMode = 'light' | 'dark' | 'high-contrast' | 'auto'
 
 /**
  * 操作类型枚举
@@ -209,7 +209,7 @@ export interface DisplaySettings {
   decimalPlaces: number
   scientificNotation: boolean
   thousandSeparator: boolean
-  angleUnit: 'degrees' | 'radians'
+  angleUnit: 'degrees' | 'radians' | 'gradians'
   fontSize: number
 }
 

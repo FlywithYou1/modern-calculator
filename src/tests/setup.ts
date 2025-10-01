@@ -3,7 +3,7 @@
  * 配置全局测试环境和模拟
  */
 
-import { vi } from 'vitest'
+import { vi, beforeEach } from 'vitest'
 
 // 模拟 Tauri API
 Object.defineProperty(window, '__TAURI__', {
@@ -51,17 +51,42 @@ Object.defineProperty(navigator, 'vibrate', {
 })
 
 // 模拟 localStorage
+const storageData = new Map<string, string>()
+
+const getItemMock = vi.fn((key: string) => (storageData.has(key) ? storageData.get(key)! : null))
+const setItemMock = vi.fn((key: string, value: string) => {
+  storageData.set(key, value)
+})
+const removeItemMock = vi.fn((key: string) => {
+  storageData.delete(key)
+})
+const clearMock = vi.fn(() => {
+  storageData.clear()
+})
+const keyMock = vi.fn((index: number) => Array.from(storageData.keys())[index] ?? null)
+
 const localStorageMock: Storage = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(),
+  getItem: getItemMock,
+  setItem: setItemMock,
+  removeItem: removeItemMock,
+  clear: clearMock,
+  get length() {
+    return storageData.size
+  },
+  key: keyMock,
 }
 Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true,
+})
+
+beforeEach(() => {
+  storageData.clear()
+  getItemMock.mockClear()
+  setItemMock.mockClear()
+  removeItemMock.mockClear()
+  clearMock.mockClear()
+  keyMock.mockClear()
 })
 
 // 模拟 console 方法以减少测试输出噪音

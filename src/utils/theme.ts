@@ -3,7 +3,7 @@
  * 负责管理应用的主题系统，支持浅色/深色模式和自定义主题
  */
 
-import type { Theme, ThemeMode } from '../types/calculator'
+import type { Theme, ThemeMode, ColorPalette } from '../types/calculator'
 
 export class ThemeManager {
   private currentTheme: Theme
@@ -147,13 +147,20 @@ export class ThemeManager {
    * 自定义主题
    */
   setCustomTheme(theme: Partial<Theme>): void {
-    this.currentTheme = {
+    const mergedTheme: Theme = {
       ...this.currentTheme,
       ...theme,
+      type: theme.type ?? 'custom',
+      colors: {
+        ...this.currentTheme.colors,
+        ...(theme.colors ?? {}),
+      },
+      cssVariables: theme.cssVariables ?? this.currentTheme.cssVariables ?? {},
     }
 
-    this.applyTheme(this.currentTheme)
-    this.notifyThemeChange(this.currentTheme)
+    this.currentTheme = mergedTheme
+    this.applyTheme(mergedTheme)
+    this.notifyThemeChange(mergedTheme)
   }
 
   /**
@@ -269,7 +276,9 @@ export class ThemeManager {
       const stored = localStorage.getItem('calculator-theme')
       if (stored) {
         const parsed = JSON.parse(stored)
-        return parsed
+        if (this.validateTheme(parsed)) {
+          return parsed
+        }
       }
     } catch (error) {
       console.warn('读取存储的主题失败:', error)
@@ -315,7 +324,11 @@ export class ThemeManager {
     } catch (error) {
       console.error('保存主题模式设置失败:', error)
       // 回退到 localStorage
-      localStorage.setItem('calculator-theme-mode', mode)
+      try {
+        localStorage.setItem('calculator-theme-mode', mode)
+      } catch (fallbackError) {
+        console.warn('无法保存主题模式设置到 localStorage:', fallbackError)
+      }
     }
   }
 
@@ -374,22 +387,32 @@ export class ThemeManager {
       return false
     }
 
-    const themeObj = theme as Record<string, unknown>
-    const requiredFields = [
-      'mode',
+    const themeObj = theme as Partial<Theme>
+    if (!themeObj.name || typeof themeObj.name !== 'string') {
+      return false
+    }
+
+    if (!themeObj.mode || typeof themeObj.mode !== 'string') {
+      return false
+    }
+
+    if (!themeObj.colors || typeof themeObj.colors !== 'object') {
+      return false
+    }
+
+    const requiredColorFields: Array<keyof ColorPalette> = [
       'primary',
       'secondary',
       'background',
       'surface',
       'text',
       'textSecondary',
-      'accent',
-      'error',
-      'warning',
-      'success',
     ]
 
-    return requiredFields.every(field => field in themeObj)
+    return requiredColorFields.every(field => {
+      const value = (themeObj.colors as Partial<ColorPalette>)[field]
+      return typeof value === 'string' && value.length > 0
+    })
   }
 
   /**
