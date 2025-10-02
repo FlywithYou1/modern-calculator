@@ -66,6 +66,37 @@
   --color-success: #34d399;
 }
 
+// 高对比度主题变量
+.theme-high-contrast {
+  --color-primary: #0066cc;
+  --color-secondary: #000000;
+  --color-accent: #00cc66;
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-text: #000000;
+  --color-text-secondary: #333333;
+  --color-error: #cc0000;
+  --color-warning: #cc6600;
+  --color-success: #006600;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.theme-high-contrast.theme-dark {
+  --color-primary: #66b3ff;
+  --color-secondary: #ffffff;
+  --color-accent: #66ff99;
+  --color-background: #000000;
+  --color-surface: #1a1a1a;
+  --color-text: #ffffff;
+  --color-text-secondary: #cccccc;
+  --color-error: #ff6666;
+  --color-warning: #ffcc66;
+  --color-success: #66ff66;
+}
+
 // 基础重置
 *,
 *::before,
@@ -81,8 +112,6 @@ html {
   line-height: 1.5;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -93,6 +122,7 @@ body {
   color: var(--color-text);
   overflow: hidden;
   -webkit-user-select: none;
+  -ms-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }

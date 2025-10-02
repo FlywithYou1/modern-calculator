@@ -266,10 +266,9 @@ src-tauri/src/
 - ❌ 双指旋转（改变方向）
 - ❌ 左右滑动切换面板
 
-**语音输入**（指令明确要求）
-- 🟡 `src/mobile/voice-input-simple.ts` 存在但**完全未集成**
-- ❌ 语音识别数学表达式
-- ❌ 语音命令（"清除"、"等于"等）
+**语音输入**（当前范围已取消）
+- ⏹️ 相关源文件与测试已移除
+- ❌ 指令仍要求语音识别，需要同步更新规范
 
 **智能特性**（指令明确要求）
 - ❌ 自然语言表达式解析（"2的平方加3"）
@@ -480,10 +479,9 @@ src-tauri/src/
 
 **移动端专属特性**（指令明确要求）
 
-1. **语音输入** ❌
-   - 文件存在：`src/mobile/voice-input-simple.ts`
-   - 状态：完全未集成到主应用
-   - 影响：用户无法使用语音输入数学表达式
+1. **语音输入** ⏹️
+  - 状态：功能已从当前版本中移除
+  - 后续：若需恢复需重新制定实现方案并更新指令
 
 2. **手势操作** 🟡
    - 文件存在：`src/mobile/gesture.ts`
@@ -676,22 +674,8 @@ if (settings.advanced.accessibility.reduceMotion) {
 
 #### 3. 移动端特性集成
 
-**语音输入集成**
-```typescript
-// Calculator.ts 中添加
-import { VoiceInput } from './mobile/voice-input-simple.js';
-
-private voiceInput?: VoiceInput;
-
-async init() {
-  if (this.deviceDetector.isMobile()) {
-    this.voiceInput = new VoiceInput({
-      onResult: (text) => this.handleVoiceInput(text),
-    });
-    await this.voiceInput.init();
-  }
-}
-```
+**语音输入集成**（已取消）
+> 2025-10 调整：语音输入被明确从当前范围移除，相关实现与依赖不应再引入。
 
 **手势操作完善**
 ```typescript
@@ -957,7 +941,7 @@ async exportToPDF() {
 #### 阶段二：功能完善（1个月内）
 
 **优先级2：移动端和测试** ⭐⭐⭐⭐☆
-- 集成语音输入（voice-input-simple.ts）
+- （已取消）语音输入集成
 - 完善手势操作（gesture.ts）
 - 实现性能基准测试脚本
 - 实现无障碍测试脚本
@@ -1050,9 +1034,8 @@ async exportToPDF() {
 - ✅ mcp.test.ts (10 tests)
 - ✅ history.test.ts (4 tests)
 
-**移动端** (2个)
+**移动端** (1个)
 - 🟡 mobile/gesture.ts (存在但未完全集成)
-- 🟡 mobile/voice-input-simple.ts (存在但完全未集成)
 
 **配置文件**
 - ✅ package.json

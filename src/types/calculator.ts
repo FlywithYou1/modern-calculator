@@ -221,6 +221,7 @@ export interface LayoutSettings {
   keyboardLayout: 'standard' | 'scientific' | 'programmer'
   compactMode: boolean
   showHistory: boolean
+  showMemory: boolean
 }
 
 /**
@@ -228,6 +229,7 @@ export interface LayoutSettings {
  */
 export interface GeneralSettings {
   enableHaptic: boolean
+  enableHapticFeedback?: boolean
   maxHistoryItems: number
   autoSaveHistory: boolean
   enableKeyboardShortcuts: boolean

@@ -174,7 +174,7 @@ export class AccessibilityManager {
     }
 
     if (nextIndex !== currentIndex && buttons[nextIndex]) {
-      buttons[nextIndex].focus()
+      buttons[nextIndex]?.focus()
       event.preventDefault()
     }
   }

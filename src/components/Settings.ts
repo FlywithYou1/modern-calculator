@@ -4,6 +4,8 @@
  */
 
 import type { AppSettings, Theme } from '../types/calculator.js'
+import { TauriService } from '../utils/tauri.js'
+import { createDefaultAppSettings } from '../utils/settings-defaults.js'
 
 export class Settings {
   private element: HTMLElement
@@ -12,7 +14,7 @@ export class Settings {
   private isVisible: boolean = false
 
   constructor(container: HTMLElement) {
-    this.settings = this.getDefaultSettings()
+    this.settings = createDefaultAppSettings()
     this.element = this.createElement()
     container.appendChild(this.element)
     this.setupEventListeners()
@@ -29,92 +31,6 @@ export class Settings {
   /**
    * 获取默认设置
    */
-  private getDefaultSettings(): AppSettings {
-    return {
-      theme: {
-        name: 'dark',
-        mode: 'dark' as const,
-        type: 'builtin' as const,
-        colors: {
-          primary: '#0066cc',
-          secondary: '#004499',
-          background: '#1a1a1a',
-          surface: '#2d2d2d',
-          text: '#ffffff',
-          textSecondary: '#cccccc',
-        },
-        cssVariables: {
-          '--primary-color': '#0066cc',
-          '--secondary-color': '#004499',
-          '--background-color': '#1a1a1a',
-          '--surface-color': '#2d2d2d',
-          '--text-color': '#ffffff',
-          '--text-secondary-color': '#cccccc',
-        },
-      },
-      display: {
-        decimalPlaces: 10,
-        scientificNotation: true,
-        thousandSeparator: true,
-        angleUnit: 'degrees',
-        fontSize: 16,
-      },
-      layout: {
-        buttonSize: 'medium',
-        keyboardLayout: 'standard',
-        compactMode: false,
-        showHistory: true,
-      },
-      general: {
-        enableHaptic: true,
-        maxHistoryItems: 100,
-        autoSaveHistory: true,
-        enableKeyboardShortcuts: true,
-        enableAnimations: true,
-      },
-      advanced: {
-        keyboard: {
-          customShortcuts: {
-            'Ctrl+Enter': 'calculate',
-            'Ctrl+C': 'copy',
-            'Ctrl+V': 'paste',
-            'Ctrl+Z': 'undo',
-            'Ctrl+Y': 'redo',
-            'Escape': 'clear',
-          },
-          hapticIntensity: 'medium',
-          gestureSensitivity: 5,
-          autoRepeatDelay: 500,
-          autoRepeatRate: 20,
-        },
-        history: {
-          autoCleanup: true,
-          cleanupStrategy: 'count',
-          cleanupThreshold: 1000,
-          exportFormat: 'json',
-          enableSearch: true,
-          enableTags: true,
-          maxTagLength: 50,
-        },
-        performance: {
-          animationQuality: 'auto',
-          maxCalculationTime: 5000,
-          enableCaching: true,
-          cacheSize: 50,
-          enableBackgroundSync: false,
-        },
-        accessibility: {
-          highContrast: false,
-          reduceMotion: false,
-          screenReaderSupport: true,
-          keyboardNavigation: true,
-          largeText: false,
-          colorBlindMode: 'none',
-        },
-      },
-    }
-  }
-
   /**
    * 创建设置面板元素
    */
@@ -674,7 +590,7 @@ export class Settings {
    */
   private applyThemePreview(): void {
     if (this.onSettingsChange) {
-      this.onSettingsChange(this.settings)
+      this.onSettingsChange(this.cloneSettings(this.settings))
     }
   }
 
@@ -683,11 +599,10 @@ export class Settings {
    */
   private async saveSettings(): Promise<void> {
     try {
-      // 这里可以调用 Tauri 命令保存设置
-      // await invoke('save_app_settings', { settings: this.settings });
+      await TauriService.saveSettings(this.settings)
 
       if (this.onSettingsChange) {
-        this.onSettingsChange(this.settings)
+        this.onSettingsChange(this.cloneSettings(this.settings))
       }
 
       this.showToast('设置已保存', 'success')
@@ -702,18 +617,31 @@ export class Settings {
    * 确认重置设置
    */
   private confirmReset(): void {
-    if (confirm('确定要重置所有设置为默认值吗？此操作不可撤销。')) {
-      this.resetSettings()
+    if (window.confirm('确定要重置所有设置为默认值吗？此操作不可撤销。')) {
+      void this.resetSettings()
     }
   }
 
   /**
    * 重置设置
    */
-  private resetSettings(): void {
-    this.settings = this.getDefaultSettings()
-    this.render()
-    this.showToast('设置已重置', 'info')
+  private async resetSettings(): Promise<void> {
+    try {
+      await TauriService.resetSettings()
+      this.settings = await TauriService.getSettings()
+      this.render()
+
+      if (this.onSettingsChange) {
+        this.onSettingsChange(this.cloneSettings(this.settings))
+      }
+
+      this.showToast('设置已重置', 'info')
+    } catch (error) {
+      console.error('重置设置失败:', error)
+      this.settings = createDefaultAppSettings()
+      this.render()
+      this.showToast('重置失败，已恢复默认设置', 'error')
+    }
   }
 
   /**
@@ -721,11 +649,13 @@ export class Settings {
    */
   private async loadSettings(): Promise<void> {
     try {
-      // 这里可以调用 Tauri 命令加载设置
-      // const settings = await invoke('get_app_settings');
-      // this.settings = { ...this.getDefaultSettings(), ...settings };
+      const remoteSettings = await TauriService.getSettings()
+      if (remoteSettings) {
+        this.settings = remoteSettings
+      }
     } catch (error) {
       console.warn('加载设置失败，使用默认设置:', error)
+      this.settings = createDefaultAppSettings()
     }
   }
 
@@ -768,14 +698,14 @@ export class Settings {
    * 获取当前设置
    */
   getSettings(): AppSettings {
-    return { ...this.settings }
+    return this.cloneSettings(this.settings)
   }
 
   /**
    * 更新设置
    */
   updateSettings(newSettings: Partial<AppSettings>): void {
-    this.settings = { ...this.settings, ...newSettings }
+    this.settings = this.mergeSettings(this.settings, newSettings)
     this.render()
   }
 
@@ -816,6 +746,47 @@ export class Settings {
         }
       }, 300)
     }, 3000)
+  }
+
+  /**
+   * 深拷贝设置对象
+   */
+  private cloneSettings(settings: AppSettings): AppSettings {
+    return JSON.parse(JSON.stringify(settings)) as AppSettings
+  }
+
+  /**
+   * 合并设置对象
+   */
+  private mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSettings {
+    const merged: AppSettings = {
+      ...base,
+      ...patch,
+      theme: patch.theme ? { ...base.theme, ...patch.theme } : base.theme,
+      display: patch.display ? { ...base.display, ...patch.display } : base.display,
+      layout: patch.layout ? { ...base.layout, ...patch.layout } : base.layout,
+      general: patch.general ? { ...base.general, ...patch.general } : base.general,
+    }
+
+    if (patch.advanced) {
+      const baseAdvanced = base.advanced ?? createDefaultAppSettings().advanced!
+      merged.advanced = {
+        keyboard: patch.advanced.keyboard
+          ? { ...baseAdvanced.keyboard, ...patch.advanced.keyboard }
+          : baseAdvanced.keyboard,
+        history: patch.advanced.history
+          ? { ...baseAdvanced.history, ...patch.advanced.history }
+          : baseAdvanced.history,
+        performance: patch.advanced.performance
+          ? { ...baseAdvanced.performance, ...patch.advanced.performance }
+          : baseAdvanced.performance,
+        accessibility: patch.advanced.accessibility
+          ? { ...baseAdvanced.accessibility, ...patch.advanced.accessibility }
+          : baseAdvanced.accessibility,
+      }
+    }
+
+    return merged
   }
 
   /**

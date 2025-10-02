@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { evaluateExpressionSafe, type EvalOptions } from '../utils/evaluator.js'
+import { evaluateExpressionSafe } from '../utils/evaluator.js'
 
 describe('evaluateExpressionSafe', () => {
   it('should evaluate basic arithmetic', () => {
@@ -42,7 +42,6 @@ describe('evaluateExpressionSafe', () => {
   it('should throw on invalid input', () => {
     expect(() => evaluateExpressionSafe('foo(1)')).toThrow()
     expect(() => evaluateExpressionSafe('(')).toThrow()
-    expect(() => evaluateExpressionSafe('1/0')).toThrow()
     expect(() => evaluateExpressionSafe('sqrt(-1)')).toThrow()
     expect(() => evaluateExpressionSafe('log(-1)')).toThrow()
   })
@@ -79,13 +78,13 @@ describe('evaluateExpressionSafe', () => {
     expect(evaluateExpressionSafe('tan(pi/4)', { precision: 6, angleUnit: 'radians' })).toBe('1')
     
     // Gradians
-    expect(evaluateExpressionSafe('sin(50)', { precision: 6, angleUnit: 'gradians' })).toBe('0.7071067') // sin(50g) = sin(π/4)
+    expect(evaluateExpressionSafe('sin(50)', { precision: 6, angleUnit: 'gradians' })).toBe('0.707107') // sin(50g) = sin(π/4)
   })
 
   it('should handle mathematical constants', () => {
     expect(evaluateExpressionSafe('pi', { precision: 10 })).toBe('3.1415926536')
     expect(evaluateExpressionSafe('e', { precision: 10 })).toBe('2.7182818285')
-    expect(evaluateExpressionSafe('pi+e', { precision: 10 })).toBe('5.8598744820')
+    expect(evaluateExpressionSafe('pi+e', { precision: 10 })).toBe('5.859874482')
   })
 
   it('should handle edge cases and boundary values', () => {
@@ -124,7 +123,7 @@ describe('evaluateExpressionSafe', () => {
 
   it('should handle nested functions', () => {
     expect(evaluateExpressionSafe('sqrt(sin(30)^2+cos(30)^2)', { precision: 6 })).toBe('1') // Pythagorean identity
-    expect(evaluateExpressionSafe('log(10,log(2,8))')).toBe('3') // log base 10 of log base 2 of 8
+    expect(evaluateExpressionSafe('log(10,log(2,8))', { precision: 10 })).toBe('0.4771212547') // log base 10 of log base 2 of 8
   })
 
   it('should handle parentheses nesting', () => {
@@ -149,7 +148,7 @@ describe('evaluateExpressionSafe', () => {
     expect(evaluateExpressionSafe('5/2', { precision: 5 })).toBe('2.5')
     expect(evaluateExpressionSafe('1/3', { precision: 6 })).toBe('0.333333')
     expect(evaluateExpressionSafe('2/3', { precision: 6 })).toBe('0.666667')
-    expect(() => evaluateExpressionSafe('1/0')).not.toThrow() // Should return Infinity
+    expect(evaluateExpressionSafe('1/0')).toBe('Infinity') // Should return Infinity
   })
 })
 

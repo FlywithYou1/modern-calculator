@@ -4,6 +4,7 @@ import type {
   HistoryItem,
   Operation,
   KeyboardConfig,
+  ThemeMode,
 } from '../types/calculator.js'
 import { Display } from './Display.js'
 import { AdvancedKeyboard } from './Keyboard.js'
@@ -12,7 +13,7 @@ import { Settings } from './Settings.js'
 import { AdvancedPanelManager, type AdvancedPanelResult } from './AdvancedPanels.js'
 import { ThemeManager } from '../utils/theme.js'
 import { DeviceDetector } from '../utils/device.js'
-import { invoke } from '../utils/tauri.js'
+import { invoke, TauriService } from '../utils/tauri.js'
 import { trackState, trackPerformance, trackError } from '../utils/mcp-debugger.js'
 
 /**
@@ -28,7 +29,6 @@ export class Calculator {
   private history!: History
   private settings!: Settings
   private advancedPanels!: AdvancedPanelManager
-  private voiceController: import('../mobile/voice-input-simple.js').CalculatorVoiceController | null = null
   private gestureHandler: import('../mobile/gesture.js').CalculatorGestureHandler | null = null
   private deviceDetector: DeviceDetector
 
@@ -114,7 +114,7 @@ export class Calculator {
     try {
       // 并行加载设置和历史记录
       const [settingsResult, historyResult] = await Promise.allSettled([
-        invoke<AppSettings>('get_settings'),
+        TauriService.getSettings(),
         invoke<HistoryItem[]>('get_history', { limit: 100 }),
       ])
 
@@ -159,10 +159,12 @@ export class Calculator {
     // 布尔值设置
     const booleanMappings = [
       ['general.enableAnimations', 'enableAnimations'],
+      ['general.enableHaptic', 'enableHaptics'],
       ['general.enableHapticFeedback', 'enableHaptics'],
       ['general.enableKeyboardShortcuts', 'enableKeyboardShortcuts'],
       ['layout.compactMode', 'compactMode'],
       ['layout.showHistory', 'showHistory'],
+      ['layout.showMemory', 'showMemory'],
     ] as const
 
     booleanMappings.forEach(([backendPath, frontendKey]) => {
@@ -636,72 +638,6 @@ export class Calculator {
     }
   }
 
-  private normalizeNaturalLanguage(expression: string): {
-    normalizedExpression: string
-    changed: boolean
-  } {
-    if (!expression.trim()) {
-      return { normalizedExpression: expression, changed: false }
-    }
-
-    let normalized = expression
-
-    const operatorReplacements: Array<[RegExp, string]> = [
-      [/\bmultiplied\s+by\b/gi, '*'],
-      [/\bdivided\s+by\b/gi, '/'],
-      [/(power\s+of|to\s+the\s+power\s+of)/gi, '^'],
-      [/\btimes\b/gi, '*'],
-      [/\bover\b/gi, '/'],
-      [/\bplus\b/gi, '+'],
-      [/\bminus\b/gi, '-'],
-      [/\bmodulo\b/gi, '%'],
-      [/\bmod\b/gi, '%'],
-    ]
-
-    operatorReplacements.forEach(([pattern, symbol]) => {
-      normalized = normalized.replace(pattern, ` ${symbol} `)
-    })
-
-    const numberWords: Record<string, string> = {
-      zero: '0',
-      one: '1',
-      two: '2',
-      three: '3',
-      four: '4',
-      five: '5',
-      six: '6',
-      seven: '7',
-      eight: '8',
-      nine: '9',
-      ten: '10',
-      eleven: '11',
-      twelve: '12',
-    }
-
-    Object.entries(numberWords).forEach(([word, digit]) => {
-      const regex = new RegExp(`\\b${word}\\b`, 'gi')
-      normalized = normalized.replace(regex, digit)
-    })
-
-    normalized = normalized.replace(
-      /(\d+(?:\.\d+)?)\s+percent\s+of\s+(\d+(?:\.\d+)?)/gi,
-      (_match, percent, base) => `(${percent}/100)*(${base})`
-    )
-
-    normalized = normalized.replace(/(\d+(?:\.\d+)?)\s*percent\b/gi, (_match, value) => `(${value}/100)`)
-
-    normalized = normalized.replace(/square\s+root\s+of\s+(\d+(?:\.\d+)?)/gi, (_, value) => `sqrt(${value})`)
-    normalized = normalized.replace(/\bcube\s+root\s+of\s+(\d+(?:\.\d+)?)/gi, (_, value) => `cbrt(${value})`)
-    normalized = normalized.replace(/\bpi\b/gi, 'π')
-
-    normalized = normalized.replace(/\s+/g, ' ').trim()
-
-    return {
-      normalizedExpression: normalized,
-      changed: normalized !== expression,
-    }
-  }
-
   private mapErrorMessage(message: string): string {
     const normalized = message.toLowerCase()
 
@@ -742,9 +678,8 @@ export class Calculator {
     }
 
     const startTime = performance.now()
-    const rawExpression = this.state.expression
-    const { normalizedExpression, changed: normalizedChanged } = this.normalizeNaturalLanguage(rawExpression)
-    const expressionForEvaluation = normalizedExpression
+  const rawExpression = this.state.expression
+  const expressionForEvaluation = rawExpression
 
     try {
       this.state.isCalculating = true
@@ -762,23 +697,12 @@ export class Calculator {
       // 模拟计算延迟
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      if (normalizedChanged) {
-        this.setStatus(`解析自然语言为 ${expressionForEvaluation}`)
-      }
-
       const result = await this.evaluateExpression(expressionForEvaluation, rawExpression)
       const duration = performance.now() - startTime
 
       this.state.result = result
       this.state.errorMessage = null
-      const historyOptions: {
-        metadata?: Record<string, unknown>
-      } = {}
-      if (normalizedChanged) {
-        historyOptions.metadata = { normalizedExpression: expressionForEvaluation }
-      }
-
-      await this.addToHistory(rawExpression, result, historyOptions)
+      await this.addToHistory(rawExpression, result)
       this.state.expression = ''
       this.setStatus('计算完成')
 
@@ -807,7 +731,6 @@ export class Calculator {
         message: friendlyError,
         context: {
           expression: rawExpression,
-          normalizedExpression: expressionForEvaluation,
           duration,
           rawError,
         },
@@ -1084,14 +1007,14 @@ export class Calculator {
   }
 
   private async toggleTheme(): Promise<void> {
-  const themes = ['light', 'dark', 'auto'] as const
-  type ThemeCycle = typeof themes[number]
-  const currentThemeMode = this.state.settings.theme
-  const currentIndex = themes.indexOf(currentThemeMode as ThemeCycle)
-  const nextTheme = themes[(currentIndex + 1 + themes.length) % themes.length]
+    const themes: ThemeMode[] = ['light', 'dark', 'auto']
+    const currentThemeMode = this.state.settings.theme
+    const currentIndex = themes.indexOf(currentThemeMode)
+    const nextIndex = (currentIndex + 1 + themes.length) % themes.length
+    const nextTheme: ThemeMode = themes[nextIndex] ?? 'light'
 
-  this.state.settings.theme = nextTheme
-  await this.themeManager.setThemeMode(nextTheme)
+    this.state.settings.theme = nextTheme
+    await this.themeManager.setThemeMode(nextTheme)
     const resolvedTheme = await this.themeManager.getCurrentTheme()
     this.container.setAttribute('data-theme', resolvedTheme.name)
     this.setStatus(`已切换到${this.getThemeLabel(resolvedTheme.name)}主题`)
@@ -1117,10 +1040,10 @@ export class Calculator {
       precision: Math.max(1, Math.min(28, settings.display.decimalPlaces)),
       angleUnit: settings.display.angleUnit,
       enableAnimations: settings.general.enableAnimations,
-      enableHaptics: settings.general.enableHaptic,
+      enableHaptics: settings.general.enableHaptic ?? settings.general.enableHapticFeedback,
       compactMode: settings.layout.compactMode,
       showHistory: settings.layout.showHistory,
-      showMemory: true,
+      showMemory: settings.layout.showMemory ?? true,
       enableKeyboardShortcuts: settings.general.enableKeyboardShortcuts,
     }
 
@@ -1192,76 +1115,9 @@ export class Calculator {
       }) as EventListener)
       
       console.log('✅ 手势操作已启用')
-
-      // 初始化语音输入
-      const { CalculatorVoiceController } = await import('../mobile/voice-input-simple.js')
-      this.voiceController = new CalculatorVoiceController()
-      
-      if (this.voiceController.isVoiceSupported()) {
-        this.addVoiceInputButton()
-        this.setupVoiceInputListeners()
-        console.log('✅ 语音输入已启用')
-      } else {
-        console.log('ℹ️ 当前设备不支持语音输入')
-      }
     } catch (error) {
-      console.error('❌ 移动端功能初始化失败:', error)
+      console.error('❌ 手势功能初始化失败:', error)
     }
-  }
-
-  /**
-   * 设置语音输入监听器
-   */
-  private setupVoiceInputListeners(): void {
-    // 监听语音表达式事件
-    document.addEventListener('calculatorvoiceExpression', (event: Event) => {
-      const customEvent = event as CustomEvent<{
-        expression: string
-        original: string
-        confidence: number
-      }>
-      this.handleVoiceExpression(customEvent.detail)
-    })
-  }
-
-  /**
-   * 处理语音表达式
-   */
-  private handleVoiceExpression(detail: {
-    expression: string
-    original: string
-    confidence: number
-  }): void {
-    this.state.expression = detail.expression
-    this.updateDisplay()
-    this.setStatus(`语音输入: ${detail.original} → ${detail.expression}`)
-    
-    // 自动计算（如果表达式完整）
-    if (this.isCompleteExpression(detail.expression)) {
-      setTimeout(() => {
-        this.calculate()
-      }, 500)
-    }
-  }
-
-  /**
-   * 检查表达式是否完整
-   */
-  private isCompleteExpression(expression: string): boolean {
-    // 检查括号是否匹配
-    let bracketCount = 0
-    for (const char of expression) {
-      if (char === '(') bracketCount++
-      if (char === ')') bracketCount--
-    }
-    
-    // 检查是否有未完成的函数调用
-    const hasUnfinishedFunction = /[a-z]+\s*\([^)]*$/.test(expression)
-    
-    // 检查是否有未完成的运算符
-    const hasUnfinishedOperator = /[+\-*/^]\s*$/.test(expression)
-    
-    return bracketCount === 0 && !hasUnfinishedFunction && !hasUnfinishedOperator
   }
 
   /**
@@ -1301,10 +1157,12 @@ export class Calculator {
         console.log('撤销操作')
         break
       case 'showHistory':
-        // 打开历史记录面板（显示侧边栏）
-        const historyBtn = document.getElementById('history-btn')
-        if (historyBtn) {
-          historyBtn.click()
+        {
+          // 打开历史记录面板（显示侧边栏）
+          const historyBtn = document.getElementById('history-btn')
+          if (historyBtn) {
+            historyBtn.click()
+          }
         }
         break
       case 'hideExtendedPanel':
@@ -1353,31 +1211,6 @@ export class Calculator {
     })
   }
 
-  /**
-   * 添加语音输入按钮
-   */
-  private addVoiceInputButton(): void {
-    const headerControls = this.container.querySelector('.header-controls')
-    if (headerControls) {
-      const voiceBtn = document.createElement('button')
-      voiceBtn.className = 'header-btn'
-      voiceBtn.id = 'voice-btn'
-      voiceBtn.title = '语音输入'
-      voiceBtn.setAttribute('aria-label', '语音输入')
-      voiceBtn.textContent = '🎤'
-      
-      voiceBtn.addEventListener('click', async () => {
-        if (this.voiceController) {
-          await this.voiceController.toggleVoiceInput()
-          const isActive = this.voiceController.isVoiceActive()
-          voiceBtn.style.color = isActive ? 'var(--color-accent)' : ''
-          this.showToast(isActive ? '🎤 语音输入已启动' : '🎤 语音输入已关闭')
-        }
-      })
-      
-      headerControls.insertBefore(voiceBtn, headerControls.firstChild)
-    }
-  }
 
   /**
    * 显示Toast提示
@@ -1472,11 +1305,6 @@ export class Calculator {
     if (this.gestureHandler) {
       this.gestureHandler.destroy()
       this.gestureHandler = null
-    }
-
-    if (this.voiceController) {
-      this.voiceController.stopVoiceInput()
-      this.voiceController = null
     }
 
     document.removeEventListener('keydown', this.handleKeyboard.bind(this))

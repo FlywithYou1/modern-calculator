@@ -4,7 +4,8 @@
  */
 
 import { invoke } from '@tauri-apps/api/core'
-import type { HistoryItem } from '../types/calculator'
+import type { AppSettings, HistoryItem } from '../types/calculator'
+import { createDefaultAppSettings } from './settings-defaults.js'
 
 // 与后端保持一致的结果类型
 export interface CalculationResult {
@@ -12,6 +13,39 @@ export interface CalculationResult {
   result?: string
   error?: string
   warnings?: string[]
+}
+
+type BackendSettingsDTO = {
+  theme?: {
+    name?: string
+    mode?: string
+    animationsEnabled?: boolean
+    transparency?: number
+    colors?: Record<string, string>
+  }
+  display?: {
+    decimalPlaces?: number
+    scientificNotation?: boolean
+    thousandsSeparator?: boolean
+    angleUnit?: 'degrees' | 'radians' | 'gradians'
+    fontSize?: number
+  }
+  general?: {
+    enableHaptic?: boolean
+    enableHapticFeedback?: boolean
+    maxHistoryItems?: number
+    autoSaveHistory?: boolean
+    autoSave?: boolean
+    enableKeyboardShortcuts?: boolean
+    enableAnimations?: boolean
+  }
+  layout?: {
+    compactMode?: boolean
+    showHistory?: boolean
+    showMemory?: boolean
+    buttonSize?: 'small' | 'medium' | 'large'
+    keyboardLayout?: 'standard' | 'scientific' | 'programmer'
+  }
 }
 
 // 重新导出 invoke 函数以供其他模块使用
@@ -169,20 +203,20 @@ export class TauriService {
   /**
    * 获取应用设置
    */
-  static async getSettings(): Promise<unknown> {
+  static async getSettings(): Promise<AppSettings> {
     try {
-      const settings = await invoke<unknown>('get_settings')
-      return settings
+      const payload = await invoke<BackendSettingsDTO>('get_settings')
+      return TauriService.mergeSettings(payload)
     } catch (error) {
       console.error('获取设置失败:', error)
-      throw error instanceof Error ? error : new Error(String(error))
+      return createDefaultAppSettings()
     }
   }
 
   /**
    * 保存应用设置
    */
-  static async saveSettings(settings: unknown): Promise<void> {
+  static async saveSettings(settings: AppSettings): Promise<void> {
     try {
       await invoke<void>('save_settings', { settings })
     } catch (error) {
@@ -293,5 +327,114 @@ export class TauriService {
    */
   static isTauriEnvironment(): boolean {
     return typeof window !== 'undefined' && '__TAURI__' in window
+  }
+
+  private static mergeSettings(payload: BackendSettingsDTO | null | undefined): AppSettings {
+    const defaults = createDefaultAppSettings()
+    if (!payload) return defaults
+
+    const theme = payload.theme ?? {}
+    const display = payload.display ?? {}
+    const general = payload.general ?? {}
+    const layout = payload.layout ?? {}
+
+    const mergedTheme = {
+      ...defaults.theme,
+      name: theme.name ?? defaults.theme.name,
+      mode: TauriService.mapThemeMode(theme.mode, defaults.theme.mode),
+      cssVariables: { ...defaults.theme.cssVariables },
+      colors: theme.colors ? { ...defaults.theme.colors, ...theme.colors } : defaults.theme.colors,
+    }
+
+    if (typeof theme.animationsEnabled === 'boolean') {
+      defaults.general.enableAnimations = theme.animationsEnabled
+    }
+
+    const mergedDisplay = {
+      ...defaults.display,
+      decimalPlaces: typeof display.decimalPlaces === 'number' ? display.decimalPlaces : defaults.display.decimalPlaces,
+      scientificNotation:
+        typeof display.scientificNotation === 'boolean'
+          ? display.scientificNotation
+          : defaults.display.scientificNotation,
+      thousandSeparator:
+        typeof display.thousandsSeparator === 'boolean'
+          ? display.thousandsSeparator
+          : defaults.display.thousandSeparator,
+      angleUnit: TauriService.mapAngleUnit(display.angleUnit, defaults.display.angleUnit),
+      fontSize: typeof display.fontSize === 'number' ? display.fontSize : defaults.display.fontSize,
+    }
+
+    const mergedGeneral = {
+      ...defaults.general,
+      enableHaptic:
+        typeof general.enableHaptic === 'boolean'
+          ? general.enableHaptic
+          : typeof general.enableHapticFeedback === 'boolean'
+            ? general.enableHapticFeedback
+            : defaults.general.enableHaptic,
+      maxHistoryItems:
+        typeof general.maxHistoryItems === 'number'
+          ? general.maxHistoryItems
+          : defaults.general.maxHistoryItems,
+      autoSaveHistory:
+        typeof general.autoSaveHistory === 'boolean'
+          ? general.autoSaveHistory
+          : typeof general.autoSave === 'boolean'
+            ? general.autoSave
+            : defaults.general.autoSaveHistory,
+      enableKeyboardShortcuts:
+        typeof general.enableKeyboardShortcuts === 'boolean'
+          ? general.enableKeyboardShortcuts
+          : defaults.general.enableKeyboardShortcuts,
+      enableAnimations:
+        typeof general.enableAnimations === 'boolean'
+          ? general.enableAnimations
+          : defaults.general.enableAnimations,
+    }
+
+    const mergedLayout = {
+      ...defaults.layout,
+      compactMode:
+        typeof layout.compactMode === 'boolean' ? layout.compactMode : defaults.layout.compactMode,
+      showHistory:
+        typeof layout.showHistory === 'boolean' ? layout.showHistory : defaults.layout.showHistory,
+      showMemory:
+        typeof layout.showMemory === 'boolean' ? layout.showMemory : defaults.layout.showMemory,
+      buttonSize: layout.buttonSize ?? defaults.layout.buttonSize,
+      keyboardLayout: layout.keyboardLayout ?? defaults.layout.keyboardLayout,
+    }
+
+    return {
+      ...defaults,
+      theme: mergedTheme,
+      display: mergedDisplay,
+      general: mergedGeneral,
+      layout: mergedLayout,
+    }
+  }
+
+  private static mapThemeMode(value: string | undefined, fallback: AppSettings['theme']['mode']): AppSettings['theme']['mode'] {
+    switch (value) {
+      case 'light':
+        return 'light'
+      case 'dark':
+        return 'dark'
+      case 'auto':
+        return 'auto'
+      case 'high-contrast':
+        return 'high-contrast'
+      case undefined:
+        return fallback
+      default:
+        return 'high-contrast'
+    }
+  }
+
+  private static mapAngleUnit(
+    value: 'degrees' | 'radians' | 'gradians' | undefined,
+    fallback: AppSettings['display']['angleUnit']
+  ): AppSettings['display']['angleUnit'] {
+    return value ?? fallback
   }
 }

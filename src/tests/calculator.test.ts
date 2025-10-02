@@ -95,15 +95,6 @@ vi.mock('../mobile/gesture.js', () => ({
   })),
 }))
 
-vi.mock('../mobile/voice-input-simple.js', () => ({
-  CalculatorVoiceController: vi.fn().mockImplementation(() => ({
-    isVoiceSupported: vi.fn().mockReturnValue(true),
-    isVoiceActive: vi.fn().mockReturnValue(false),
-    toggleVoiceInput: vi.fn().mockResolvedValue(undefined),
-    stopVoiceInput: vi.fn(),
-  })),
-}))
-
 describe('Calculator', () => {
   let container: HTMLElement
   let calculator: Calculator
@@ -266,16 +257,6 @@ describe('Calculator', () => {
       
       expect(calc.state.errorMessage).toBeTruthy()
       expect(calc.state.result).toBe('0')
-    })
-
-    it('应该正确处理自然语言输入', async () => {
-      const calc = calculator as any
-      
-      // 测试自然语言标准化
-      const { normalizedExpression, changed } = calc.normalizeNaturalLanguage('five plus three')
-      
-      expect(normalizedExpression).toBe('5 + 3')
-      expect(changed).toBe(true)
     })
 
     it('应该正确映射错误消息', () => {
@@ -594,31 +575,8 @@ describe('Calculator', () => {
       calc.deviceDetector = mockDeviceDetector
       await calc.initMobileFeatures()
       
-      // 验证移动端功能被初始化
-      expect(container.querySelector('#voice-btn')).toBeTruthy()
-    })
-
-    it('应该正确处理语音表达式', () => {
-      const calc = calculator as any
-      
-      const voiceDetail = {
-        expression: '5 + 3',
-        original: 'five plus three',
-        confidence: 0.9,
-      }
-      
-      calc.handleVoiceExpression(voiceDetail)
-      
-      expect(calc.state.expression).toBe('5 + 3')
-    })
-
-    it('应该正确检查表达式完整性', () => {
-      const calc = calculator as any
-      
-      expect(calc.isCompleteExpression('5 + 3')).toBe(true)
-      expect(calc.isCompleteExpression('5 + (3 * 2')).toBe(false)
-      expect(calc.isCompleteExpression('sin(30')).toBe(false)
-      expect(calc.isCompleteExpression('5 +')).toBe(false)
+      // 验证手势处理器被初始化
+      expect(calc.gestureHandler).toBeTruthy()
     })
 
     it('应该正确处理手势动作', () => {
@@ -797,15 +755,15 @@ describe('Calculator', () => {
       await calculator.init()
     })
 
-    it('应该正确销毁所有组件', () => {
+    it('应该正确销毁所有组件', async () => {
       calculator.destroy()
-      
+
       // 验证子组件的销毁方法被调用
-      const { Display } = require('../components/Display.js')
-      const { AdvancedKeyboard } = require('../components/Keyboard.js')
-      const { History } = require('../components/History.js')
-      const { Settings } = require('../components/Settings.js')
-      
+      const { Display } = await import('../components/Display.js')
+      const { AdvancedKeyboard } = await import('../components/Keyboard.js')
+      const { History } = await import('../components/History.js')
+      const { Settings } = await import('../components/Settings.js')
+
       expect(Display).toHaveBeenCalled()
       expect(AdvancedKeyboard).toHaveBeenCalled()
       expect(History).toHaveBeenCalled()
@@ -817,12 +775,10 @@ describe('Calculator', () => {
       
       // 模拟移动端功能
       calc.gestureHandler = { destroy: vi.fn() }
-      calc.voiceController = { stopVoiceInput: vi.fn() }
       
       calculator.destroy()
       
       expect(calc.gestureHandler.destroy).toHaveBeenCalled()
-      expect(calc.voiceController.stopVoiceInput).toHaveBeenCalled()
     })
   })
 })
