@@ -1,6 +1,6 @@
-//! 计算历史管理模块
-//! 
-//! 提供计算历史的存储、检索、搜索和统计功能
+// ! 计算历史管理模块
+// !
+// ! 提供计算历史的存储、检索、搜索和统计功能
 
 use crate::HistoryItem;
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use std::fs;
 use std::path::Path;
 
-/// 历史管理器
+// / 历史管理器
 #[derive(Debug, Default)]
 pub struct HistoryManager {
     items: Vec<HistoryItem>,
@@ -18,7 +18,7 @@ pub struct HistoryManager {
 }
 
 impl HistoryManager {
-    /// 创建新的历史管理器
+    // / 创建新的历史管理器
     pub fn new(max_items: usize) -> Self {
         Self {
             items: Vec::new(),
@@ -26,7 +26,7 @@ impl HistoryManager {
         }
     }
 
-    /// 添加历史记录项
+    // / 添加历史记录项
     pub fn add_item(&mut self, item: HistoryItem) {
         self.items.insert(0, item);
         
@@ -36,17 +36,17 @@ impl HistoryManager {
         }
     }
 
-    /// 获取最近的历史记录
+    // / 获取最近的历史记录
     pub fn get_recent_items(&self, limit: usize) -> Vec<HistoryItem> {
         self.items.iter().take(limit).cloned().collect()
     }
 
-    /// 根据ID获取历史记录项
+    // / 根据ID获取历史记录项
     pub fn get_item_by_id(&self, id: &str) -> Option<&HistoryItem> {
         self.items.iter().find(|item| item.id == id)
     }
 
-    /// 更新历史记录项的标签
+    // / 更新历史记录项的标签
     pub fn update_item_tags(&mut self, id: &str, tags: Option<Vec<String>>) -> Result<()> {
         if let Some(item) = self.items.iter_mut().find(|item| item.id == id) {
             item.tags = tags;
@@ -56,7 +56,7 @@ impl HistoryManager {
         }
     }
 
-    /// 删除历史记录项
+    // / 删除历史记录项
     pub fn remove_item(&mut self, id: &str) -> Result<()> {
         if let Some(index) = self.items.iter().position(|item| item.id == id) {
             self.items.remove(index);
@@ -66,7 +66,7 @@ impl HistoryManager {
         }
     }
 
-    /// 搜索历史记录
+    // / 搜索历史记录
     pub fn search(&self, query: &str) -> Vec<HistoryItem> {
         let query_lower = query.to_lowercase();
         
@@ -84,7 +84,7 @@ impl HistoryManager {
             .collect()
     }
 
-    /// 按标签过滤历史记录
+    // / 按标签过滤历史记录
     pub fn filter_by_tag(&self, tag: &str) -> Vec<HistoryItem> {
         self.items.iter()
             .filter(|item| {
@@ -94,7 +94,7 @@ impl HistoryManager {
             .collect()
     }
 
-    /// 按日期范围过滤历史记录
+    // / 按日期范围过滤历史记录
     pub fn filter_by_date_range(&self, start: DateTime<Utc>, end: DateTime<Utc>) -> Vec<HistoryItem> {
         self.items.iter()
             .filter(|item| {
@@ -109,7 +109,7 @@ impl HistoryManager {
             .collect()
     }
 
-    /// 获取历史统计信息
+    // / 获取历史统计信息
     pub fn get_stats(&self) -> HashMap<String, u32> {
         let mut stats = HashMap::new();
         
@@ -148,12 +148,12 @@ impl HistoryManager {
         stats
     }
 
-    /// 清空历史记录
+    // / 清空历史记录
     pub fn clear(&mut self) {
         self.items.clear();
     }
 
-    /// 导出为JSON格式
+    // / 导出为JSON格式
     pub fn export_to_json(&self) -> Result<String> {
         #[derive(Serialize)]
         struct ExportData {
@@ -179,7 +179,7 @@ impl HistoryManager {
             .map_err(|e| anyhow!("序列化历史记录失败: {}", e))
     }
 
-    /// 保存到路径（JSON 文件）
+    // / 保存到路径（JSON 文件）
     pub fn export_to_path<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let json = self.export_to_json()?;
         if let Some(parent) = path.as_ref().parent() {
@@ -188,7 +188,7 @@ impl HistoryManager {
         fs::write(path, json).map_err(|e| anyhow!("写入历史记录文件失败: {}", e))
     }
 
-    /// 从JSON格式导入
+    // / 从JSON格式导入
     pub fn import_from_json(&mut self, json_data: &str) -> Result<()> {
         #[derive(Deserialize)]
         struct ImportData {
@@ -222,23 +222,23 @@ impl HistoryManager {
         Ok(())
     }
 
-    /// 从路径读取并导入（JSON 文件）
+    // / 从路径读取并导入（JSON 文件）
     pub fn import_from_path<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let data = fs::read_to_string(path).map_err(|e| anyhow!("读取历史记录文件失败: {}", e))?;
         self.import_from_json(&data)
     }
 
-    /// 获取项目总数
+    // / 获取项目总数
     pub fn len(&self) -> usize {
         self.items.len()
     }
 
-    /// 检查是否为空
+    // / 检查是否为空
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
 
-    /// 设置最大项目数
+    // / 设置最大项目数
     pub fn set_max_items(&mut self, max_items: usize) {
         self.max_items = max_items;
         if self.items.len() > max_items {

@@ -1,7 +1,6 @@
-/**
- * Calculator 组件测试
- * 覆盖计算器的核心功能和交互
- */
+/* *
+ * 计算器 (计算器 (calculator)) 组件测试
+ * 覆盖计算器的核心功能和交互 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Calculator } from '../components/Calculator.js'

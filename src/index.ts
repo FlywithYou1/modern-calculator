@@ -1,16 +1,14 @@
-/**
+/* *
  * 科学计算器应用主入口
  *
- * 支持桌面端和移动端的现代化科学计算器
- */
+ * 支持桌面端和移动端的现代化科学计算器 */
 
 import './styles/index.scss'
 import './styles/calculator.scss'
 import { Calculator } from './components/Calculator'
 
-/**
- * 应用主类
- */
+/* *
+ * 应用主类 */
 class App {
   private calculator: Calculator | null = null
 
@@ -18,9 +16,8 @@ class App {
     console.log('🚀 启动现代化科学计算器...')
   }
 
-  /**
-   * 初始化应用
-   */
+  /* *
+   * 初始化应用 */
   async init(): Promise<void> {
     try {
       console.log('🚀 正在初始化计算器应用...')
@@ -52,9 +49,8 @@ class App {
     }
   }
 
-  /**
-   * 显示加载界面
-   */
+  /* *
+   * 显示加载界面 */
   private showLoadingScreen(): void {
     const rootElement = document.querySelector('#root') as HTMLElement
     if (rootElement) {
@@ -218,9 +214,8 @@ class App {
     }
   }
 
-  /**
-   * 等待DOM准备
-   */
+  /* *
+   * 等待DOM准备 */
   private waitForDOM(): Promise<void> {
     return new Promise(resolve => {
       if (document.readyState === 'loading') {
@@ -231,16 +226,14 @@ class App {
     })
   }
 
-  /**
-   * 延迟函数
-   */
+  /* *
+   * 延迟函数 */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  /**
-   * 显示错误消息
-   */
+  /* *
+   * 显示错误消息 */
   private showErrorMessage(message: string): void {
     const rootElement = document.querySelector('#root') as HTMLElement
     if (rootElement) {
@@ -378,16 +371,14 @@ class App {
     }
   }
 
-  /**
-   * 获取应用实例
-   */
+  /* *
+   * 获取应用实例 */
   public getCalculator(): Calculator | null {
     return this.calculator
   }
 
-  /**
-   * 销毁应用
-   */
+  /* *
+   * 销毁应用 */
   public destroy(): void {
     if (this.calculator) {
       this.calculator.destroy()

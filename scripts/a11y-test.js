@@ -1,15 +1,13 @@
 #!/usr/bin/env node
-/**
+/* *
  * 无障碍测试脚本
- * 检查计算器应用的无障碍支持情况
- */
+ * 检查计算器应用的无障碍支持情况 */
 
 import fs from 'fs'
 import path from 'path'
 
-/**
- * 无障碍测试套件
- */
+/* *
+ * 无障碍测试套件 */
 class AccessibilityTester {
   constructor() {
     this.testResults = []
@@ -17,9 +15,8 @@ class AccessibilityTester {
     this.distDir = path.join(__dirname, '../dist')
   }
 
-  /**
-   * 运行无障碍测试
-   */
+  /* *
+   * 运行无障碍测试 */
   async run() {
     console.log('♿ 启动无障碍测试...\n')
 
@@ -34,9 +31,8 @@ class AccessibilityTester {
     this.generateReport()
   }
 
-  /**
-   * 测试HTML结构
-   */
+  /* *
+   * 测试HTML结构 */
   async testHTMLStructure() {
     console.log('🏗️ 测试HTML结构...')
 
@@ -69,9 +65,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 测试ARIA属性
-   */
+  /* *
+   * 测试ARIA属性 */
   async testARIAAttributes() {
     console.log('🎯 测试ARIA属性...')
 
@@ -102,9 +97,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 测试键盘导航
-   */
+  /* *
+   * 测试键盘导航 */
   async testKeyboardNavigation() {
     console.log('⌨️ 测试键盘导航...')
 
@@ -150,9 +144,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 测试颜色对比度
-   */
+  /* *
+   * 测试颜色对比度 */
   async testColorContrast() {
     console.log('🎨 测试颜色对比度...')
 
@@ -181,9 +174,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 测试文字替代
-   */
+  /* *
+   * 测试文字替代 */
   async testTextAlternatives() {
     console.log('📝 测试文字替代...')
 
@@ -221,9 +213,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 测试语义结构
-   */
+  /* *
+   * 测试语义结构 */
   async testSemanticStructure() {
     console.log('🏷️ 测试语义结构...')
 
@@ -269,9 +260,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 测试焦点管理
-   */
+  /* *
+   * 测试焦点管理 */
   async testFocusManagement() {
     console.log('🎯 测试焦点管理...')
 
@@ -313,9 +303,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 检查文件是否包含指定内容
-   */
+  /* *
+   * 检查文件是否包含指定内容 */
   checkFileContains(filename, content) {
     try {
       const filePath = path.join(__dirname, '..', filename)
@@ -329,9 +318,8 @@ class AccessibilityTester {
     }
   }
 
-  /**
-   * 检查颜色变量是否存在
-   */
+  /* *
+   * 检查颜色变量是否存在 */
   checkColorVariablesExist() {
     const scssFiles = this.getSourceFiles(['scss', 'css'])
     for (const file of scssFiles) {
@@ -347,9 +335,8 @@ class AccessibilityTester {
     return false
   }
 
-  /**
-   * 检查高对比模式支持
-   */
+  /* *
+   * 检查高对比模式支持 */
   checkHighContrastSupport() {
     const files = this.getSourceFiles(['scss', 'css', 'ts', 'js'])
     for (const file of files) {
@@ -365,9 +352,8 @@ class AccessibilityTester {
     return false
   }
 
-  /**
-   * 检查暗色主题支持
-   */
+  /* *
+   * 检查暗色主题支持 */
   checkDarkThemeSupport() {
     const files = this.getSourceFiles(['scss', 'css', 'ts', 'js'])
     for (const file of files) {
@@ -383,9 +369,8 @@ class AccessibilityTester {
     return false
   }
 
-  /**
-   * 获取源码文件
-   */
+  /* *
+   * 获取源码文件 */
   getSourceFiles(extensions) {
     const files = []
     
@@ -427,9 +412,8 @@ class AccessibilityTester {
     return files
   }
 
-  /**
-   * 添加测试结果
-   */
+  /* *
+   * 添加测试结果 */
   addResult(category, name, passed, message) {
     this.testResults.push({
       category,
@@ -439,9 +423,8 @@ class AccessibilityTester {
     })
   }
 
-  /**
-   * 生成测试报告
-   */
+  /* *
+   * 生成测试报告 */
   generateReport() {
     console.log('\\n📋 无障碍测试报告')
     console.log('=' .repeat(70))
@@ -515,9 +498,8 @@ class AccessibilityTester {
     })
   }
 
-  /**
-   * 保存测试结果
-   */
+  /* *
+   * 保存测试结果 */
   saveResults(summary) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const filename = `a11y-test-results-${timestamp}.json`

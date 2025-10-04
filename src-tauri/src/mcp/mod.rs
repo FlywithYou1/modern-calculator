@@ -1,6 +1,6 @@
-//! Model Context Protocol (MCP) 调试支持模块
-//! 
-//! 提供实时调试接口、性能监控、错误诊断等开发工具
+// ! Model Context Protocol (MCP) 调试支持模块
+// !
+// ! 提供实时调试接口、性能监控、错误诊断等开发工具
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,11 +8,11 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 
-/// MCP 调试事件类型
+// / MCP 调试事件类型
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MCPEvent {
-    /// 计算器状态变化事件
+    // / 计算器状态变化事件
     StateChanged {
         timestamp: u64,
         expression: String,
@@ -20,14 +20,14 @@ pub enum MCPEvent {
         memory: String,
         error: Option<String>,
     },
-    /// 表达式解析事件
+    // / 表达式解析事件
     ExpressionParsed {
         timestamp: u64,
         expression: String,
         ast: String, // AST 的字符串表示
         parse_time_ms: f64,
     },
-    /// 计算执行事件
+    // / 计算执行事件
     CalculationExecuted {
         timestamp: u64,
         expression: String,
@@ -35,14 +35,14 @@ pub enum MCPEvent {
         execution_time_ms: f64,
         memory_usage_kb: u64,
     },
-    /// 错误事件
+    // / 错误事件
     ErrorOccurred {
         timestamp: u64,
         error_type: String,
         message: String,
         context: HashMap<String, String>,
     },
-    /// 性能监控事件
+    // / 性能监控事件
     PerformanceMetrics {
         timestamp: u64,
         cpu_usage: f64,
@@ -52,7 +52,7 @@ pub enum MCPEvent {
     },
 }
 
-/// MCP 调试器实例
+// / MCP 调试器实例
 #[derive(Debug)]
 pub struct MCPDebugger {
     event_sender: broadcast::Sender<MCPEvent>,
@@ -60,7 +60,7 @@ pub struct MCPDebugger {
     is_enabled: bool,
 }
 
-/// 性能统计数据
+// / 性能统计数据
 #[derive(Debug, Clone)]
 pub struct PerformanceStats {
     pub total_calculations: u64,
@@ -83,29 +83,29 @@ impl Default for PerformanceStats {
 }
 
 impl MCPDebugger {
-    /// 创建新的 MCP 调试器实例
+    // / 创建新的 MCP 调试器实例
     pub fn new() -> Self {
         let (event_sender, _) = broadcast::channel(1000);
         
         Self {
             event_sender,
             performance_stats: Arc::new(Mutex::new(PerformanceStats::default())),
-            is_enabled: cfg!(debug_assertions), // 默认在 debug 模式下启用
+            is_enabled: cfg!(debug_assertions), // 默认在 调试 (debug) 模式下启用
         }
     }
 
-    /// 启用/禁用调试功能
+    // / 启用/禁用调试功能
     pub fn set_enabled(&mut self, enabled: bool) {
         self.is_enabled = enabled;
         info!("MCP 调试器已{}", if enabled { "启用" } else { "禁用" });
     }
 
-    /// 订阅调试事件
+    // / 订阅调试事件
     pub fn subscribe(&self) -> broadcast::Receiver<MCPEvent> {
         self.event_sender.subscribe()
     }
 
-    /// 记录计算器状态变化
+    // / 记录计算器状态变化
     pub fn track_state_change(
         &self,
         expression: &str,
@@ -129,7 +129,7 @@ impl MCPDebugger {
         debug!("状态变化: {} -> {}", expression, result);
     }
 
-    /// 记录表达式解析过程
+    // / 记录表达式解析过程
     pub fn track_expression_parsing(
         &self,
         expression: &str,
@@ -151,7 +151,7 @@ impl MCPDebugger {
         debug!("表达式解析: {} ({}ms)", expression, parse_time_ms);
     }
 
-    /// 记录计算执行过程
+    // / 记录计算执行过程
     pub fn track_calculation_execution(
         &self,
         expression: &str,
@@ -183,7 +183,7 @@ impl MCPDebugger {
         info!("计算完成: {} = {} ({}ms)", expression, result, execution_time_ms);
     }
 
-    /// 记录错误事件
+    // / 记录错误事件
     pub fn track_error(
         &self,
         error_type: &str,
@@ -210,7 +210,7 @@ impl MCPDebugger {
         error!("错误发生: {} - {}", error_type, message);
     }
 
-    /// 记录性能指标
+    // / 记录性能指标
     pub fn track_performance_metrics(&self) {
         if !self.is_enabled {
             return;
@@ -227,12 +227,12 @@ impl MCPDebugger {
         self.send_event(event);
     }
 
-    /// 获取性能统计摘要
+    // / 获取性能统计摘要
     pub fn get_performance_summary(&self) -> Option<PerformanceStats> {
         self.performance_stats.lock().ok().map(|stats| stats.clone())
     }
 
-    /// 发送调试事件
+    // / 发送调试事件
     fn send_event(&self, event: MCPEvent) {
         if let Err(e) = self.event_sender.send(event) {
             warn!("发送调试事件失败: {}", e);
@@ -240,7 +240,7 @@ impl MCPDebugger {
     }
 }
 
-/// 获取当前时间戳（毫秒）
+// / 获取当前时间戳（毫秒）
 fn current_timestamp() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -248,21 +248,21 @@ fn current_timestamp() -> u64 {
         .as_millis() as u64
 }
 
-/// 获取 CPU 使用率（简化实现）
+// / 获取 CPU 使用率（简化实现）
 fn get_cpu_usage() -> f64 {
     // 在实际应用中，这里应该使用系统 API 获取真实的 CPU 使用率
     // 这里返回一个模拟值
     0.0
 }
 
-/// 获取内存使用量（MB）
+// / 获取内存使用量（MB）
 fn get_memory_usage_mb() -> f64 {
     // 简化实现，在实际应用中应该使用系统 API
     // 这里返回一个模拟值
     0.0
 }
 
-/// 获取活跃线程数
+// / 获取活跃线程数
 fn get_active_thread_count() -> u32 {
     // 简化实现
     std::thread::available_parallelism()
@@ -270,23 +270,23 @@ fn get_active_thread_count() -> u32 {
         .unwrap_or(1)
 }
 
-/// 获取堆大小（MB）
+// / 获取堆大小（MB）
 fn get_heap_size_mb() -> f64 {
     // 简化实现
     0.0
 }
 
-/// MCP 调试器的全局实例
+// / MCP 调试器的全局实例
 use std::sync::OnceLock;
 
 static MCP_DEBUGGER: OnceLock<MCPDebugger> = OnceLock::new();
 
-/// 获取全局 MCP 调试器实例
+// / 获取全局 MCP 调试器实例
 pub fn get_mcp_debugger() -> &'static MCPDebugger {
     MCP_DEBUGGER.get_or_init(|| MCPDebugger::new())
 }
 
-/// 初始化 MCP 调试器
+// / 初始化 MCP 调试器
 pub fn init_mcp_debugger() {
     let debugger = get_mcp_debugger();
     info!("MCP 调试器已初始化");
@@ -301,7 +301,7 @@ pub fn init_mcp_debugger() {
     });
 }
 
-/// 便捷宏：记录计算状态变化
+// / 便捷宏：记录计算状态变化
 #[macro_export]
 macro_rules! mcp_track_state {
     ($expr:expr, $result:expr, $memory:expr) => {
@@ -312,7 +312,7 @@ macro_rules! mcp_track_state {
     };
 }
 
-/// 便捷宏：记录表达式解析
+// / 便捷宏：记录表达式解析
 #[macro_export]
 macro_rules! mcp_track_parsing {
     ($expr:expr, $ast:expr, $time:expr) => {
@@ -320,7 +320,7 @@ macro_rules! mcp_track_parsing {
     };
 }
 
-/// 便捷宏：记录计算执行
+// / 便捷宏：记录计算执行
 #[macro_export]
 macro_rules! mcp_track_execution {
     ($expr:expr, $result:expr, $time:expr, $memory:expr) => {
@@ -328,7 +328,7 @@ macro_rules! mcp_track_execution {
     };
 }
 
-/// 便捷宏：记录错误
+// / 便捷宏：记录错误
 #[macro_export]
 macro_rules! mcp_track_error {
     ($error_type:expr, $message:expr) => {

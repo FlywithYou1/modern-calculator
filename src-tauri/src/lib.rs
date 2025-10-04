@@ -1,8 +1,8 @@
-//! 现代化跨平台科学计算器 - 后端 Rust 计算引擎
-//! 
-//! Tauri 计算器应用后端 - 支持桌面端(Windows/macOS/Linux)和移动端(Android)
-//! 
-//! 提供高精度数学计算、历史记录管理、设置存储等功能
+// ! 现代化跨平台科学计算器 - 后端 Rust 计算引擎
+// !
+// ! Tauri 计算器应用后端 - 支持桌面端(Windows/macOS/Linux)和移动端(Android)
+// !
+// ! 提供高精度数学计算、历史记录管理、设置存储等功能
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -18,7 +18,7 @@ pub mod settings;
 pub mod commands;
 pub mod mcp;
 
-/// 计算结果类型
+// / 计算结果类型
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CalculationResult {
     pub success: bool,
@@ -27,7 +27,7 @@ pub struct CalculationResult {
     pub warnings: Option<Vec<String>>,
 }
 
-/// 历史记录项类型
+// / 历史记录项类型
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryItem {
     pub id: String,
@@ -40,7 +40,7 @@ pub struct HistoryItem {
     pub source: Option<String>,
 }
 
-/// 应用状态
+// / 应用状态
 #[derive(Debug)]
 pub struct AppState {
     pub calculation_count: Arc<Mutex<u64>>,
@@ -60,7 +60,7 @@ impl Default for AppState {
     }
 }
 
-/// Tauri 应用入口点 - 支持桌面和移动端
+// / Tauri 应用入口点 - 支持桌面和移动端
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();

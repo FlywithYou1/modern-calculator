@@ -5,8 +5,7 @@ description = "现代化跨平台科学计算器 - 高精度运算引擎"
 authors = ["Scientific Calculator Team"]
 license = "MIT"
 repository = "https://github.com/FlywithYou1/modern-calculator"
-edition = "2021"
-rust-version = "1.70.0"
+
 
 [lib]
 name = "app_lib"

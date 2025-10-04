@@ -1,6 +1,5 @@
-/**
- * 应用设置默认值
- */
+/* *
+ * 应用设置默认值 */
 
 import type { AppSettings } from '../types/calculator.js'
 

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-/**
+/* *
  * 金融级精度验证测试套件
- * 确保计算器的数值精度达到金融级别标准
- */
+ * 确保计算器的数值精度达到金融级别标准 */
 
 import { performance } from 'perf_hooks'
 import { readFileSync, writeFileSync } from 'fs'

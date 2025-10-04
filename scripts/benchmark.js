@@ -1,16 +1,14 @@
 #!/usr/bin/env node
-/**
+/* *
  * 性能基准测试脚本
- * 测试计算器各个组件和功能的性能表现
- */
+ * 测试计算器各个组件和功能的性能表现 */
 
 import { performance } from 'perf_hooks'
 import path from 'path'
 import { readFileSync, writeFileSync } from 'fs'
 
-/**
- * 性能测试套件
- */
+/* *
+ * 性能测试套件 */
 class PerformanceBenchmark {
   constructor() {
     this.results = []
@@ -18,9 +16,8 @@ class PerformanceBenchmark {
     this.warmupIterations = 5
   }
 
-  /**
-   * 运行基准测试
-   */
+  /* *
+   * 运行基准测试 */
   async run() {
     console.log('🚀 启动性能基准测试...\n')
 
@@ -34,9 +31,8 @@ class PerformanceBenchmark {
     this.generateReport()
   }
 
-  /**
-   * 测试计算性能
-   */
+  /* *
+   * 测试计算性能 */
   async testCalculationPerformance() {
     console.log('📊 测试计算性能...')
 
@@ -61,9 +57,8 @@ class PerformanceBenchmark {
     }
   }
 
-  /**
-   * 测试表达式解析性能
-   */
+  /* *
+   * 测试表达式解析性能 */
   async testExpressionParsing() {
     console.log('🔤 测试表达式解析性能...')
 
@@ -85,9 +80,8 @@ class PerformanceBenchmark {
     }
   }
 
-  /**
-   * 测试内存操作性能
-   */
+  /* *
+   * 测试内存操作性能 */
   async testMemoryOperations() {
     console.log('💾 测试内存操作性能...')
 
@@ -108,9 +102,8 @@ class PerformanceBenchmark {
     }
   }
 
-  /**
-   * 测试历史记录操作性能
-   */
+  /* *
+   * 测试历史记录操作性能 */
   async testHistoryOperations() {
     console.log('📚 测试历史记录操作性能...')
 
@@ -131,9 +124,8 @@ class PerformanceBenchmark {
     }
   }
 
-  /**
-   * 测试UI性能
-   */
+  /* *
+   * 测试UI性能 */
   async testUIPerformance() {
     console.log('🎨 测试UI渲染性能...')
 
@@ -155,9 +147,8 @@ class PerformanceBenchmark {
     }
   }
 
-  /**
-   * 测量函数执行时间
-   */
+  /* *
+   * 测量函数执行时间 */
   async measureFunction(fn, name, iterations = this.iterations) {
     // 预热
     for (let i = 0; i < Math.min(this.warmupIterations, iterations / 10); i++) {
@@ -190,9 +181,8 @@ class PerformanceBenchmark {
     }
   }
 
-  /**
-   * 计算百分位数
-   */
+  /* *
+   * 计算百分位数 */
   percentile(arr, p) {
     const sorted = [...arr].sort((a, b) => a - b)
     const index = (p / 100) * (sorted.length - 1)
@@ -204,9 +194,8 @@ class PerformanceBenchmark {
     return sorted[lower] * (1 - weight) + sorted[upper] * weight
   }
 
-  /**
-   * 模拟计算操作
-   */
+  /* *
+   * 模拟计算操作 */
   async simulateCalculation(expression) {
     // 模拟解析和计算时间
     await this.delay(Math.random() * 2 + 1)
@@ -218,9 +207,8 @@ class PerformanceBenchmark {
     return Math.random() * 1000
   }
 
-  /**
-   * 模拟表达式解析
-   */
+  /* *
+   * 模拟表达式解析 */
   async simulateExpressionParsing(expression) {
     // 模拟词法分析和语法解析
     const tokenCount = expression.match(/\\w+|[().,]/g)?.length || 1
@@ -228,9 +216,8 @@ class PerformanceBenchmark {
     return true
   }
 
-  /**
-   * 模拟内存操作
-   */
+  /* *
+   * 模拟内存操作 */
   async simulateMemoryOperation(operation) {
     const operationTimes = {
       memory_store: 0.5,
@@ -242,9 +229,8 @@ class PerformanceBenchmark {
     return true
   }
 
-  /**
-   * 模拟历史记录操作
-   */
+  /* *
+   * 模拟历史记录操作 */
   async simulateHistoryOperation(operation, size) {
     const baseTimes = {
       add_history: 1,
@@ -256,9 +242,8 @@ class PerformanceBenchmark {
     return true
   }
 
-  /**
-   * 模拟UI操作
-   */
+  /* *
+   * 模拟UI操作 */
   async simulateUIOperation(operation) {
     const operationTimes = {
       display_update: 2,
@@ -271,16 +256,14 @@ class PerformanceBenchmark {
     return true
   }
 
-  /**
-   * 延迟函数
-   */
+  /* *
+   * 延迟函数 */
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  /**
-   * 生成性能报告
-   */
+  /* *
+   * 生成性能报告 */
   generateReport() {
     console.log('\\n📋 性能基准测试报告')
     console.log('=' .repeat(80))
@@ -340,9 +323,8 @@ class PerformanceBenchmark {
     this.saveResults()
   }
 
-  /**
-   * 保存测试结果
-   */
+  /* *
+   * 保存测试结果 */
   saveResults() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const filename = `benchmark-results-${timestamp}.json`

@@ -1,7 +1,6 @@
-/**
- * Evaluator 工具函数测试
- * 覆盖表达式计算、解析和验证的所有功能
- */
+/* *
+ * 求值器 (求值器 (evaluator)) 工具函数测试
+ * 覆盖表达式计算、解析和验证的所有功能 */
 
 import { describe, it, expect } from 'vitest'
 import { evaluateExpressionSafe } from '../utils/evaluator.js'

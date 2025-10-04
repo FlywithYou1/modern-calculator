@@ -31,6 +31,9 @@ jobs:
   frontend:
     name: 前端构建与质量检查
     runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: mcp
     outputs:
       build-success: ${{ steps.build.outcome == 'success' }}
     
@@ -44,7 +47,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
           
-      - name: 安装项目依赖
+      - name: 安装项目依赖 (mcp)
         run: npm ci
         
       - name: TypeScript 类型检查
@@ -79,9 +82,9 @@ jobs:
         with:
           name: frontend-build-${{ github.run_number }}
           path: |
-            dist/**/*
-            package.json
-            README.md
+            mcp/dist/**/*
+            mcp/package.json
+            mcp/README.md
           retention-days: 7
 
   # Rust 后端构建与测试 (Linux)
@@ -108,8 +111,8 @@ jobs:
             libpango1.0-dev \
             libsoup2.4-dev
 
-      - name: 设置 Rust 工具链
-        uses: dtolnay/rust-toolchain@stable
+      - name: 设置 Rust 工具链 (nightly)
+        uses: dtolnay/rust-toolchain@nightly
 
       - name: Rust 缓存
         uses: swatinem/rust-cache@v2
@@ -117,14 +120,14 @@ jobs:
           workspaces: 'src-tauri -> target'
 
       - name: 编译检查
-        working-directory: src-tauri
+        working-directory: mcp/src-tauri
         run: |
           echo '📦 Cargo 编译检查'
           cargo check --workspace --all-features
         continue-on-error: true
 
       - name: 运行单元测试
-        working-directory: src-tauri
+        working-directory: mcp/src-tauri
         run: |
           echo '🧪 运行 Rust 单元测试'
           cargo test --workspace --all-features --no-fail-fast
@@ -136,8 +139,8 @@ jobs:
         with:
           name: backend-linux-${{ github.run_number }}
           path: |
-            src-tauri/target/debug/deps/*
-            src-tauri/Cargo.toml
+            mcp/src-tauri/target/debug/deps/*
+            mcp/src-tauri/Cargo.toml
           retention-days: 5
 
   # Windows 构建
@@ -148,8 +151,8 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 Rust 工具链
-        uses: dtolnay/rust-toolchain@stable
+      - name: 设置 Rust 工具链 (nightly)
+        uses: dtolnay/rust-toolchain@nightly
 
       - name: 设置 Node.js
         uses: actions/setup-node@v4
@@ -157,16 +160,17 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 安装依赖
+      - name: 安装依赖 (mcp)
+        working-directory: mcp
         run: npm ci
 
       - name: Rust 编译检查
-        working-directory: src-tauri
+        working-directory: mcp/src-tauri
         run: cargo check --workspace
         continue-on-error: true
 
       - name: 运行 Rust 测试
-        working-directory: src-tauri
+        working-directory: mcp/src-tauri
         run: cargo test --workspace --no-fail-fast
         continue-on-error: true
 
@@ -176,8 +180,8 @@ jobs:
         with:
           name: backend-windows-${{ github.run_number }}
           path: |
-            src-tauri/target/debug/**/*
-            src-tauri/Cargo.toml
+            mcp/src-tauri/target/debug/**/*
+            mcp/src-tauri/Cargo.toml
           retention-days: 5
 
   # 跨平台构建验证
@@ -186,6 +190,9 @@ jobs:
     needs: [frontend, backend-linux, backend-windows]
     runs-on: ubuntu-22.04
     if: always()
+    defaults:
+      run:
+        working-directory: mcp
     
     steps:
       - name: 检出代码
@@ -210,7 +217,7 @@ jobs:
       - name: 设置 Rust 工具链
         uses: dtolnay/rust-toolchain@stable
 
-      - name: 安装依赖
+      - name: 安装依赖 (mcp)
         run: npm ci
       
       - name: 下载前端构建产物
@@ -230,7 +237,7 @@ jobs:
         run: |
           echo "=== 📦 跨平台构建结果汇总 ==="
           echo "🖥️ 桌面端构建产物:"
-          find . -name "*.deb" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.dmg" 2>/dev/null | head -10 || echo "  需要对应平台环境构建"
+          find src-tauri/target -name "*.deb" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.dmg" 2>/dev/null | head -10 || echo "  需要对应平台环境构建"
           
           echo "🌐 前端构建产物:"
           ls -la dist/ 2>/dev/null && echo "  ✅ 前端资源就绪" || echo "  ❌ 前端资源缺失"
@@ -241,8 +248,8 @@ jobs:
         with:
           name: cross-platform-build-${{ github.run_number }}
           path: |
-            src-tauri/target/release/bundle/**/*
-            dist/
+            mcp/src-tauri/target/release/bundle/**/*
+            mcp/dist/
           retention-days: 7
         continue-on-error: true
 
@@ -252,6 +259,9 @@ jobs:
     needs: [frontend]
     runs-on: ubuntu-22.04
     if: github.event.inputs.build_android == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    defaults:
+      run:
+        working-directory: mcp
     
     steps:
       - name: 检出代码
@@ -269,8 +279,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       
-      - name: 设置 Rust 工具链
-        uses: dtolnay/rust-toolchain@stable
+      - name: 设置 Rust 工具链 (nightly)
+        uses: dtolnay/rust-toolchain@nightly
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
       
@@ -281,7 +291,7 @@ jobs:
           build-tools: 34.0.0
           ndk-version: 26.1.10909125
       
-      - name: 安装依赖
+      - name: 安装依赖 (mcp)
         run: npm ci
       
       - name: 下载前端构建产物
@@ -321,9 +331,9 @@ jobs:
         with:
           name: android-build-${{ github.run_number }}
           path: |
-            src-tauri/gen/android/app/build/outputs/**/*.apk
-            src-tauri/gen/android/app/build/outputs/**/*.aab
-            src-tauri/gen/android/
+            mcp/src-tauri/gen/android/app/build/outputs/**/*.apk
+            mcp/src-tauri/gen/android/app/build/outputs/**/*.aab
+            mcp/src-tauri/gen/android/
           retention-days: 7
         continue-on-error: true
 

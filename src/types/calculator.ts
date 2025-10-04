@@ -1,30 +1,25 @@
-/**
+/* *
  * 科学计算器类型定义
- * 定义应用中使用的所有数据结构和接口
- */
+ * 定义应用中使用的所有数据结构和接口 */
 
 // ==================== 基础类型 ====================
 
-/**
- * 设备类型枚举
- */
+/* *
+ * 设备类型枚举 */
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
-/**
- * 主题模式枚举
- */
+/* *
+ * 主题模式枚举 */
 export type ThemeMode = 'light' | 'dark' | 'high-contrast' | 'auto'
 
-/**
- * 操作类型枚举
- */
+/* *
+ * 操作类型枚举 */
 export type Operation = 'number' | 'operator' | 'function' | 'constant' | 'action' | 'bracket'
 
 // ==================== 计算器状态类型 ====================
 
-/**
- * 计算器主状态
- */
+/* *
+ * 计算器主状态 */
 export interface CalculatorState {
   expression: string
   result: string
@@ -36,9 +31,8 @@ export interface CalculatorState {
   history: HistoryItem[]
 }
 
-/**
- * 计算器设置
- */
+/* *
+ * 计算器设置 */
 export interface CalculatorSettings {
   theme: ThemeMode
   precision: number
@@ -53,9 +47,8 @@ export interface CalculatorSettings {
 
 // ==================== UI 组件类型 ====================
 
-/**
- * 按钮配置
- */
+/* *
+ * 按钮配置 */
 export interface ButtonConfig {
   id: string
   text: string
@@ -72,9 +65,8 @@ export interface ButtonConfig {
   tooltip?: string
 }
 
-/**
- * 显示器配置
- */
+/* *
+ * 显示器配置 */
 export interface DisplayConfig {
   precision: number
   theme: Theme
@@ -84,9 +76,8 @@ export interface DisplayConfig {
   animationDuration?: number
 }
 
-/**
- * 键盘配置
- */
+/* *
+ * 键盘配置 */
 export interface KeyboardConfig {
   theme: Theme
   enableHaptic: boolean
@@ -99,9 +90,8 @@ export interface KeyboardConfig {
   config?: CalculatorConfig
 }
 
-/**
- * 历史记录配置
- */
+/* *
+ * 历史记录配置 */
 export interface HistoryConfig {
   maxItems: number
   showTimestamp?: boolean
@@ -112,9 +102,8 @@ export interface HistoryConfig {
 
 // ==================== 应用状态 ====================
 
-/**
- * 应用主状态
- */
+/* *
+ * 应用主状态 */
 export interface AppState {
   currentExpression: string
   result: string
@@ -130,9 +119,8 @@ export interface AppState {
 
 // ==================== 历史记录 ====================
 
-/**
- * 历史记录项
- */
+/* *
+ * 历史记录项 */
 export interface HistoryItem {
   id: string
   expression: string
@@ -144,9 +132,8 @@ export interface HistoryItem {
   source?: string
 }
 
-/**
- * 历史记录统计信息
- */
+/* *
+ * 历史记录统计信息 */
 export interface HistoryStats {
   totalCalculations: number
   averageExpressionLength: number
@@ -158,9 +145,8 @@ export interface HistoryStats {
 
 // ==================== 主题系统 ====================
 
-/**
- * 颜色配置
- */
+/* *
+ * 颜色配置 */
 export interface ColorPalette {
   primary: string
   secondary: string
@@ -174,9 +160,8 @@ export interface ColorPalette {
   success?: string
 }
 
-/**
- * 主题配置
- */
+/* *
+ * 主题配置 */
 export interface Theme {
   name: string
   mode: ThemeMode
@@ -185,9 +170,8 @@ export interface Theme {
   cssVariables: { [key: string]: string }
 }
 
-/**
- * 主题配置接口
- */
+/* *
+ * 主题配置接口 */
 export interface ThemeConfig extends Theme {
   author?: string
   description?: string
@@ -195,16 +179,14 @@ export interface ThemeConfig extends Theme {
   favorite?: boolean
 }
 
-/**
- * 操作类型枚举 (deprecated, use Operation)
- */
+/* *
+ * 操作类型枚举 (deprecated, use Operation) */
 export type OperationType = Operation
 
 // ==================== 设置系统 ====================
 
-/**
- * 显示设置
- */
+/* *
+ * 显示设置 */
 export interface DisplaySettings {
   decimalPlaces: number
   scientificNotation: boolean
@@ -213,9 +195,8 @@ export interface DisplaySettings {
   fontSize: number
 }
 
-/**
- * 布局设置
- */
+/* *
+ * 布局设置 */
 export interface LayoutSettings {
   buttonSize: 'small' | 'medium' | 'large'
   keyboardLayout: 'standard' | 'scientific' | 'programmer'
@@ -224,9 +205,8 @@ export interface LayoutSettings {
   showMemory: boolean
 }
 
-/**
- * 通用设置
- */
+/* *
+ * 通用设置 */
 export interface GeneralSettings {
   enableHaptic: boolean
   enableHapticFeedback?: boolean
@@ -236,9 +216,8 @@ export interface GeneralSettings {
   enableAnimations: boolean
 }
 
-/**
- * 完整应用设置
- */
+/* *
+ * 完整应用设置 */
 export interface AppSettings {
   theme: Theme
   display: DisplaySettings
@@ -247,9 +226,8 @@ export interface AppSettings {
   advanced?: AdvancedSettings
 }
 
-/**
- * 高级设置
- */
+/* *
+ * 高级设置 */
 export interface AdvancedSettings {
   keyboard: KeyboardAdvancedSettings
   history: HistoryAdvancedSettings
@@ -257,9 +235,8 @@ export interface AdvancedSettings {
   accessibility: AccessibilitySettings
 }
 
-/**
- * 键盘高级设置
- */
+/* *
+ * 键盘高级设置 */
 export interface KeyboardAdvancedSettings {
   customShortcuts: Record<string, string>
   hapticIntensity: 'low' | 'medium' | 'high' | 'off'
@@ -268,9 +245,8 @@ export interface KeyboardAdvancedSettings {
   autoRepeatRate: number // characters per second
 }
 
-/**
- * 历史记录高级设置
- */
+/* *
+ * 历史记录高级设置 */
 export interface HistoryAdvancedSettings {
   autoCleanup: boolean
   cleanupStrategy: 'age' | 'count' | 'size'
@@ -281,9 +257,8 @@ export interface HistoryAdvancedSettings {
   maxTagLength: number
 }
 
-/**
- * 性能设置
- */
+/* *
+ * 性能设置 */
 export interface PerformanceSettings {
   animationQuality: 'low' | 'medium' | 'high' | 'auto'
   maxCalculationTime: number // milliseconds
@@ -292,9 +267,8 @@ export interface PerformanceSettings {
   enableBackgroundSync: boolean
 }
 
-/**
- * 无障碍设置
- */
+/* *
+ * 无障碍设置 */
 export interface AccessibilitySettings {
   highContrast: boolean
   reduceMotion: boolean
@@ -306,9 +280,8 @@ export interface AccessibilitySettings {
 
 // ==================== 计算器配置 ====================
 
-/**
- * 计算器配置
- */
+/* *
+ * 计算器配置 */
 export interface CalculatorConfig {
   precision: number
   theme: string
@@ -324,9 +297,8 @@ export interface CalculatorConfig {
 
 // ==================== 扩展类型 ====================
 
-/**
- * 扩展全局 ImportMeta 接口
- */
+/* *
+ * 扩展全局 ImportMeta 接口 */
 declare global {
   interface ImportMeta {
     readonly env: ImportMetaEnv

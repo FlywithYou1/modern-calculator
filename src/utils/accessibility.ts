@@ -1,7 +1,6 @@
-/**
+/* *
  * 无障碍辅助工具
- * 提供屏幕阅读器支持、键盘导航、高对比度模式等功能
- */
+ * 提供屏幕阅读器支持、键盘导航、高对比度模式等功能 */
 
 export interface AccessibilityConfig {
   screenReaderSupport: boolean
@@ -32,9 +31,8 @@ export class AccessibilityManager {
     this.applyAccessibilitySettings()
   }
 
-  /**
-   * 加载配置
-   */
+  /* *
+   * 加载配置 */
   private loadConfig(): void {
     try {
       const stored = localStorage.getItem('calculator-accessibility')
@@ -46,9 +44,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 保存配置
-   */
+  /* *
+   * 保存配置 */
   private saveConfig(): void {
     try {
       localStorage.setItem('calculator-accessibility', JSON.stringify(this.config))
@@ -57,9 +54,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 设置键盘导航
-   */
+  /* *
+   * 设置键盘导航 */
   private setupKeyboardNavigation(): void {
     if (!this.config.keyboardNavigation) return
 
@@ -87,9 +83,8 @@ export class AccessibilityManager {
     })
   }
 
-  /**
-   * 处理Tab导航
-   */
+  /* *
+   * 处理Tab导航 */
   private handleTabNavigation(event: KeyboardEvent): void {
     if (!this.config.keyboardNavigation) return
 
@@ -128,9 +123,8 @@ export class AccessibilityManager {
     }, 100)
   }
 
-  /**
-   * 处理方向键导航
-   */
+  /* *
+   * 处理方向键导航 */
   private handleArrowNavigation(event: KeyboardEvent): void {
     if (!this.config.keyboardNavigation) return
 
@@ -143,9 +137,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 计算器键盘导航
-   */
+  /* *
+   * 计算器键盘导航 */
   private navigateCalculatorKeyboard(event: KeyboardEvent, focusedElement: HTMLElement): void {
     const keyboard = focusedElement.closest('.calculator-keyboard')
     if (!keyboard) return
@@ -179,9 +172,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 处理操作键
-   */
+  /* *
+   * 处理操作键 */
   private handleAction(event: KeyboardEvent): void {
     const focusedElement = document.activeElement as HTMLElement
     
@@ -192,9 +184,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 处理ESC键
-   */
+  /* *
+   * 处理ESC键 */
   private handleEscape(event: KeyboardEvent): void {
     // 关闭所有打开的模态框和面板
     const modals = document.querySelectorAll<HTMLElement>('[role="dialog"], .modal, .panel')
@@ -211,9 +202,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 应用无障碍设置
-   */
+  /* *
+   * 应用无障碍设置 */
   private applyAccessibilitySettings(): void {
     const root = document.documentElement
 
@@ -246,102 +236,88 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 更新配置
-   */
+  /* *
+   * 更新配置 */
   updateConfig(newConfig: Partial<AccessibilityConfig>): void {
     this.config = { ...this.config, ...newConfig }
     this.applyAccessibilitySettings()
     this.saveConfig()
   }
 
-  /**
-   * 获取当前配置
-   */
+  /* *
+   * 获取当前配置 */
   getConfig(): AccessibilityConfig {
     return { ...this.config }
   }
 
-  /**
-   * 启用屏幕阅读器支持
-   */
+  /* *
+   * 启用屏幕阅读器支持 */
   enableScreenReaderSupport(): void {
     this.updateConfig({ screenReaderSupport: true })
   }
 
-  /**
-   * 禁用屏幕阅读器支持
-   */
+  /* *
+   * 禁用屏幕阅读器支持 */
   disableScreenReaderSupport(): void {
     this.updateConfig({ screenReaderSupport: false })
   }
 
-  /**
-   * 启用键盘导航
-   */
+  /* *
+   * 启用键盘导航 */
   enableKeyboardNavigation(): void {
     this.updateConfig({ keyboardNavigation: true })
   }
 
-  /**
-   * 禁用键盘导航
-   */
+  /* *
+   * 禁用键盘导航 */
   disableKeyboardNavigation(): void {
     this.updateConfig({ keyboardNavigation: false })
   }
 
-  /**
-   * 启用高对比度模式
-   */
+  /* *
+   * 启用高对比度模式 */
   enableHighContrast(): void {
     this.updateConfig({ highContrast: true })
   }
 
-  /**
-   * 禁用高对比度模式
-   */
+  /* *
+   * 禁用高对比度模式 */
   disableHighContrast(): void {
     this.updateConfig({ highContrast: false })
   }
 
-  /**
-   * 启用减少动效模式
-   */
+  /* *
+   * 启用减少动效模式 */
   enableReduceMotion(): void {
     this.updateConfig({ reduceMotion: true })
   }
 
-  /**
-   * 禁用减少动效模式
-   */
+  /* *
+   * 禁用减少动效模式 */
   disableReduceMotion(): void {
     this.updateConfig({ reduceMotion: false })
   }
 
-  /**
-   * 启用大文本模式
-   */
+  /* *
+   * 启用大文本模式 */
   enableLargeText(): void {
     this.updateConfig({ largeText: true })
   }
 
-  /**
-   * 禁用大文本模式
-   */
+  /* *
+   * 禁用大文本模式 */
   disableLargeText(): void {
     this.updateConfig({ largeText: false })
   }
 
-  /**
-   * 设置色盲模式
-   */
+  /* *
+   * 设置色盲模式 */
   setColorBlindMode(mode: AccessibilityConfig['colorBlindMode']): void {
     this.updateConfig({ colorBlindMode: mode })
   }
 
-  /**
-   * 朗读文本（屏幕阅读器支持）
-   */
+  /* *
+   * 朗读文本（屏幕阅读器支持） */
   speak(text: string, priority: 'polite' | 'assertive' = 'polite'): void {
     if (!this.config.screenReaderSupport) return
 
@@ -361,9 +337,8 @@ export class AccessibilityManager {
     }, 1000)
   }
 
-  /**
-   * 聚焦到元素
-   */
+  /* *
+   * 聚焦到元素 */
   focusElement(element: HTMLElement): void {
     if (!this.config.keyboardNavigation) return
 
@@ -371,9 +346,8 @@ export class AccessibilityManager {
     element.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
 
-  /**
-   * 检查当前无障碍状态
-   */
+  /* *
+   * 检查当前无障碍状态 */
   getAccessibilityStatus(): {
     isAccessible: boolean
     issues: string[]
@@ -416,9 +390,8 @@ export class AccessibilityManager {
     }
   }
 
-  /**
-   * 检查颜色对比度
-   */
+  /* *
+   * 检查颜色对比度 */
   private checkColorContrast(): HTMLElement[] {
     const elements: HTMLElement[] = []
     const textElements = document.querySelectorAll<HTMLElement>('*')
@@ -440,9 +413,8 @@ export class AccessibilityManager {
     return elements
   }
 
-  /**
-   * 重置为默认设置
-   */
+  /* *
+   * 重置为默认设置 */
   resetToDefaults(): void {
     this.config = {
       screenReaderSupport: true,
@@ -456,9 +428,8 @@ export class AccessibilityManager {
     this.saveConfig()
   }
 
-  /**
-   * 销毁管理器
-   */
+  /* *
+   * 销毁管理器 */
   destroy(): void {
     // 清理事件监听器
     document.removeEventListener('keydown', this.handleTabNavigation)
@@ -470,12 +441,11 @@ export const accessibilityManager = new AccessibilityManager()
 
 // 开发环境下在控制台提供访问
 if (import.meta.env.DEV) {
-  ;(window as any).accessibilityManager = accessibilityManager
+  ;(window as unknown as Record<string, unknown>).accessibilityManager = accessibilityManager
 }
 
-/**
- * 屏幕阅读器专用CSS类
- */
+/* *
+ * 屏幕阅读器专用CSS类 */
 const screenReaderStyles = `
 .sr-only {
   position: absolute;

@@ -1,7 +1,6 @@
-/**
+/* *
  * 测试环境设置文件
- * 配置全局测试环境和模拟
- */
+ * 配置全局测试环境和模拟 */
 
 import { vi, beforeEach } from 'vitest'
 
@@ -48,6 +47,12 @@ Object.defineProperty(window, 'matchMedia', {
 Object.defineProperty(navigator, 'vibrate', {
   writable: true,
   value: vi.fn(),
+})
+
+// 模拟 window.confirm，覆盖 JSDOM 默认未实现行为
+Object.defineProperty(window, 'confirm', {
+  writable: true,
+  value: vi.fn().mockReturnValue(true),
 })
 
 // 模拟 localStorage

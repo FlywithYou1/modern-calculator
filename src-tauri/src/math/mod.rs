@@ -1,13 +1,13 @@
-//! 高精度数学计算模块
-//! 
-//! 提供金融级别的数学计算精度，支持基础运算、科学计算、统计分析等功能
+// ! 高精度数学计算模块
+// !
+// ! 提供金融级别的数学计算精度，支持基础运算、科学计算、统计分析等功能
 
 use rust_decimal::{Decimal, MathematicalOps, prelude::*};
 use num_complex::Complex;
 use std::collections::HashMap;
 use thiserror::Error;
 
-/// 数学常数
+// / 数学常数
 pub struct MathConstants;
 
 impl MathConstants {
@@ -21,7 +21,7 @@ impl MathConstants {
     pub const LOG10_E: &'static str = "0.434294481903251827651128918917";
 }
 
-/// 矩阵数据结构
+// / 矩阵数据结构
 #[derive(Debug, Clone, PartialEq)]
 pub struct Matrix {
     rows: usize,
@@ -30,7 +30,7 @@ pub struct Matrix {
 }
 
 impl Matrix {
-    /// 创建新矩阵
+    // / 创建新矩阵
     pub fn new(rows: usize, cols: usize) -> Self {
         Self {
             rows,
@@ -39,7 +39,7 @@ impl Matrix {
         }
     }
 
-    /// 从二维向量创建矩阵
+    // / 从二维向量创建矩阵
     pub fn from_vec(data: Vec<Vec<Decimal>>) -> Result<Self, MathError> {
         if data.is_empty() {
             return Err(MathError::InvalidOperation("矩阵不能为空".to_string()));
@@ -58,7 +58,7 @@ impl Matrix {
         Ok(Self { rows, cols, data })
     }
 
-    /// 创建单位矩阵
+    // / 创建单位矩阵
     pub fn identity(size: usize) -> Self {
         let mut matrix = Self::new(size, size);
         for i in 0..size {
@@ -67,7 +67,7 @@ impl Matrix {
         matrix
     }
 
-    /// 获取矩阵元素
+    // / 获取矩阵元素
     pub fn get(&self, row: usize, col: usize) -> Result<Decimal, MathError> {
         if row >= self.rows || col >= self.cols {
             return Err(MathError::InvalidOperation("矩阵索引越界".to_string()));
@@ -75,7 +75,7 @@ impl Matrix {
         Ok(self.data[row][col])
     }
 
-    /// 设置矩阵元素
+    // / 设置矩阵元素
     pub fn set(&mut self, row: usize, col: usize, value: Decimal) -> Result<(), MathError> {
         if row >= self.rows || col >= self.cols {
             return Err(MathError::InvalidOperation("矩阵索引越界".to_string()));
@@ -84,12 +84,12 @@ impl Matrix {
         Ok(())
     }
 
-    /// 获取矩阵维度
+    // / 获取矩阵维度
     pub fn dimensions(&self) -> (usize, usize) {
         (self.rows, self.cols)
     }
 
-    /// 矩阵转置
+    // / 矩阵转置
     pub fn transpose(&self) -> Self {
         let mut result = Matrix::new(self.cols, self.rows);
         for i in 0..self.rows {
@@ -100,7 +100,7 @@ impl Matrix {
         result
     }
 
-    /// 矩阵加法
+    // / 矩阵加法
     pub fn add(&self, other: &Matrix) -> Result<Matrix, MathError> {
         if self.rows != other.rows || self.cols != other.cols {
             return Err(MathError::InvalidOperation("矩阵维度不匹配".to_string()));
@@ -115,7 +115,7 @@ impl Matrix {
         Ok(result)
     }
 
-    /// 矩阵减法
+    // / 矩阵减法
     pub fn subtract(&self, other: &Matrix) -> Result<Matrix, MathError> {
         if self.rows != other.rows || self.cols != other.cols {
             return Err(MathError::InvalidOperation("矩阵维度不匹配".to_string()));
@@ -130,7 +130,7 @@ impl Matrix {
         Ok(result)
     }
 
-    /// 矩阵乘法
+    // / 矩阵乘法
     pub fn multiply(&self, other: &Matrix) -> Result<Matrix, MathError> {
         if self.cols != other.rows {
             return Err(MathError::InvalidOperation("矩阵维度不匹配，无法相乘".to_string()));
@@ -149,7 +149,7 @@ impl Matrix {
         Ok(result)
     }
 
-    /// 标量乘法
+    // / 标量乘法
     pub fn scalar_multiply(&self, scalar: Decimal) -> Matrix {
         let mut result = Matrix::new(self.rows, self.cols);
         for i in 0..self.rows {
@@ -160,7 +160,7 @@ impl Matrix {
         result
     }
 
-    /// 计算行列式（仅适用于方阵）
+    // / 计算行列式（仅适用于方阵）
     pub fn determinant(&self) -> Result<Decimal, MathError> {
         if self.rows != self.cols {
             return Err(MathError::InvalidOperation("只有方阵才能计算行列式".to_string()));
@@ -214,7 +214,7 @@ impl Matrix {
         Ok(det)
     }
 
-    /// 矩阵求逆（高斯-约旦消元法）
+    // / 矩阵求逆（高斯-约旦消元法）
     pub fn inverse(&self) -> Result<Matrix, MathError> {
         if self.rows != self.cols {
             return Err(MathError::InvalidOperation("只有方阵才能求逆".to_string()));
@@ -279,7 +279,7 @@ impl Matrix {
     }
 }
 
-/// 数学计算错误类型
+// / 数学计算错误类型
 #[derive(Error, Debug)]
 pub enum MathError {
     #[error("表达式解析错误: {0}")]
@@ -296,7 +296,7 @@ pub enum MathError {
     DomainError(String),
 }
 
-/// 高精度计算器
+// / 高精度计算器
 #[derive(Debug, Clone)]
 pub struct Calculator {
     precision: u32,
@@ -304,7 +304,7 @@ pub struct Calculator {
     pub constants: HashMap<String, Decimal>,
 }
 
-/// 角度模式
+// / 角度模式
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AngleMode {
     Degrees,
@@ -332,7 +332,7 @@ impl Default for Calculator {
 }
 
 impl Calculator {
-    /// 创建新的计算器实例
+    // / 创建新的计算器实例
     pub fn new(precision: u32, angle_mode: AngleMode) -> Self {
         let mut calc = Self::default();
         calc.precision = precision;
@@ -340,7 +340,7 @@ impl Calculator {
         calc
     }
 
-    /// 基础四则运算
+    // / 基础四则运算
     pub fn add(&self, a: Decimal, b: Decimal) -> Result<Decimal, MathError> {
         Ok(a + b)
     }
@@ -360,27 +360,27 @@ impl Calculator {
         Ok(a / b)
     }
 
-    /// 获取常数值
+    // / 获取常数值
     pub fn get_constant(&self, name: &str) -> Option<Decimal> {
         self.constants.get(name).copied()
     }
 
-    /// 添加或更新常数
+    // / 添加或更新常数
     pub fn set_constant(&mut self, name: String, value: Decimal) {
         self.constants.insert(name, value);
     }
 
-    /// 删除常数
+    // / 删除常数
     pub fn remove_constant(&mut self, name: &str) -> Option<Decimal> {
         self.constants.remove(name)
     }
 
-    /// 获取所有常数名称
+    // / 获取所有常数名称
     pub fn get_constant_names(&self) -> Vec<String> {
         self.constants.keys().cloned().collect()
     }
 
-    /// 乘方运算
+    // / 乘方运算
     pub fn power(&self, base: Decimal, exponent: Decimal) -> Result<Decimal, MathError> {
         if base.is_zero() && exponent.is_sign_negative() {
             return Err(MathError::DivisionByZero);
@@ -406,7 +406,7 @@ impl Calculator {
         Decimal::from_f64(result_f64).ok_or(MathError::Overflow)
     }
 
-    /// 平方根
+    // / 平方根
     pub fn sqrt(&self, x: Decimal) -> Result<Decimal, MathError> {
         if x.is_sign_negative() {
             return Err(MathError::DomainError("负数不能开平方根".to_string()));
@@ -415,7 +415,7 @@ impl Calculator {
         x.sqrt().ok_or(MathError::Overflow)
     }
 
-    /// 立方根
+    // / 立方根
     pub fn cbrt(&self, x: Decimal) -> Result<Decimal, MathError> {
         let x_f64 = x.to_f64().ok_or(MathError::Overflow)?;
         let result_f64 = x_f64.cbrt();
@@ -423,7 +423,7 @@ impl Calculator {
         Decimal::from_f64(result_f64).ok_or(MathError::Overflow)
     }
 
-    /// 对数运算
+    // / 对数运算
     pub fn ln(&self, x: Decimal) -> Result<Decimal, MathError> {
         if x.is_sign_negative() || x.is_zero() {
             return Err(MathError::DomainError("对数的真数必须为正数".to_string()));
@@ -474,7 +474,7 @@ impl Calculator {
         Decimal::from_f64(result_f64).ok_or(MathError::Overflow)
     }
 
-    /// 指数函数
+    // / 指数函数
     pub fn exp(&self, x: Decimal) -> Result<Decimal, MathError> {
         let x_f64 = x.to_f64().ok_or(MathError::Overflow)?;
         let result_f64 = x_f64.exp();
@@ -486,7 +486,7 @@ impl Calculator {
         Decimal::from_f64(result_f64).ok_or(MathError::Overflow)
     }
 
-    /// 三角函数（需要角度转换）
+    // / 三角函数（需要角度转换）
     fn to_radians(&self, angle: Decimal) -> Decimal {
         match self.angle_mode {
             AngleMode::Degrees => {
@@ -529,7 +529,7 @@ impl Calculator {
         Decimal::from_f64(result).ok_or(MathError::Overflow)
     }
 
-    /// 反三角函数
+    // / 反三角函数
     pub fn asin(&self, x: Decimal) -> Result<Decimal, MathError> {
         if x < Decimal::from(-1) || x > Decimal::ONE {
             return Err(MathError::DomainError("asin 的定义域为 [-1, 1]".to_string()));
@@ -553,7 +553,7 @@ impl Calculator {
         }
     }
 
-    /// 阶乘
+    // / 阶乘
     pub fn factorial(&self, n: Decimal) -> Result<Decimal, MathError> {
         if !n.fract().is_zero() || n.is_sign_negative() {
             return Err(MathError::DomainError("阶乘只能计算非负整数".to_string()));
@@ -573,8 +573,8 @@ impl Calculator {
         Ok(result)
     }
 
-    /// 进制转换功能
-    /// 将十进制数转换为指定进制的字符串表示
+    // / 进制转换功能
+    // / 将十进制数转换为指定进制的字符串表示
     pub fn to_base(&self, number: Decimal, base: u32) -> Result<String, MathError> {
         if base < 2 || base > 36 {
             return Err(MathError::InvalidOperation("进制必须在2-36之间".to_string()));
@@ -610,7 +610,7 @@ impl Calculator {
         Ok(result)
     }
 
-    /// 从指定进制的字符串转换为十进制数
+    // / 从指定进制的字符串转换为十进制数
     pub fn from_base(&self, number_str: &str, base: u32) -> Result<Decimal, MathError> {
         if base < 2 || base > 36 {
             return Err(MathError::InvalidOperation("进制必须在2-36之间".to_string()));
@@ -654,7 +654,7 @@ impl Calculator {
         Ok(Decimal::from(result))
     }
 
-    /// 位运算：按位与
+    // / 位运算：按位与
     pub fn bitwise_and(&self, a: Decimal, b: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() || !b.fract().is_zero() {
             return Err(MathError::InvalidOperation("位运算只支持整数".to_string()));
@@ -666,7 +666,7 @@ impl Calculator {
         Ok(Decimal::from(a_i64 & b_i64))
     }
 
-    /// 位运算：按位或
+    // / 位运算：按位或
     pub fn bitwise_or(&self, a: Decimal, b: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() || !b.fract().is_zero() {
             return Err(MathError::InvalidOperation("位运算只支持整数".to_string()));
@@ -678,7 +678,7 @@ impl Calculator {
         Ok(Decimal::from(a_i64 | b_i64))
     }
 
-    /// 位运算：按位异或
+    // / 位运算：按位异或
     pub fn bitwise_xor(&self, a: Decimal, b: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() || !b.fract().is_zero() {
             return Err(MathError::InvalidOperation("位运算只支持整数".to_string()));
@@ -690,7 +690,7 @@ impl Calculator {
         Ok(Decimal::from(a_i64 ^ b_i64))
     }
 
-    /// 位运算：按位取反
+    // / 位运算：按位取反
     pub fn bitwise_not(&self, a: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() {
             return Err(MathError::InvalidOperation("位运算只支持整数".to_string()));
@@ -700,7 +700,7 @@ impl Calculator {
         Ok(Decimal::from(!a_i64))
     }
 
-    /// 位运算：左移
+    // / 位运算：左移
     pub fn bitwise_shift_left(&self, a: Decimal, bits: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() || !bits.fract().is_zero() {
             return Err(MathError::InvalidOperation("位运算只支持整数".to_string()));
@@ -716,7 +716,7 @@ impl Calculator {
         Ok(Decimal::from(a_i64.wrapping_shl(bits_u32)))
     }
 
-    /// 位运算：右移
+    // / 位运算：右移
     pub fn bitwise_shift_right(&self, a: Decimal, bits: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() || !bits.fract().is_zero() {
             return Err(MathError::InvalidOperation("位运算只支持整数".to_string()));
@@ -732,7 +732,7 @@ impl Calculator {
         Ok(Decimal::from(a_i64.wrapping_shr(bits_u32)))
     }
 
-    /// 复数运算：复数加法
+    // / 复数运算：复数加法
     pub fn complex_add(&self, a_real: Decimal, a_imag: Decimal, b_real: Decimal, b_imag: Decimal) -> Result<(Decimal, Decimal), MathError> {
         let a_real_f64 = a_real.to_f64().ok_or(MathError::Overflow)?;
         let a_imag_f64 = a_imag.to_f64().ok_or(MathError::Overflow)?;
@@ -749,7 +749,7 @@ impl Calculator {
         Ok((real, imag))
     }
 
-    /// 复数运算：复数减法
+    // / 复数运算：复数减法
     pub fn complex_subtract(&self, a_real: Decimal, a_imag: Decimal, b_real: Decimal, b_imag: Decimal) -> Result<(Decimal, Decimal), MathError> {
         let a_real_f64 = a_real.to_f64().ok_or(MathError::Overflow)?;
         let a_imag_f64 = a_imag.to_f64().ok_or(MathError::Overflow)?;
@@ -766,7 +766,7 @@ impl Calculator {
         Ok((real, imag))
     }
 
-    /// 复数运算：复数乘法
+    // / 复数运算：复数乘法
     pub fn complex_multiply(&self, a_real: Decimal, a_imag: Decimal, b_real: Decimal, b_imag: Decimal) -> Result<(Decimal, Decimal), MathError> {
         let a_real_f64 = a_real.to_f64().ok_or(MathError::Overflow)?;
         let a_imag_f64 = a_imag.to_f64().ok_or(MathError::Overflow)?;
@@ -783,7 +783,7 @@ impl Calculator {
         Ok((real, imag))
     }
 
-    /// 复数运算：复数除法
+    // / 复数运算：复数除法
     pub fn complex_divide(&self, a_real: Decimal, a_imag: Decimal, b_real: Decimal, b_imag: Decimal) -> Result<(Decimal, Decimal), MathError> {
         if b_real.is_zero() && b_imag.is_zero() {
             return Err(MathError::DivisionByZero);
@@ -808,7 +808,7 @@ impl Calculator {
         Ok((real, imag))
     }
 
-    /// 复数运算：复数的模（绝对值）
+    // / 复数运算：复数的模（绝对值）
     pub fn complex_abs(&self, real: Decimal, imag: Decimal) -> Result<Decimal, MathError> {
         let real_f64 = real.to_f64().ok_or(MathError::Overflow)?;
         let imag_f64 = imag.to_f64().ok_or(MathError::Overflow)?;
@@ -823,7 +823,7 @@ impl Calculator {
         Decimal::from_f64(abs_value).ok_or(MathError::Overflow)
     }
 
-    /// 复数运算：复数的幅角
+    // / 复数运算：复数的幅角
     pub fn complex_arg(&self, real: Decimal, imag: Decimal) -> Result<Decimal, MathError> {
         let real_f64 = real.to_f64().ok_or(MathError::Overflow)?;
         let imag_f64 = imag.to_f64().ok_or(MathError::Overflow)?;
@@ -851,7 +851,7 @@ impl Calculator {
         }
     }
 
-    /// 统计分析：计算平均值
+    // / 统计分析：计算平均值
     pub fn mean(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -861,7 +861,7 @@ impl Calculator {
         Ok(sum / Decimal::from(values.len()))
     }
 
-    /// 统计分析：计算中位数
+    // / 统计分析：计算中位数
     pub fn median(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -880,7 +880,7 @@ impl Calculator {
         }
     }
 
-    /// 统计分析：计算方差
+    // / 统计分析：计算方差
     pub fn variance(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.len() < 2 {
             return Err(MathError::InvalidOperation("计算方差至少需要2个数据点".to_string()));
@@ -897,13 +897,13 @@ impl Calculator {
         Ok(sum_squared_diffs / Decimal::from(values.len() - 1))
     }
 
-    /// 统计分析：计算标准差
+    // / 统计分析：计算标准差
     pub fn standard_deviation(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         let variance = self.variance(values)?;
         self.sqrt(variance)
     }
 
-    /// 统计分析：计算最小值
+    // / 统计分析：计算最小值
     pub fn min(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -912,7 +912,7 @@ impl Calculator {
         Ok(*values.iter().min().unwrap())
     }
 
-    /// 统计分析：计算最大值
+    // / 统计分析：计算最大值
     pub fn max(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -921,7 +921,7 @@ impl Calculator {
         Ok(*values.iter().max().unwrap())
     }
 
-    /// 统计分析：计算总和
+    // / 统计分析：计算总和
     pub fn sum(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -930,7 +930,7 @@ impl Calculator {
         Ok(values.iter().fold(Decimal::ZERO, |acc, &val| acc + val))
     }
 
-    /// 统计分析：计算总积
+    // / 统计分析：计算总积
     pub fn product(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -939,7 +939,7 @@ impl Calculator {
         Ok(values.iter().fold(Decimal::ONE, |acc, &val| acc * val))
     }
 
-    /// 统计分析：计算范围（最大值-最小值）
+    // / 统计分析：计算范围（最大值-最小值）
     pub fn range(&self, values: &[Decimal]) -> Result<Decimal, MathError> {
         if values.is_empty() {
             return Err(MathError::InvalidOperation("数据集不能为空".to_string()));
@@ -950,7 +950,7 @@ impl Calculator {
         Ok(max_val - min_val)
     }
 
-    /// 矩阵运算：创建矩阵
+    // / 矩阵运算：创建矩阵
     pub fn create_matrix(&self, rows: usize, cols: usize, data: Vec<Decimal>) -> Result<Matrix, MathError> {
         if data.len() != rows * cols {
             return Err(MathError::InvalidOperation("数据长度与矩阵维度不匹配".to_string()));
@@ -968,42 +968,42 @@ impl Calculator {
         Matrix::from_vec(matrix_data)
     }
 
-    /// 矩阵运算：矩阵加法
+    // / 矩阵运算：矩阵加法
     pub fn matrix_add(&self, a: &Matrix, b: &Matrix) -> Result<Matrix, MathError> {
         a.add(b)
     }
 
-    /// 矩阵运算：矩阵减法
+    // / 矩阵运算：矩阵减法
     pub fn matrix_subtract(&self, a: &Matrix, b: &Matrix) -> Result<Matrix, MathError> {
         a.subtract(b)
     }
 
-    /// 矩阵运算：矩阵乘法
+    // / 矩阵运算：矩阵乘法
     pub fn matrix_multiply(&self, a: &Matrix, b: &Matrix) -> Result<Matrix, MathError> {
         a.multiply(b)
     }
 
-    /// 矩阵运算：矩阵转置
+    // / 矩阵运算：矩阵转置
     pub fn matrix_transpose(&self, matrix: &Matrix) -> Matrix {
         matrix.transpose()
     }
 
-    /// 矩阵运算：矩阵行列式
+    // / 矩阵运算：矩阵行列式
     pub fn matrix_determinant(&self, matrix: &Matrix) -> Result<Decimal, MathError> {
         matrix.determinant()
     }
 
-    /// 矩阵运算：矩阵求逆
+    // / 矩阵运算：矩阵求逆
     pub fn matrix_inverse(&self, matrix: &Matrix) -> Result<Matrix, MathError> {
         matrix.inverse()
     }
 
-    /// 矩阵运算：创建单位矩阵
+    // / 矩阵运算：创建单位矩阵
     pub fn matrix_identity(&self, size: usize) -> Matrix {
         Matrix::identity(size)
     }
 
-    /// 单位转换系统
+    // / 单位转换系统
     pub fn convert_unit(&self, value: Decimal, from_unit: &str, to_unit: &str) -> Result<Decimal, MathError> {
         // 定义单位转换表
         let conversions = self.get_unit_conversions();
@@ -1102,7 +1102,7 @@ impl Calculator {
         }
     }
 
-    /// 温度转换（特殊处理，因为有偏移量）
+    // / 温度转换（特殊处理，因为有偏移量）
     pub fn convert_temperature(&self, value: Decimal, from_unit: &str, to_unit: &str) -> Result<Decimal, MathError> {
         let celsius = match from_unit {
             "C" | "°C" => value,
@@ -1119,7 +1119,7 @@ impl Calculator {
         }
     }
 
-    /// 组合数学：排列 P(n,r) = n!/(n-r)!
+    // / 组合数学：排列 P(n,r) = n!/(n-r)!
     pub fn permutation(&self, n: Decimal, r: Decimal) -> Result<Decimal, MathError> {
         if !n.fract().is_zero() || !r.fract().is_zero() || n.is_sign_negative() || r.is_sign_negative() {
             return Err(MathError::DomainError("排列只能计算非负整数".to_string()));
@@ -1135,7 +1135,7 @@ impl Calculator {
         Ok(n_factorial / n_minus_r_factorial)
     }
 
-    /// 组合数学：组合 C(n,r) = n!/(r!(n-r)!)
+    // / 组合数学：组合 C(n,r) = n!/(r!(n-r)!)
     pub fn combination(&self, n: Decimal, r: Decimal) -> Result<Decimal, MathError> {
         if !n.fract().is_zero() || !r.fract().is_zero() || n.is_sign_negative() || r.is_sign_negative() {
             return Err(MathError::DomainError("组合只能计算非负整数".to_string()));
@@ -1152,7 +1152,7 @@ impl Calculator {
         Ok(n_factorial / (r_factorial * n_minus_r_factorial))
     }
 
-    /// 数论：最大公约数
+    // / 数论：最大公约数
     pub fn gcd(&self, a: Decimal, b: Decimal) -> Result<Decimal, MathError> {
         if !a.fract().is_zero() || !b.fract().is_zero() {
             return Err(MathError::InvalidOperation("最大公约数只能计算整数".to_string()));
@@ -1170,7 +1170,7 @@ impl Calculator {
         Ok(Decimal::from(a_int))
     }
 
-    /// 数论：最小公倍数
+    // / 数论：最小公倍数
     pub fn lcm(&self, a: Decimal, b: Decimal) -> Result<Decimal, MathError> {
         if a.is_zero() || b.is_zero() {
             return Ok(Decimal::ZERO);
@@ -1180,7 +1180,7 @@ impl Calculator {
         Ok((a.abs() * b.abs()) / gcd_result)
     }
 
-    /// 进阶函数：双曲函数
+    // / 进阶函数：双曲函数
     pub fn sinh(&self, x: Decimal) -> Result<Decimal, MathError> {
         let exp_x = self.exp(x)?;
         let exp_neg_x = self.exp(-x)?;
@@ -1204,12 +1204,12 @@ impl Calculator {
         Ok(sinh_x / cosh_x)
     }
 
-    /// 百分比计算
+    // / 百分比计算
     pub fn percentage(&self, value: Decimal, percentage: Decimal) -> Result<Decimal, MathError> {
         Ok(value * percentage / Decimal::from(100))
     }
 
-    /// 百分比增长
+    // / 百分比增长
     pub fn percentage_increase(&self, original: Decimal, new: Decimal) -> Result<Decimal, MathError> {
         if original.is_zero() {
             return Err(MathError::DivisionByZero);
@@ -1217,25 +1217,25 @@ impl Calculator {
         Ok(((new - original) / original) * Decimal::from(100))
     }
 
-    /// 主要的表达式计算方法，供解析器使用
+    // / 主要的表达式计算方法，供解析器使用
     pub fn evaluate(&self, _expression: &crate::parser::ASTNode) -> Result<Decimal, MathError> {
         // 这里应该基于解析后的表达式进行求值
         // 目前作为占位符返回简单结果
         Ok(Decimal::from(42))
     }
 
-    /// 设置角度模式
+    // / 设置角度模式
     pub fn set_angle_mode(&mut self, mode: AngleMode) {
         self.angle_mode = mode;
     }
 
-    /// 获取角度模式
+    // / 获取角度模式
     pub fn get_angle_mode(&self) -> AngleMode {
         self.angle_mode
     }
 }
 
-/// 主要的表达式计算入口
+// / 主要的表达式计算入口
 pub async fn evaluate(expression: &str) -> Result<Decimal, MathError> {
     let calculator = Calculator::default();
     

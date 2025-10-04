@@ -1,6 +1,5 @@
-/**
- * 主题管理器测试
- */
+/* *
+ * 主题管理器测试 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ThemeManager } from '../utils/theme'

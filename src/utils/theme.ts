@@ -1,7 +1,6 @@
-/**
+/* *
  * 主题管理器
- * 负责管理应用的主题系统，支持浅色/深色模式和自定义主题
- */
+ * 负责管理应用的主题系统，支持浅色/深色模式和自定义主题 */
 
 import type { Theme, ThemeMode, ColorPalette } from '../types/calculator'
 
@@ -77,9 +76,8 @@ export class ThemeManager {
     this.currentTheme = this.getStoredTheme() || this.getSystemTheme()
   }
 
-  /**
-   * 初始化主题管理器
-   */
+  /* *
+   * 初始化主题管理器 */
   async init(): Promise<void> {
     try {
       // 加载保存的主题设置
@@ -103,16 +101,14 @@ export class ThemeManager {
     }
   }
 
-  /**
-   * 获取当前主题
-   */
+  /* *
+   * 获取当前主题 */
   getCurrentTheme(): Theme {
     return { ...this.currentTheme }
   }
 
-  /**
-   * 设置主题模式
-   */
+  /* *
+   * 设置主题模式 */
   async setThemeMode(mode: ThemeMode | 'high-contrast'): Promise<void> {
     let newTheme: Theme
 
@@ -143,9 +139,8 @@ export class ThemeManager {
     this.notifyThemeChange(newTheme)
   }
 
-  /**
-   * 自定义主题
-   */
+  /* *
+   * 自定义主题 */
   setCustomTheme(theme: Partial<Theme>): void {
     const mergedTheme: Theme = {
       ...this.currentTheme,
@@ -163,18 +158,16 @@ export class ThemeManager {
     this.notifyThemeChange(mergedTheme)
   }
 
-  /**
-   * 切换主题模式
-   */
+  /* *
+   * 切换主题模式 */
   async toggleTheme(): Promise<void> {
     const currentMode = this.currentTheme.mode
     const newMode = currentMode === 'light' ? 'dark' : 'light'
     await this.setThemeMode(newMode)
   }
 
-  /**
-   * 监听主题变化
-   */
+  /* *
+   * 监听主题变化 */
   onThemeChange(callback: (theme: Theme) => void): () => void {
     this.themeChangeListeners.push(callback)
 
@@ -187,9 +180,8 @@ export class ThemeManager {
     }
   }
 
-  /**
-   * 应用主题到页面
-   */
+  /* *
+   * 应用主题到页面 */
   private applyTheme(theme: Theme): void {
     const root = document.documentElement
 
@@ -216,9 +208,8 @@ export class ThemeManager {
     this.updateMetaThemeColor(theme)
   }
 
-  /**
-   * 更新浏览器主题颜色
-   */
+  /* *
+   * 更新浏览器主题颜色 */
   private updateMetaThemeColor(theme: Theme): void {
     let metaThemeColor = document.querySelector('meta[name="theme-color"]')
 
@@ -232,17 +223,15 @@ export class ThemeManager {
     metaThemeColor.setAttribute('content', themeColor)
   }
 
-  /**
-   * 获取系统主题
-   */
+  /* *
+   * 获取系统主题 */
   private getSystemTheme(): Theme {
     const prefersDark = this.mediaQueryList.matches
     return prefersDark ? this.darkTheme : this.lightTheme
   }
 
-  /**
-   * 处理系统主题变化
-   */
+  /* *
+   * 处理系统主题变化 */
   private handleSystemThemeChange(): void {
     // 只有在自动模式下才响应系统主题变化
     this.loadThemeMode().then(mode => {
@@ -255,9 +244,8 @@ export class ThemeManager {
     })
   }
 
-  /**
-   * 通知主题变化
-   */
+  /* *
+   * 通知主题变化 */
   private notifyThemeChange(theme: Theme): void {
     this.themeChangeListeners.forEach(callback => {
       try {
@@ -268,9 +256,8 @@ export class ThemeManager {
     })
   }
 
-  /**
-   * 从本地存储获取主题
-   */
+  /* *
+   * 从本地存储获取主题 */
   private getStoredTheme(): Theme | null {
     try {
       const stored = localStorage.getItem('calculator-theme')
@@ -286,9 +273,8 @@ export class ThemeManager {
     return null
   }
 
-  /**
-   * 加载主题模式设置
-   */
+  /* *
+   * 加载主题模式设置 */
   private async loadThemeMode(): Promise<ThemeMode | null> {
     try {
       // 优先从 Tauri 存储读取
@@ -306,9 +292,8 @@ export class ThemeManager {
     }
   }
 
-  /**
-   * 保存主题模式设置
-   */
+  /* *
+   * 保存主题模式设置 */
   private async saveThemeMode(mode: ThemeMode): Promise<void> {
     try {
       // 优先保存到 Tauri 存储
@@ -332,9 +317,8 @@ export class ThemeManager {
     }
   }
 
-  /**
-   * 生成自定义主题的 CSS 变量
-   */
+  /* *
+   * 生成自定义主题的 CSS 变量 */
   generateCSSVariables(theme: Theme): string {
     return `
       :root {
@@ -352,16 +336,14 @@ export class ThemeManager {
     `
   }
 
-  /**
-   * 导出当前主题配置
-   */
+  /* *
+   * 导出当前主题配置 */
   exportTheme(): string {
     return JSON.stringify(this.currentTheme, null, 2)
   }
 
-  /**
-   * 导入主题配置
-   */
+  /* *
+   * 导入主题配置 */
   importTheme(themeJson: string): boolean {
     try {
       const theme = JSON.parse(themeJson) as Theme
@@ -379,9 +361,8 @@ export class ThemeManager {
     }
   }
 
-  /**
-   * 验证主题格式
-   */
+  /* *
+   * 验证主题格式 */
   private validateTheme(theme: unknown): theme is Theme {
     if (!theme || typeof theme !== 'object') {
       return false
@@ -415,16 +396,14 @@ export class ThemeManager {
     })
   }
 
-  /**
-   * 重置为默认主题
-   */
+  /* *
+   * 重置为默认主题 */
   async resetToDefault(): Promise<void> {
     await this.setThemeMode('auto')
   }
 
-  /**
-   * 启用/禁用减少动效模式
-   */
+  /* *
+   * 启用/禁用减少动效模式 */
   setReduceMotion(enabled: boolean): void {
     const root = document.documentElement
     
@@ -452,9 +431,8 @@ export class ThemeManager {
     }
   }
 
-  /**
-   * 获取减少动效模式设置
-   */
+  /* *
+   * 获取减少动效模式设置 */
   getReduceMotion(): boolean {
     try {
       const stored = localStorage.getItem('calculator-reduce-motion')
@@ -469,9 +447,8 @@ export class ThemeManager {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }
 
-  /**
-   * 初始化减少动效模式
-   */
+  /* *
+   * 初始化减少动效模式 */
   initReduceMotion(): void {
     const reduceMotion = this.getReduceMotion()
     this.setReduceMotion(reduceMotion)

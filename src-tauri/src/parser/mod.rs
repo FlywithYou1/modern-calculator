@@ -1,12 +1,12 @@
-//! 表达式解析器模块
-//! 
-//! 负责解析数学表达式，支持运算符优先级、函数调用、常数识别等功能
+// ! 表达式解析器模块
+// !
+// ! 负责解析数学表达式，支持运算符优先级、函数调用、常数识别等功能
 
 use crate::math::{Calculator, MathError};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
-/// 词法标记类型
+// / 词法标记类型
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Number(Decimal),
@@ -18,7 +18,7 @@ pub enum Token {
     EOF,
 }
 
-/// 运算符类型
+// / 运算符类型
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Operator {
     Add,
@@ -32,7 +32,7 @@ pub enum Operator {
 }
 
 impl Operator {
-    /// 获取运算符优先级
+    // / 获取运算符优先级
     pub fn precedence(&self) -> u8 {
         match self {
             Operator::UnaryMinus | Operator::UnaryPlus => 7,
@@ -42,13 +42,13 @@ impl Operator {
         }
     }
 
-    /// 判断是否为右结合
+    // / 判断是否为右结合
     pub fn is_right_associative(&self) -> bool {
         matches!(self, Operator::Power | Operator::UnaryMinus | Operator::UnaryPlus)
     }
 }
 
-/// 抽象语法树节点
+// / 抽象语法树节点
 #[derive(Debug, Clone)]
 pub enum ASTNode {
     Number(Decimal),
@@ -68,7 +68,7 @@ pub enum ASTNode {
     },
 }
 
-/// 词法分析器
+// / 词法分析器
 pub struct Lexer {
     input: Vec<char>,
     position: usize,
@@ -209,7 +209,7 @@ impl Lexer {
     }
 }
 
-/// 语法分析器
+// / 语法分析器
 pub struct Parser {
     lexer: Lexer,
     current_token: Token,
@@ -374,7 +374,7 @@ impl Parser {
     }
 }
 
-/// 表达式解析器
+// / 表达式解析器
 pub struct ExpressionParser;
 
 impl ExpressionParser {
@@ -389,7 +389,7 @@ impl ExpressionParser {
     }
 }
 
-/// 表达式计算器
+// / 表达式计算器
 pub struct Evaluator<'a> {
     calculator: &'a Calculator,
 }
@@ -646,7 +646,7 @@ impl<'a> Evaluator<'a> {
     }
 }
 
-/// 主解析和计算入口函数
+// / 主解析和计算入口函数
 pub async fn parse_and_evaluate(expression: &str, calculator: &Calculator) -> Result<Decimal, MathError> {
     let parse_start = std::time::Instant::now();
     

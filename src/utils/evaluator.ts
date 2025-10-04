@@ -2,11 +2,10 @@ import Decimal from 'decimal.js'
 
 Decimal.set({ precision: 50, rounding: Decimal.ROUND_HALF_EVEN, toExpNeg: -100, toExpPos: 100 })
 
-/**
+/* *
  * 安全表达式求值器（前端回退用）
  * 使用 decimal.js 提供金融级精度，避免 JS 浮点误差。
- * 支持: + - * / ^ ( )，函数: sin cos tan ln log sqrt，常数: π pi e
- */
+ * 支持: + - * / ^ ( )，函数: sin cos tan ln log sqrt，常数: π pi e */
 
 export type AngleUnit = 'degrees' | 'radians' | 'gradians'
 

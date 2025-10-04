@@ -1,6 +1,6 @@
-//! Tauri 命令处理模块
-//! 
-//! 提供前端与后端交互的命令接口
+// ! Tauri 命令处理模块
+// !
+// ! 提供前端与后端交互的命令接口
 
 use tauri::{State, Manager, Wry};
 use serde_json::{json, Value};
@@ -11,7 +11,7 @@ use crate::{AppState, CalculationResult, HistoryItem};
 
 type AppHandle = tauri::AppHandle<Wry>;
 
-/// 执行数学计算
+// / 执行数学计算
 #[tauri::command]
 pub async fn calculate(
     expression: String,
@@ -27,7 +27,7 @@ pub async fn calculate(
         *count += 1;
     }
 
-    // 克隆 calculator 以避免跨 await 持有锁
+    // 克隆 计算器 (calculator) 以避免跨 await 持有锁
     let calculator = {
         let calc = state.calculator.lock().await;
         (*calc).clone()
@@ -111,7 +111,7 @@ pub async fn calculate(
     Ok(calculation_result)
 }
 
-/// 获取历史记录
+// / 获取历史记录
 #[tauri::command]
 pub async fn get_history(
     limit: Option<usize>,
@@ -121,7 +121,7 @@ pub async fn get_history(
     Ok(history_manager.get_recent_items(limit.unwrap_or(100)))
 }
 
-/// 保存历史记录到存储
+// / 保存历史记录到存储
 #[tauri::command]
 pub async fn save_history(
     state: State<'_, AppState>,
@@ -138,7 +138,7 @@ pub async fn save_history(
         .map_err(|e| format!("保存历史记录失败: {}", e))
 }
 
-/// 获取应用设置
+// / 获取应用设置
 #[tauri::command]
 pub async fn get_settings(
     state: State<'_, AppState>,
@@ -189,7 +189,7 @@ pub async fn get_settings(
     Ok(value)
 }
 
-/// 保存应用设置
+// / 保存应用设置
 #[tauri::command]
 pub async fn save_settings(
     settings: Value,
@@ -215,7 +215,7 @@ pub async fn save_settings(
     std::fs::write(settings_path, json).map_err(|e| format!("写入设置文件失败: {}", e))
 }
 
-/// 其他简化的命令
+// / 其他简化的命令
 #[tauri::command]
 pub async fn export_history(
     state: State<'_, AppState>,
@@ -366,9 +366,9 @@ pub async fn reset_settings(
     std::fs::write(settings_path, json).map_err(|e| format!("写入设置文件失败: {}", e))
 }
 
-/// MCP调试相关命令
+// / MCP调试相关命令
 
-/// 获取MCP调试性能统计
+// / 获取MCP调试性能统计
 #[tauri::command]
 pub async fn get_mcp_performance_stats() -> Result<Value, String> {
     #[cfg(debug_assertions)]
@@ -397,7 +397,7 @@ pub async fn get_mcp_performance_stats() -> Result<Value, String> {
     }
 }
 
-/// 启用/禁用MCP调试
+// / 启用/禁用MCP调试
 #[tauri::command]
 pub async fn set_mcp_debugging(enabled: bool) -> Result<(), String> {
     #[cfg(debug_assertions)]
@@ -416,7 +416,7 @@ pub async fn set_mcp_debugging(enabled: bool) -> Result<(), String> {
     }
 }
 
-/// 进制转换命令
+// / 进制转换命令
 #[tauri::command]
 pub async fn convert_base(
     number: String,
@@ -438,7 +438,7 @@ pub async fn convert_base(
         .map_err(|e| format!("转换失败: {}", e))
 }
 
-/// 统计计算命令
+// / 统计计算命令
 #[tauri::command]
 pub async fn calculate_statistics(
     values: Vec<f64>,
@@ -478,7 +478,7 @@ pub async fn calculate_statistics(
         .and_then(|decimal| decimal.to_f64().ok_or("结果转换失败".to_string()))
 }
 
-/// 复数运算命令
+// / 复数运算命令
 #[tauri::command]
 pub async fn calculate_complex(
     a_real: f64,
@@ -515,7 +515,7 @@ pub async fn calculate_complex(
         })
 }
 
-/// 矩阵运算命令
+// / 矩阵运算命令
 #[tauri::command]
 pub async fn matrix_operation(
     operation: String,
@@ -618,7 +618,7 @@ pub async fn matrix_operation(
     Ok(result)
 }
 
-/// 单位转换命令
+// / 单位转换命令
 #[tauri::command]
 pub async fn convert_units(
     value: f64,

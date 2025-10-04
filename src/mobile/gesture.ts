@@ -1,7 +1,6 @@
-/**
+/* *
  * 移动端手势识别模块
- * 提供触摸手势支持，包括滑动、双击、长按等操作
- */
+ * 提供触摸手势支持，包括滑动、双击、长按等操作 */
 
 interface TouchPoint {
   x: number
@@ -233,10 +232,9 @@ export class MobileGestureManager {
   }
 }
 
-/**
+/* *
  * 计算器专用手势处理器
- * 集成常用的计算器手势操作
- */
+ * 集成常用的计算器手势操作 */
 export class CalculatorGestureHandler {
   private gestureManager: MobileGestureManager
 

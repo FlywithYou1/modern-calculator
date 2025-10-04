@@ -1,7 +1,6 @@
-/**
+/* *
  * 计算器历史记录组件
- * 负责显示、搜索和管理计算历史，支持导入导出和统计功能
- */
+ * 负责显示、搜索和管理计算历史，支持导入导出和统计功能 */
 
 import type { Theme, HistoryItem, HistoryConfig, HistoryStats } from '../types/calculator.js'
 import { TauriService } from '../utils/tauri.js'
@@ -25,17 +24,15 @@ export class History {
     this.setupEventListeners()
   }
 
-  /**
-   * 初始化组件
-   */
+  /* *
+   * 初始化组件 */
   async init(): Promise<void> {
     await this.loadHistory()
     this.render()
   }
 
-  /**
-   * 创建历史记录元素
-   */
+  /* *
+   * 创建历史记录元素 */
   private createElement(): HTMLElement {
     const history = document.createElement('div')
     history.className = 'calculator-history'
@@ -113,9 +110,8 @@ export class History {
     return history
   }
 
-  /**
-   * 设置事件监听器
-   */
+  /* *
+   * 设置事件监听器 */
   private setupEventListeners(): void {
     // 搜索按钮
     const searchBtn = this.element.querySelector('.history-search-btn') as HTMLElement
@@ -177,17 +173,15 @@ export class History {
     })
   }
 
-  /**
-   * 渲染历史记录列表
-   */
+  /* *
+   * 渲染历史记录列表 */
   private render(): void {
     this.updateStats()
     this.renderHistoryList()
   }
 
-  /**
-   * 渲染历史记录项
-   */
+  /* *
+   * 渲染历史记录项 */
   private renderHistoryList(): void {
     const listElement = this.element.querySelector('.history-list') as HTMLElement
     const emptyElement = this.element.querySelector('.history-empty') as HTMLElement
@@ -223,9 +217,8 @@ export class History {
     this.setupHistoryItemListeners()
   }
 
-  /**
-   * 创建历史记录项HTML
-   */
+  /* *
+   * 创建历史记录项HTML */
   private createHistoryItemHTML(item: HistoryItem): string {
     const timestamp = this.formatTimestamp(item.timestamp)
     const tags = item.tags
@@ -294,9 +287,8 @@ export class History {
       .replace(/'/g, '&#39;')
   }
 
-  /**
-   * 设置历史记录项事件监听器
-   */
+  /* *
+   * 设置历史记录项事件监听器 */
   private setupHistoryItemListeners(): void {
     const items = this.element.querySelectorAll('.history-item')
     items.forEach(item => {
@@ -324,9 +316,8 @@ export class History {
     })
   }
 
-  /**
-   * 处理历史记录项操作
-   */
+  /* *
+   * 处理历史记录项操作 */
   private handleItemAction(action: string, id: string): void {
     const item = this.history.find(h => h.id === id)
     if (!item) return
@@ -346,25 +337,22 @@ export class History {
     }
   }
 
-  /**
-   * 设置历史记录
-   */
+  /* *
+   * 设置历史记录 */
   setHistory(history: HistoryItem[]): void {
     this.history = [...history]
     this.filterHistory()
     this.render()
   }
 
-  /**
-   * 更新历史记录
-   */
+  /* *
+   * 更新历史记录 */
   updateHistory(history: HistoryItem[]): void {
     this.setHistory(history)
   }
 
-  /**
-   * 添加历史记录项
-   */
+  /* *
+   * 添加历史记录项 */
   addHistoryItem(item: HistoryItem): void {
     this.history.unshift(item)
     if (this.history.length > this.config.maxItems) {
@@ -375,9 +363,8 @@ export class History {
     this.render()
   }
 
-  /**
-   * 删除历史记录项
-   */
+  /* *
+   * 删除历史记录项 */
   private deleteHistoryItem(id: string): void {
     this.history = this.history.filter(item => item.id !== id)
     this.remoteStats = null
@@ -385,9 +372,8 @@ export class History {
     this.render()
   }
 
-  /**
-   * 显示历史记录
-   */
+  /* *
+   * 显示历史记录 */
   show(): void {
     this.isVisible = true
     this.element.style.display = 'flex'
@@ -398,9 +384,8 @@ export class History {
     closeBtn?.focus()
   }
 
-  /**
-   * 隐藏历史记录
-   */
+  /* *
+   * 隐藏历史记录 */
   hide(): void {
     this.isVisible = false
     this.element.classList.remove('visible')
@@ -411,9 +396,8 @@ export class History {
     }, 300)
   }
 
-  /**
-   * 切换搜索栏显示
-   */
+  /* *
+   * 切换搜索栏显示 */
   private toggleSearch(): void {
     const searchElement = this.element.querySelector('.history-search') as HTMLElement
     const isVisible = searchElement.style.display !== 'none'
@@ -427,9 +411,8 @@ export class History {
     }
   }
 
-  /**
-   * 过滤历史记录
-   */
+  /* *
+   * 过滤历史记录 */
   private filterHistory(): void {
     let filtered = this.applyTimeFilter([...this.history])
     filtered = this.applyTagFilter(filtered)
@@ -459,9 +442,8 @@ export class History {
     this.renderHistoryList()
   }
 
-  /**
-   * 设置时间过滤器
-   */
+  /* *
+   * 设置时间过滤器 */
   private setFilter(filter: string): void {
     const allowed = new Set(['all', 'today', 'week', 'month'])
     const normalized = allowed.has(filter) ? (filter as 'all' | 'today' | 'week' | 'month') : 'all'
@@ -478,9 +460,8 @@ export class History {
     }
   }
 
-  /**
-   * 设置标签过滤器
-   */
+  /* *
+   * 设置标签过滤器 */
   private setTagFilter(tag: string): void {
     this.activeTagFilter = tag
 
@@ -555,9 +536,8 @@ export class History {
     }
   }
 
-  /**
-   * 更新统计信息
-   */
+  /* *
+   * 更新统计信息 */
   private updateStats(): void {
     const fallback = this.calculateStats()
     const total = this.remoteStats?.total_items ?? fallback.totalCalculations
@@ -573,9 +553,8 @@ export class History {
     if (filteredElement) filteredElement.textContent = filtered.toString()
   }
 
-  /**
-   * 计算统计信息
-   */
+  /* *
+   * 计算统计信息 */
   private calculateStats(): HistoryStats {
     const today = new Date()
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -630,9 +609,8 @@ export class History {
     }
   }
 
-  /**
-   * 导出历史记录
-   */
+  /* *
+   * 导出历史记录 */
   private async exportHistory(): Promise<void> {
     const format = await this.showExportFormatDialog()
     if (!format) return
@@ -683,9 +661,8 @@ export class History {
     }
   }
 
-  /**
-   * 显示导出格式选择对话框
-   */
+  /* *
+   * 显示导出格式选择对话框 */
   private async showExportFormatDialog(): Promise<string | null> {
     return new Promise(resolve => {
       const dialog = document.createElement('div')
@@ -743,9 +720,8 @@ export class History {
     })
   }
 
-  /**
-   * 转换为CSV格式
-   */
+  /* *
+   * 转换为CSV格式 */
   private convertToCSV(items: HistoryItem[]): string {
     const headers = ['时间戳', '表达式', '结果', '标签', '备注']
     const rows = items.map(item => [
@@ -759,9 +735,8 @@ export class History {
     return [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
   }
 
-  /**
-   * 转换为文本格式
-   */
+  /* *
+   * 转换为文本格式 */
   private convertToText(items: HistoryItem[]): string {
     return items
       .map(item => {
@@ -773,18 +748,16 @@ export class History {
       .join('\n')
   }
 
-  /**
-   * 确认清空历史记录
-   */
+  /* *
+   * 确认清空历史记录 */
   private async confirmClearHistory(): Promise<void> {
     if (confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
       await this.clearHistory()
     }
   }
 
-  /**
-   * 清空历史记录
-   */
+  /* *
+   * 清空历史记录 */
   private async clearHistory(): Promise<void> {
     try {
       await TauriService.clearHistory()
@@ -805,9 +778,8 @@ export class History {
     this.showToast('历史记录已清空')
   }
 
-  /**
-   * 加载历史记录
-   */
+  /* *
+   * 加载历史记录 */
   private async loadHistory(): Promise<void> {
     try {
       const [history, stats] = await Promise.all([
@@ -834,9 +806,8 @@ export class History {
     }
   }
 
-  /**
-   * 格式化时间戳
-   */
+  /* *
+   * 格式化时间戳 */
   private formatTimestamp(timestamp: string): string {
     const date = new Date(timestamp)
     const now = new Date()
@@ -861,9 +832,8 @@ export class History {
     }
   }
 
-  /**
-   * 高亮搜索词
-   */
+  /* *
+   * 高亮搜索词 */
   private highlightSearchTerm(text: string): string {
     if (!this.searchTerm) return text
 
@@ -871,9 +841,8 @@ export class History {
     return text.replace(regex, '<mark>$1</mark>')
   }
 
-  /**
-   * 复制到剪贴板
-   */
+  /* *
+   * 复制到剪贴板 */
   private async copyToClipboard(text: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text)
@@ -884,9 +853,8 @@ export class History {
     }
   }
 
-  /**
-   * 显示提示消息
-   */
+  /* *
+   * 显示提示消息 */
   private showToast(message: string): void {
     const toast = document.createElement('div')
     toast.className = 'toast'
@@ -913,9 +881,8 @@ export class History {
     }, 2000)
   }
 
-  /**
-   * 键盘导航处理
-   */
+  /* *
+   * 键盘导航处理 */
   private handleKeyNavigation(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       this.hide()
@@ -923,9 +890,8 @@ export class History {
     }
   }
 
-  /**
-   * 更新主题
-   */
+  /* *
+   * 更新主题 */
   updateTheme(theme: Theme): void {
     this.element.className = `calculator-history theme-${theme.mode}`
 
@@ -935,9 +901,8 @@ export class History {
     })
   }
 
-  /**
-   * 处理大小变化
-   */
+  /* *
+   * 处理大小变化 */
   handleResize(): void {
     // 响应式调整布局
     const containerWidth = this.element.clientWidth
@@ -948,16 +913,14 @@ export class History {
     }
   }
 
-  /**
-   * 获取当前历史记录
-   */
+  /* *
+   * 获取当前历史记录 */
   getHistory(): HistoryItem[] {
     return [...this.history]
   }
 
-  /**
-   * 销毁组件
-   */
+  /* *
+   * 销毁组件 */
   destroy(): void {
     if (this.element && this.element.parentNode) {
       this.element.parentNode.removeChild(this.element)

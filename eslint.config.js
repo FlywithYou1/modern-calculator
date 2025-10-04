@@ -21,6 +21,13 @@ export default tseslint.config(
       '@typescript-eslint/no-namespace': 'off',
     },
   },
+  // 测试文件放宽部分规则，避免为验证私有/受保护方法而大量使用 any 导致 lint 失败
+  {
+    files: ['src/tests/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
   {
     ignores: ['dist/**', 'src-tauri/**', 'node_modules/**', 'scripts/**/*.js'],
   }

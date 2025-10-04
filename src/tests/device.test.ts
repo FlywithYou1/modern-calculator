@@ -1,6 +1,5 @@
-/**
- * 设备检测工具测试
- */
+/* *
+ * 设备检测工具测试 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { DeviceDetector } from '../utils/device'

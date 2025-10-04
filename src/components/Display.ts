@@ -1,7 +1,6 @@
-/**
+/* *
  * 计算器显示屏组件
- * 负责显示表达式和计算结果，支持动画效果和多种显示模式
- */
+ * 负责显示表达式和计算结果，支持动画效果和多种显示模式 */
 
 import type { Theme, DisplayConfig } from '../types/calculator.js'
 
@@ -29,16 +28,14 @@ export class Display {
     this.setupEventListeners()
   }
 
-  /**
-   * 初始化组件
-   */
+  /* *
+   * 初始化组件 */
   async init(): Promise<void> {
     // 组件已在构造函数中初始化
   }
 
-  /**
-   * 创建显示器元素
-   */
+  /* *
+   * 创建显示器元素 */
   private createElement(): HTMLElement {
     const display = document.createElement('div')
     display.className = 'calculator-display'
@@ -59,9 +56,8 @@ export class Display {
     return display
   }
 
-  /**
-   * 设置事件监听器
-   */
+  /* *
+   * 设置事件监听器 */
   private setupEventListeners(): void {
     // 支持双击复制结果
     this.resultElement.addEventListener('dblclick', () => {
@@ -93,9 +89,8 @@ export class Display {
     })
   }
 
-  /**
-   * 更新状态
-   */
+  /* *
+   * 更新状态 */
   update(state: DisplayState): void {
     this.updateExpression(state.expression)
     if (state.error) {
@@ -106,9 +101,8 @@ export class Display {
     }
   }
 
-  /**
-   * 更新表达式显示
-   */
+  /* *
+   * 更新表达式显示 */
   updateExpression(expression: string): void {
     const expressionText = this.expressionElement.querySelector('.expression-text') as HTMLElement
     if (!expressionText) return
@@ -123,9 +117,8 @@ export class Display {
     this.scrollToEnd(this.expressionElement)
   }
 
-  /**
-   * 更新结果显示
-   */
+  /* *
+   * 更新结果显示 */
   updateResult(result: string): void {
     const resultText = this.resultElement.querySelector('.result-text') as HTMLElement
     if (!resultText) return
@@ -141,9 +134,8 @@ export class Display {
     this.resultElement.classList.toggle('success', result !== '0')
   }
 
-  /**
-   * 显示错误信息
-   */
+  /* *
+   * 显示错误信息 */
   showError(message: string): void {
     const resultText = this.resultElement.querySelector('.result-text') as HTMLElement
     if (!resultText) return
@@ -156,25 +148,22 @@ export class Display {
     this.vibrate(200)
   }
 
-  /**
-   * 隐藏错误状态
-   */
+  /* *
+   * 隐藏错误状态 */
   hideError(): void {
     this.resultElement.classList.remove('error')
   }
 
-  /**
-   * 清空显示器
-   */
+  /* *
+   * 清空显示器 */
   clear(): void {
     this.updateExpression('')
     this.updateResult('0')
     this.clearStatus()
   }
 
-  /**
-   * 更新内存状态指示器
-   */
+  /* *
+   * 更新内存状态指示器 */
   updateMemoryStatus(hasMemory: boolean): void {
     const memoryIndicator = this.element.querySelector('.memory-indicator') as HTMLElement
     if (memoryIndicator) {
@@ -183,9 +172,8 @@ export class Display {
     }
   }
 
-  /**
-   * 更新角度单位指示器
-   */
+  /* *
+   * 更新角度单位指示器 */
   updateAngleMode(mode: 'degrees' | 'radians' | 'gradians'): void {
     const angleIndicator = this.element.querySelector('.angle-indicator') as HTMLElement
     if (angleIndicator) {
@@ -198,9 +186,8 @@ export class Display {
     }
   }
 
-  /**
-   * 更新主题
-   */
+  /* *
+   * 更新主题 */
   updateTheme(theme: Theme): void {
     this.config.theme = theme
     this.element.className = `calculator-display theme-${theme.mode}`
@@ -211,9 +198,8 @@ export class Display {
     })
   }
 
-  /**
-   * 设置字体大小
-   */
+  /* *
+   * 设置字体大小 */
   setFontSize(size: number): void {
     if (this.config.fontSize !== undefined) {
       this.config.fontSize = size
@@ -221,9 +207,8 @@ export class Display {
     this.element.style.fontSize = `${size}px`
   }
 
-  /**
-   * 处理大小变化
-   */
+  /* *
+   * 处理大小变化 */
   handleResize(): void {
     // 重新计算字体大小和布局
     const containerWidth = this.element.clientWidth
@@ -231,17 +216,15 @@ export class Display {
     this.setFontSize(baseSize)
   }
 
-  /**
-   * 获取当前显示的结果
-   */
+  /* *
+   * 获取当前显示的结果 */
   getCurrentResult(): string {
     const resultText = this.resultElement.querySelector('.result-text') as HTMLElement
     return resultText ? resultText.textContent || '0' : '0'
   }
 
-  /**
-   * 格式化表达式
-   */
+  /* *
+   * 格式化表达式 */
   private formatExpression(expression: string): string {
     if (!expression) return ''
 
@@ -258,9 +241,8 @@ export class Display {
       .replace(/!=/g, '≠')
   }
 
-  /**
-   * 格式化数字
-   */
+  /* *
+   * 格式化数字 */
   private formatNumber(value: string): string {
     if (!value || value === '0') return '0'
 
@@ -292,9 +274,8 @@ export class Display {
     return result
   }
 
-  /**
-   * 添加千位分隔符
-   */
+  /* *
+   * 添加千位分隔符 */
   private addThousandSeparators(value: string): string {
     const parts = value.split('.')
     if (parts[0]) {
@@ -303,9 +284,8 @@ export class Display {
     return parts.join('.')
   }
 
-  /**
-   * 动画化文本变化
-   */
+  /* *
+   * 动画化文本变化 */
   private animateTextChange(element: HTMLElement, newText: string): void {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
@@ -322,9 +302,8 @@ export class Display {
     })
   }
 
-  /**
-   * 动画化结果变化
-   */
+  /* *
+   * 动画化结果变化 */
   private animateResultChange(element: HTMLElement, newText: string, isError: boolean): void {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
@@ -346,9 +325,8 @@ export class Display {
     })
   }
 
-  /**
-   * 震动显示器（错误时）
-   */
+  /* *
+   * 震动显示器（错误时） */
   private shakeDisplay(): void {
     this.element.style.animation = 'shake 0.5s ease-in-out'
     setTimeout(() => {
@@ -356,16 +334,14 @@ export class Display {
     }, 500)
   }
 
-  /**
-   * 滚动到末尾
-   */
+  /* *
+   * 滚动到末尾 */
   private scrollToEnd(element: HTMLElement): void {
     element.scrollLeft = element.scrollWidth
   }
 
-  /**
-   * 复制结果到剪贴板
-   */
+  /* *
+   * 复制结果到剪贴板 */
   private async copyResult(): Promise<void> {
     const result = this.getCurrentResult()
     if (result === '0') return
@@ -384,9 +360,8 @@ export class Display {
     }
   }
 
-  /**
-   * 显示复制成功反馈
-   */
+  /* *
+   * 显示复制成功反馈 */
   private showCopyFeedback(): void {
     const feedback = document.createElement('div')
     feedback.className = 'copy-feedback'
@@ -412,9 +387,8 @@ export class Display {
     }, 1500)
   }
 
-  /**
-   * 选择结果文本（复制失败时的回退方案）
-   */
+  /* *
+   * 选择结果文本（复制失败时的回退方案） */
   private selectResultText(): void {
     const resultText = this.resultElement.querySelector('.result-text') as HTMLElement
     if (resultText) {
@@ -428,17 +402,15 @@ export class Display {
     }
   }
 
-  /**
-   * 清空状态指示器
-   */
+  /* *
+   * 清空状态指示器 */
   private clearStatus(): void {
     this.updateMemoryStatus(false)
     this.element.classList.remove('error', 'success')
   }
 
-  /**
-   * 销毁组件
-   */
+  /* *
+   * 销毁组件 */
   destroy(): void {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
@@ -449,9 +421,8 @@ export class Display {
     }
   }
 
-  /**
-   * 触觉反馈
-   */
+  /* *
+   * 触觉反馈 */
   private vibrate(duration: number): void {
     if ('vibrate' in navigator) {
       navigator.vibrate(duration)

@@ -1,7 +1,6 @@
-/**
+/* *
  * 性能监控工具
- * 提供计算性能分析、内存使用监控和帧率检测
- */
+ * 提供计算性能分析、内存使用监控和帧率检测 */
 
 export interface PerformanceMetrics {
   calculationTime: number
@@ -46,9 +45,8 @@ export class PerformanceMonitor {
     this.startMemoryMonitoring()
   }
 
-  /**
-   * 开始帧率监控
-   */
+  /* *
+   * 开始帧率监控 */
   private startFrameRateMonitoring(): void {
     const updateFrameRate = () => {
       const now = performance.now()
@@ -67,16 +65,15 @@ export class PerformanceMonitor {
     requestAnimationFrame(updateFrameRate)
   }
 
-  /**
-   * 开始内存监控
-   */
+  /* *
+   * 开始内存监控 */
   private startMemoryMonitoring(): void {
     const updateMemory = () => {
-      if ('memory' in performance) {
-        const memory = (performance as any).memory
-        if (memory) {
-          this.metrics.memoryUsage = Math.round(memory.usedJSHeapSize / 1024 / 1024)
-        }
+      // 在支持的浏览器中，非标准的 性能 (performance).memory 可用于估算堆内存
+      const perf = performance as Performance & { memory?: { usedJSHeapSize: number } }
+      const mem = perf.memory
+      if (mem && typeof mem.usedJSHeapSize === 'number') {
+        this.metrics.memoryUsage = Math.round(mem.usedJSHeapSize / 1024 / 1024)
       }
       setTimeout(updateMemory, 5000)
     }
@@ -84,9 +81,8 @@ export class PerformanceMonitor {
     updateMemory()
   }
 
-  /**
-   * 记录计算开始
-   */
+  /* *
+   * 记录计算开始 */
   startCalculation(): () => PerformanceMetrics {
     const startTime = performance.now()
     this.totalOperations++
@@ -111,48 +107,42 @@ export class PerformanceMonitor {
     }
   }
 
-  /**
-   * 记录缓存命中
-   */
+  /* *
+   * 记录缓存命中 */
   recordCacheHit(): void {
     this.cacheHits++
     this.updateCacheHitRate()
   }
 
-  /**
-   * 记录缓存未命中
-   */
+  /* *
+   * 记录缓存未命中 */
   recordCacheMiss(): void {
     this.cacheMisses++
     this.updateCacheHitRate()
   }
 
-  /**
-   * 更新缓存命中率
-   */
+  /* *
+   * 更新缓存命中率 */
   private updateCacheHitRate(): void {
     const total = this.cacheHits + this.cacheMisses
     this.metrics.cacheHitRate = total > 0 ? (this.cacheHits / total) * 100 : 0
   }
 
-  /**
-   * 记录错误
-   */
+  /* *
+   * 记录错误 */
   recordError(): void {
     this.errors++
     this.metrics.errorRate = (this.errors / this.totalOperations) * 100
   }
 
-  /**
-   * 获取当前性能指标
-   */
+  /* *
+   * 获取当前性能指标 */
   getMetrics(): PerformanceMetrics {
     return { ...this.metrics }
   }
 
-  /**
-   * 生成性能报告
-   */
+  /* *
+   * 生成性能报告 */
   generateReport(context: { expression: string; result: string; operation: string }): PerformanceReport {
     const report: PerformanceReport = {
       timestamp: Date.now(),
@@ -172,9 +162,8 @@ export class PerformanceMonitor {
     return report
   }
 
-  /**
-   * 监听性能报告
-   */
+  /* *
+   * 监听性能报告 */
   onReport(callback: (report: PerformanceReport) => void): () => void {
     this.reportCallbacks.push(callback)
 
@@ -186,9 +175,8 @@ export class PerformanceMonitor {
     }
   }
 
-  /**
-   * 重置性能指标
-   */
+  /* *
+   * 重置性能指标 */
   reset(): void {
     this.metrics = {
       calculationTime: 0,
@@ -204,9 +192,8 @@ export class PerformanceMonitor {
     this.totalOperations = 0
   }
 
-  /**
-   * 检查性能是否可接受
-   */
+  /* *
+   * 检查性能是否可接受 */
   isPerformanceAcceptable(): boolean {
     return (
       this.metrics.calculationTime < 100 && // 计算时间 < 100ms
@@ -216,9 +203,8 @@ export class PerformanceMonitor {
     )
   }
 
-  /**
-   * 获取性能建议
-   */
+  /* *
+   * 获取性能建议 */
   getPerformanceSuggestions(): string[] {
     const suggestions: string[] = []
 
@@ -251,13 +237,12 @@ export const performanceMonitor = new PerformanceMonitor()
 
 // 开发环境下在控制台提供访问
 if (import.meta.env.DEV) {
-  ;(window as any).performanceMonitor = performanceMonitor
+  ;(window as unknown as Record<string, unknown>).performanceMonitor = performanceMonitor
 }
 
-/**
+/* *
  * 性能监控装饰器
- * 使用方法：@monitorPerformance('操作名称')
- */
+ * 使用方法：@monitorPerformance('操作名称') */
 export function monitorPerformance(operationName: string) {
   return function (
     _target: unknown,

@@ -51,7 +51,7 @@ npm run build      # 前端构建
 | 层次 | 技术栈 | 说明 |
 |------|--------|------|
 | **前端** | TypeScript 5.6 + HTML5 + CSS3 | 响应式UI + 类型安全 |
-| **后端** | Rust 2024 + Tauri 2.8 | 高性能计算引擎 |
+| **后端** | Rust 2021 + Tauri 2.8 | 高性能计算引擎 |
 | **数学库** | rust_decimal + num-bigint | 高精度数值计算 |
 | **构建** | Vite 7 + Cargo + npm | 快速构建 + 热重载 |
 
@@ -234,7 +234,7 @@ npm run tauri:dev        # 完整 Tauri 开发
 |------|----------|------|
 | **Node.js** | ≥ 18.0.0 | 前端构建和包管理 |
 | **npm** | ≥ 9.0.0 | 依赖管理 |
-| **Rust** | ≥ 1.89.0 | 后端计算引擎 |
+| **Rust** | ≥ 1.70.0 | 后端计算引擎 |
 | **系统** | Windows 10+, macOS 10.15+, Ubuntu 20.04+ | 目标平台 |
 
 ### ⚡ 一键启动
@@ -308,7 +308,7 @@ modern-calculator/
 │   ├── 🧩 components/         # 模块化组件
 │   │   ├── Calculator.ts      # 主计算器组件
 │   │   ├── Display.ts         # 显示屏组件
-│   │   ├── KeyboardNew.ts     # 高级键盘组件
+│   │   ├── Keyboard.ts        # 键盘组件
 │   │   ├── History.ts         # 历史记录组件
 │   │   └── Settings.ts        # 设置面板组件
 │   ├── 🎨 styles/             # SCSS 样式系统

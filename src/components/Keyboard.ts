@@ -24,9 +24,8 @@ const ACTION_COMPLEX_PANEL = 'open-complex-panel'
 const ACTION_STATS_PANEL = 'open-stats-panel'
 const ACTION_BASE_CONVERTER = 'open-base-converter'
 
-/**
- * 高级键盘组件，覆盖基础、科学、程序员和自定义快捷面板。
- */
+/* *
+ * 高级键盘组件，覆盖基础、科学、程序员和自定义快捷面板。 */
 export class AdvancedKeyboard {
   private container: HTMLElement
   private config: KeyboardConfig
@@ -45,9 +44,8 @@ export class AdvancedKeyboard {
     this.bindEvents()
   }
 
-  /**
-   * 创建根节点
-   */
+  /* *
+   * 创建根节点 */
   private createRoot(): HTMLElement {
     const wrapper = document.createElement('div')
     wrapper.className = 'calculator-keyboard-wrap'
@@ -57,9 +55,8 @@ export class AdvancedKeyboard {
     return wrapper
   }
 
-  /**
-   * 渲染键盘内容
-   */
+  /* *
+   * 渲染键盘内容 */
   private render(): void {
     const showScientific = this.config.showScientific ?? true
     const isMobile = this.config.deviceType === 'mobile'
@@ -96,9 +93,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 构建基础区域
-   */
+  /* *
+   * 构建基础区域 */
   private buildSection(kind: 'basic' | 'scientific', buttons: ButtonMatrix): string {
     return `
       <section class="keyboard-panel keyboard-panel-${kind}" role="group" aria-label="${
@@ -111,9 +107,8 @@ export class AdvancedKeyboard {
     `
   }
 
-  /**
-   * 构建科学区域（含折叠头）
-   */
+  /* *
+   * 构建科学区域（含折叠头） */
   private buildScientificSection(isMobile: boolean): string {
     return `
       <section class="keyboard-panel keyboard-panel-scientific" role="group" aria-label="科学与高级功能">
@@ -132,9 +127,8 @@ export class AdvancedKeyboard {
     `
   }
 
-  /**
-   * 渲染一行按钮
-   */
+  /* *
+   * 渲染一行按钮 */
   private renderRow(row: AdvancedButtonConfig[]): string {
     return `
       <div class="keyboard-row">
@@ -143,9 +137,8 @@ export class AdvancedKeyboard {
     `
   }
 
-  /**
-   * 渲染单个按钮
-   */
+  /* *
+   * 渲染单个按钮 */
   private renderButton(config: AdvancedButtonConfig): string {
     const { id, label, value, className = '', colspan = 1, rowspan = 1, tooltip, secondaryLabel } = config
     const ariaLabel = tooltip || label
@@ -169,9 +162,8 @@ export class AdvancedKeyboard {
     `
   }
 
-  /**
-   * 绑定交互事件
-   */
+  /* *
+   * 绑定交互事件 */
   private bindEvents(): void {
     this.root.addEventListener('click', event => {
       const target = event.target as HTMLElement
@@ -192,9 +184,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 处理按钮点击
-   */
+  /* *
+   * 处理按钮点击 */
   private processButton(button: HTMLButtonElement): void {
     this.applyFeedback(button)
 
@@ -215,9 +206,8 @@ export class AdvancedKeyboard {
     this.handleAction(value)
   }
 
-  /**
-   * 动作分发
-   */
+  /* *
+   * 动作分发 */
   private handleAction(action: string): void {
     const value = action
 
@@ -238,9 +228,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 触觉 + 动画反馈
-   */
+  /* *
+   * 触觉 + 动画反馈 */
   private applyFeedback(button: HTMLButtonElement): void {
     if (this.config.enableHaptic && 'vibrate' in navigator) {
       navigator.vibrate(10)
@@ -252,9 +241,8 @@ export class AdvancedKeyboard {
     })
   }
 
-  /**
-   * 绑定滑动手势
-   */
+  /* *
+   * 绑定滑动手势 */
   private bindSwipeGestures(): void {
     let startX = 0
     let startY = 0
@@ -291,9 +279,8 @@ export class AdvancedKeyboard {
     )
   }
 
-  /**
-   * 切换科学面板
-   */
+  /* *
+   * 切换科学面板 */
   private toggleScientificPanel(): void {
     this.isScientificCollapsed = !this.isScientificCollapsed
     this.updateScientificState()
@@ -308,9 +295,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 获取基础按钮矩阵
-   */
+  /* *
+   * 获取基础按钮矩阵 */
   private getBasicButtons(): ButtonMatrix {
     return [
       [
@@ -346,9 +332,8 @@ export class AdvancedKeyboard {
     ]
   }
 
-  /**
-   * 获取科学按钮矩阵
-   */
+  /* *
+   * 获取科学按钮矩阵 */
   private getScientificButtons(): ButtonMatrix {
     const angleLabel = this.getAngleLabel()
     return [
@@ -496,17 +481,15 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 主题更新
-   */
+  /* *
+   * 主题更新 */
   updateTheme(theme: Theme): void {
     this.config.theme = theme
     this.root.querySelector('.calculator-keyboard')?.setAttribute('data-theme', theme.mode)
   }
 
-  /**
-   * 更新角度按钮显示
-   */
+  /* *
+   * 更新角度按钮显示 */
   updateAngleMode(angleMode: 'degrees' | 'radians' | 'gradians'): void {
   this.config.angleMode = angleMode
     const label = this.getAngleLabel()
@@ -521,9 +504,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 高亮按钮（键盘输入反馈）
-   */
+  /* *
+   * 高亮按钮（键盘输入反馈） */
   highlightButton(value: string): void {
     const button = this.root.querySelector(`.keyboard-button[data-value="${value}"]`) as HTMLButtonElement | null
     if (button) {
@@ -531,9 +513,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 响应布局变化
-   */
+  /* *
+   * 响应布局变化 */
   handleResize(): void {
     // 根据容器宽度调整按钮大小
     const grid = this.root.querySelector('.keyboard-grid') as HTMLElement | null
@@ -543,9 +524,8 @@ export class AdvancedKeyboard {
     this.root.dataset.size = size
   }
 
-  /**
-   * 更新配置
-   */
+  /* *
+   * 更新配置 */
   updateConfig(partial: Partial<KeyboardConfig>): void {
     const prevDevice = this.config.deviceType
     Object.assign(this.config, partial)
@@ -569,9 +549,8 @@ export class AdvancedKeyboard {
     }
   }
 
-  /**
-   * 销毁
-   */
+  /* *
+   * 销毁 */
   destroy(): void {
     this.pressedKeys.clear()
     this.root.remove()

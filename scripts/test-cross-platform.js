@@ -1,17 +1,15 @@
 #!/usr/bin/env node
-/**
+/* *
  * 跨平台测试脚本
- * 测试应用在不同平台和环境下的兼容性
- */
+ * 测试应用在不同平台和环境下的兼容性 */
 
 const { spawn } = require('child_process')
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
 
-/**
- * 跨平台测试套件
- */
+/* *
+ * 跨平台测试套件 */
 class CrossPlatformTester {
   constructor() {
     this.testResults = []
@@ -20,9 +18,8 @@ class CrossPlatformTester {
     this.nodeVersion = process.version
   }
 
-  /**
-   * 运行跨平台测试
-   */
+  /* *
+   * 运行跨平台测试 */
   async run() {
     console.log('🌐 启动跨平台兼容性测试...\n')
     console.log(`📋 当前环境: ${this.platform}-${this.arch}, Node.js ${this.nodeVersion}`)
@@ -37,9 +34,8 @@ class CrossPlatformTester {
     this.generateReport()
   }
 
-  /**
-   * 测试环境兼容性
-   */
+  /* *
+   * 测试环境兼容性 */
   async testEnvironment() {
     console.log('\\n🖥️ 测试环境兼容性...')
 
@@ -76,9 +72,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试依赖项
-   */
+  /* *
+   * 测试依赖项 */
   async testDependencies() {
     console.log('📦 测试依赖项兼容性...')
 
@@ -111,9 +106,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试构建过程
-   */
+  /* *
+   * 测试构建过程 */
   async testBuildProcess() {
     console.log('🔨 测试构建过程...')
 
@@ -146,9 +140,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试Tauri命令
-   */
+  /* *
+   * 测试Tauri命令 */
   async testTauriCommands() {
     console.log('🦀 测试Tauri命令...')
 
@@ -177,9 +170,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试TypeScript编译
-   */
+  /* *
+   * 测试TypeScript编译 */
   async testTypeScriptCompilation() {
     console.log('📘 测试TypeScript编译...')
 
@@ -204,9 +196,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试文件系统兼容性
-   */
+  /* *
+   * 测试文件系统兼容性 */
   async testFileSystem() {
     console.log('📁 测试文件系统兼容性...')
 
@@ -239,9 +230,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查Node.js版本
-   */
+  /* *
+   * 检查Node.js版本 */
   async checkNodeVersion() {
     const requiredVersion = '18.0.0'
     const currentVersion = process.version.slice(1) // 移除 'v' 前缀
@@ -260,9 +250,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查NPM版本
-   */
+  /* *
+   * 检查NPM版本 */
   async checkNpmVersion() {
     try {
       const result = await this.runCommand('npm', ['--version'])
@@ -283,9 +272,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查Rust工具链
-   */
+  /* *
+   * 检查Rust工具链 */
   async checkRustToolchain() {
     try {
       const rustcResult = await this.runCommand('rustc', ['--version'])
@@ -303,9 +291,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查操作系统支持
-   */
+  /* *
+   * 检查操作系统支持 */
   async checkOSSupport() {
     const supportedPlatforms = ['win32', 'darwin', 'linux']
     const isSupported = supportedPlatforms.includes(this.platform)
@@ -318,9 +305,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查环境变量
-   */
+  /* *
+   * 检查环境变量 */
   async checkEnvironmentVariables() {
     const requiredVars = []
     const recommendedVars = ['PATH', 'HOME', 'USER']
@@ -340,9 +326,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 验证package.json
-   */
+  /* *
+   * 验证package.json */
   async validatePackageJson() {
     try {
       const packagePath = path.join(__dirname, '../package.json')
@@ -365,9 +350,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试依赖安装
-   */
+  /* *
+   * 测试依赖安装 */
   async testDependencyInstallation() {
     try {
       const nodeModulesPath = path.join(__dirname, '../node_modules')
@@ -405,9 +389,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查Tauri依赖
-   */
+  /* *
+   * 检查Tauri依赖 */
   async checkTauriDependencies() {
     try {
       const tauriConfigPath = path.join(__dirname, '../src-tauri/tauri.conf.json')
@@ -430,9 +413,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 检查TypeScript配置
-   */
+  /* *
+   * 检查TypeScript配置 */
   async checkTypeScriptConfig() {
     try {
       const tsconfigPath = path.join(__dirname, '../tsconfig.json')
@@ -462,9 +444,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试TypeScript构建
-   */
+  /* *
+   * 测试TypeScript构建 */
   async testTypeScriptBuild() {
     try {
       const result = await this.runCommand('npx', ['tsc', '--noEmit'], { timeout: 30000 })
@@ -482,9 +463,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试Vite构建
-   */
+  /* *
+   * 测试Vite构建 */
   async testViteBuild() {
     try {
       const result = await this.runCommand('npx', ['vite', 'build', '--mode', 'test'], { timeout: 60000 })
@@ -502,9 +482,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试Sass编译
-   */
+  /* *
+   * 测试Sass编译 */
   async testSassCompilation() {
     try {
       const scssFiles = this.findFiles('../src', '.scss')
@@ -538,9 +517,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试ESLint
-   */
+  /* *
+   * 测试ESLint */
   async testESLint() {
     try {
       const result = await this.runCommand('npx', ['eslint', 'src', '--ext', '.ts,.tsx'], { timeout: 30000 })
@@ -558,9 +536,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试Tauri CLI
-   */
+  /* *
+   * 测试Tauri CLI */
   async testTauriCLI() {
     try {
       const result = await this.runCommand('npx', ['tauri', '--version'])
@@ -578,9 +555,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试Rust编译
-   */
+  /* *
+   * 测试Rust编译 */
   async testRustCompilation() {
     try {
       const result = await this.runCommand('cargo', ['check'], { 
@@ -601,9 +577,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试Cargo测试
-   */
+  /* *
+   * 测试Cargo测试 */
   async testCargoTests() {
     try {
       const result = await this.runCommand('cargo', ['test'], { 
@@ -624,9 +599,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 验证TSConfig
-   */
+  /* *
+   * 验证TSConfig */
   async validateTSConfig() {
     try {
       const configs = ['tsconfig.json', 'tsconfig.node.json']
@@ -659,9 +633,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试路径分隔符兼容性
-   */
+  /* *
+   * 测试路径分隔符兼容性 */
   async testPathSeparators() {
     try {
       const testPath = path.join('test', 'path', 'separator')
@@ -679,9 +652,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试文件权限
-   */
+  /* *
+   * 测试文件权限 */
   async testFilePermissions() {
     try {
       const testFile = path.join(__dirname, '../test-permission.tmp')
@@ -707,9 +679,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试长文件名支持
-   */
+  /* *
+   * 测试长文件名支持 */
   async testLongFilenames() {
     try {
       const longName = 'a'.repeat(100) + '.tmp'
@@ -733,9 +704,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 测试特殊字符支持
-   */
+  /* *
+   * 测试特殊字符支持 */
   async testSpecialCharacters() {
     try {
       const specialChars = ['中文', 'émoji-🚀', 'space file']
@@ -766,9 +736,8 @@ class CrossPlatformTester {
     }
   }
 
-  /**
-   * 查找文件
-   */
+  /* *
+   * 查找文件 */
   findFiles(dir, ext) {
     const files = []
     const fullDir = path.join(__dirname, dir)
@@ -795,9 +764,8 @@ class CrossPlatformTester {
     return files
   }
 
-  /**
-   * 运行命令
-   */
+  /* *
+   * 运行命令 */
   runCommand(command, args = [], options = {}) {
     return new Promise((resolve, reject) => {
       const { timeout = 10000, cwd = __dirname } = options
@@ -836,9 +804,8 @@ class CrossPlatformTester {
     })
   }
 
-  /**
-   * 添加测试结果
-   */
+  /* *
+   * 添加测试结果 */
   addResult(category, name, passed, message) {
     this.testResults.push({
       category,
@@ -848,9 +815,8 @@ class CrossPlatformTester {
     })
   }
 
-  /**
-   * 生成测试报告
-   */
+  /* *
+   * 生成测试报告 */
   generateReport() {
     console.log('\\n📋 跨平台兼容性测试报告')
     console.log('=' .repeat(80))
@@ -932,9 +898,8 @@ class CrossPlatformTester {
     })
   }
 
-  /**
-   * 保存测试结果
-   */
+  /* *
+   * 保存测试结果 */
   saveResults(summary) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const platform = `${this.platform}-${this.arch}`

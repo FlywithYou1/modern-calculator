@@ -1,7 +1,6 @@
-/**
+/* *
  * MCP 调试面板组件
- * 提供实时性能监控、状态可视化、错误分析和调试快照管理
- */
+ * 提供实时性能监控、状态可视化、错误分析和调试快照管理 */
 
 import { mcpDebugger, getDebugSnapshot, clearDebugData, getPerformanceMetrics } from '../utils/mcp-debugger.js'
 import type { MCPDebugSnapshot } from '../utils/mcp-debugger.js'
@@ -34,9 +33,8 @@ export class MCPDebugPanel {
     this.setupEventListeners()
   }
 
-  /**
-   * 创建调试面板元素
-   */
+  /* *
+   * 创建调试面板元素 */
   private createElement(): HTMLElement {
     const panel = document.createElement('div')
     panel.className = 'mcp-debug-panel'
@@ -107,9 +105,8 @@ export class MCPDebugPanel {
     return panel
   }
 
-  /**
-   * 渲染总览面板
-   */
+  /* *
+   * 渲染总览面板 */
   private renderOverviewPanel(): string {
     return `
       <div class="overview-grid">
@@ -189,9 +186,8 @@ export class MCPDebugPanel {
     `
   }
 
-  /**
-   * 渲染性能面板
-   */
+  /* *
+   * 渲染性能面板 */
   private renderPerformancePanel(): string {
     return `
       <div class="performance-container">
@@ -236,9 +232,8 @@ export class MCPDebugPanel {
     `
   }
 
-  /**
-   * 渲染状态面板
-   */
+  /* *
+   * 渲染状态面板 */
   private renderStatesPanel(): string {
     return `
       <div class="states-container">
@@ -267,9 +262,8 @@ export class MCPDebugPanel {
     `
   }
 
-  /**
-   * 渲染错误面板
-   */
+  /* *
+   * 渲染错误面板 */
   private renderErrorsPanel(): string {
     return `
       <div class="errors-container">
@@ -313,9 +307,8 @@ export class MCPDebugPanel {
     `
   }
 
-  /**
-   * 渲染事件面板
-   */
+  /* *
+   * 渲染事件面板 */
   private renderEventsPanel(): string {
     return `
       <div class="events-container">
@@ -362,9 +355,8 @@ export class MCPDebugPanel {
     `
   }
 
-  /**
-   * 渲染设置面板
-   */
+  /* *
+   * 渲染设置面板 */
   private renderSettingsPanel(): string {
     return `
       <div class="debug-settings-container">
@@ -456,9 +448,8 @@ export class MCPDebugPanel {
     `
   }
 
-  /**
-   * 设置事件监听器
-   */
+  /* *
+   * 设置事件监听器 */
   private setupEventListeners(): void {
     // 关闭面板
     this.element.addEventListener('click', e => {
@@ -511,9 +502,8 @@ export class MCPDebugPanel {
     mcpDebugger.on('frontend-state-change', this.updateStateData.bind(this))
   }
 
-  /**
-   * 切换标签
-   */
+  /* *
+   * 切换标签 */
   private switchTab(tabName: string): void {
     // 更新标签状态
     const tabs = this.element.querySelectorAll('.debug-tab')
@@ -531,9 +521,8 @@ export class MCPDebugPanel {
     this.refreshPanelData(tabName)
   }
 
-  /**
-   * 处理操作按钮
-   */
+  /* *
+   * 处理操作按钮 */
   private handleAction(action: string): void {
     switch (action) {
       case 'clear-data':
@@ -563,9 +552,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 处理设置变更
-   */
+  /* *
+   * 处理设置变更 */
   private handleSettingChange(setting: string, element: HTMLInputElement | HTMLSelectElement): void {
     switch (setting) {
       case 'enabled':
@@ -581,9 +569,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 显示调试面板
-   */
+  /* *
+   * 显示调试面板 */
   show(): void {
     this.isVisible = true
     this.element.style.display = 'flex'
@@ -596,9 +583,8 @@ export class MCPDebugPanel {
     this.refreshAllPanels()
   }
 
-  /**
-   * 关闭调试面板
-   */
+  /* *
+   * 关闭调试面板 */
   close(): void {
     this.isVisible = false
     this.element.classList.remove('visible')
@@ -613,9 +599,8 @@ export class MCPDebugPanel {
     this.config.onClose?.()
   }
 
-  /**
-   * 启动更新定时器
-   */
+  /* *
+   * 启动更新定时器 */
   private startUpdateTimer(): void {
     this.stopUpdateTimer()
     
@@ -627,9 +612,8 @@ export class MCPDebugPanel {
     }, this.config.updateInterval)
   }
 
-  /**
-   * 停止更新定时器
-   */
+  /* *
+   * 停止更新定时器 */
   private stopUpdateTimer(): void {
     if (this.updateTimer) {
       clearInterval(this.updateTimer)
@@ -637,17 +621,15 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 重启更新定时器
-   */
+  /* *
+   * 重启更新定时器 */
   private restartUpdateTimer(): void {
     this.stopUpdateTimer()
     this.startUpdateTimer()
   }
 
-  /**
-   * 更新总览指标
-   */
+  /* *
+   * 更新总览指标 */
   private updateOverviewMetrics(): void {
     const snapshot = getDebugSnapshot()
     const metrics = getPerformanceMetrics()
@@ -683,16 +665,14 @@ export class MCPDebugPanel {
     this.updateMetricValue('session-duration', sessionDuration.toString())
   }
 
-  /**
-   * 更新图表
-   */
+  /* *
+   * 更新图表 */
   private updateCharts(): void {
     this.updatePerformanceChart()
   }
 
-  /**
-   * 更新性能图表
-   */
+  /* *
+   * 更新性能图表 */
   private updatePerformanceChart(): void {
     const canvas = this.element.querySelector('#performance-chart') as HTMLCanvasElement
     if (!canvas) return
@@ -745,9 +725,8 @@ export class MCPDebugPanel {
     ctx.fillText(`${maxDuration.toFixed(1)}ms`, 5, padding)
   }
 
-  /**
-   * 刷新所有面板
-   */
+  /* *
+   * 刷新所有面板 */
   private refreshAllPanels(): void {
     this.refreshPerformancePanel()
     this.refreshStatesPanel()
@@ -755,9 +734,8 @@ export class MCPDebugPanel {
     this.refreshEventsPanel()
   }
 
-  /**
-   * 刷新面板数据
-   */
+  /* *
+   * 刷新面板数据 */
   private refreshPanelData(panelName: string): void {
     switch (panelName) {
       case 'performance':
@@ -775,9 +753,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 刷新性能面板
-   */
+  /* *
+   * 刷新性能面板 */
   private refreshPerformancePanel(): void {
     const metrics = getPerformanceMetrics()
     const calculationsContainer = this.element.querySelector(`[data-performance="calculations"]`)
@@ -824,9 +801,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 刷新状态面板
-   */
+  /* *
+   * 刷新状态面板 */
   private refreshStatesPanel(): void {
     const snapshot = getDebugSnapshot()
     const timeline = this.element.querySelector('[data-timeline="states"]')
@@ -870,9 +846,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 刷新错误面板
-   */
+  /* *
+   * 刷新错误面板 */
   private refreshErrorsPanel(): void {
     const snapshot = getDebugSnapshot()
     const errorsList = this.element.querySelector('[data-errors-list]')
@@ -910,9 +885,8 @@ export class MCPDebugPanel {
     this.updateErrorStat('today', todayErrors.toString())
   }
 
-  /**
-   * 刷新事件面板
-   */
+  /* *
+   * 刷新事件面板 */
   private refreshEventsPanel(): void {
     const snapshot = getDebugSnapshot()
     const eventsStream = this.element.querySelector('[data-events-stream]')
@@ -953,9 +927,8 @@ export class MCPDebugPanel {
     this.updateEventStat('calculations', calculations.toString())
   }
 
-  /**
-   * 清除所有数据
-   */
+  /* *
+   * 清除所有数据 */
   private clearAllData(): void {
     if (confirm('确定要清除所有调试数据吗？此操作不可撤销。')) {
       clearDebugData()
@@ -969,9 +942,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 导出快照
-   */
+  /* *
+   * 导出快照 */
   private exportSnapshot(): void {
     const snapshot = getDebugSnapshot()
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' })
@@ -988,9 +960,8 @@ export class MCPDebugPanel {
     this.showToast('调试快照已导出')
   }
 
-  /**
-   * 导入快照
-   */
+  /* *
+   * 导入快照 */
   private importSnapshot(): void {
     const input = document.createElement('input')
     input.type = 'file'
@@ -1023,9 +994,8 @@ export class MCPDebugPanel {
     input.click()
   }
 
-  /**
-   * 应用导入的快照数据
-   */
+  /* *
+   * 应用导入的快照数据 */
   private applyImportedSnapshot(snapshot: MCPDebugSnapshot): void {
     try {
       // 保存快照到本地存储
@@ -1058,9 +1028,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 创建快照
-   */
+  /* *
+   * 创建快照 */
   private createSnapshot(): void {
     const snapshot = getDebugSnapshot()
     const snapshots = JSON.parse(localStorage.getItem('mcp-debug-snapshots') || '[]')
@@ -1081,9 +1050,8 @@ export class MCPDebugPanel {
     this.showToast('快照已创建')
   }
 
-  /**
-   * 更新性能数据
-   */
+  /* *
+   * 更新性能数据 */
   private updatePerformanceData(data: unknown): void {
     // 添加到图表数据
     this.chartData.performance.push({
@@ -1098,9 +1066,8 @@ export class MCPDebugPanel {
     }
   }
 
-  /**
-   * 更新错误数据
-   */
+  /* *
+   * 更新错误数据 */
   private updateErrorData(_data: unknown): void {
     this.chartData.errors.push({
       timestamp: Date.now(),
@@ -1108,16 +1075,14 @@ export class MCPDebugPanel {
     })
   }
 
-  /**
-   * 更新状态数据
-   */
+  /* *
+   * 更新状态数据 */
   private updateStateData(_data: unknown): void {
     // 状态更新时可以触发相关更新
   }
 
-  /**
-   * 工具方法
-   */
+  /* *
+   * 工具方法 */
   private updateMetricValue(metric: string, value: string): void {
     const element = this.element.querySelector(`[data-metric="${metric}"]`)
     if (element) {
@@ -1183,9 +1148,8 @@ export class MCPDebugPanel {
     }, 3000)
   }
 
-  /**
-   * 销毁组件
-   */
+  /* *
+   * 销毁组件 */
   destroy(): void {
     this.stopUpdateTimer()
     if (this.element && this.element.parentNode) {
