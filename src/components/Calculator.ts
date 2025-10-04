@@ -13,14 +13,13 @@ import { Settings } from './Settings.js'
 import { AdvancedPanelManager, type AdvancedPanelResult } from './AdvancedPanels.js'
 import { ThemeManager } from '../utils/theme.js'
 import { DeviceDetector } from '../utils/device.js'
-import { invoke } from '../utils/tauri.js'
+import { invoke, TauriService } from '../utils/tauri.js'
 import { trackState, trackPerformance, trackError } from '../utils/mcp-debugger.js'
 
-class BackendCalculationError extends Error {}
-
-/* *
+/**
  * 主计算器组件
- * 协调所有子组件并管理整体状态 */
+ * 协调所有子组件并管理整体状态
+ */
 export class Calculator {
   protected container: HTMLElement
   protected state: CalculatorState
@@ -32,11 +31,6 @@ export class Calculator {
   private advancedPanels!: AdvancedPanelManager
   private gestureHandler: import('../mobile/gesture.js').CalculatorGestureHandler | null = null
   private deviceDetector: DeviceDetector
-  private boundHandleKeyboard?: (event: KeyboardEvent) => void
-  private boundHandleResize?: () => void
-  private boundHandleOrientationChange?: () => void
-  private boundOutsideClick?: (event: MouseEvent) => void
-  private boundGestureListener?: EventListener
 
   constructor(container: HTMLElement) {
     this.container = container
@@ -68,9 +62,10 @@ export class Calculator {
     }
   }
 
-  /* *
+  /**
    * 从多个数据源加载应用状态
-   * 优先级: Tauri后端 > localStorage > 默认值 */
+   * 优先级: Tauri后端 > localStorage > 默认值
+   */
   private async loadState(): Promise<void> {
     const startTime = performance.now()
 
@@ -108,8 +103,9 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 从Tauri后端加载状态 */
+  /**
+   * 从Tauri后端加载状态
+   */
   private async loadFromBackend(): Promise<{ success: boolean }> {
     if (!invoke) {
       return { success: false }
@@ -118,7 +114,7 @@ export class Calculator {
     try {
       // 并行加载设置和历史记录
       const [settingsResult, historyResult] = await Promise.allSettled([
-        invoke<AppSettings>('get_settings'),
+        TauriService.getSettings(),
         invoke<HistoryItem[]>('get_history', { limit: 100 }),
       ])
 
@@ -139,8 +135,9 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 映射后端设置到前端格式 */
+  /**
+   * 映射后端设置到前端格式
+   */
   private mapBackendSettings(backendSettings: AppSettings): void {
     const mapped = { ...this.state.settings }
 
@@ -183,8 +180,9 @@ export class Calculator {
     this.state.settings = mapped
   }
 
-  /* *
-   * 从本地存储加载状态 */
+  /**
+   * 从本地存储加载状态
+   */
   private loadFromLocalStorage(): { success: boolean } {
     try {
       const savedState = localStorage.getItem('calculator-state')
@@ -208,8 +206,9 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 验证状态结构有效性 */
+  /**
+   * 验证状态结构有效性
+   */
   private validateStateStructure(state: unknown): boolean {
     return (
       typeof state === 'object' &&
@@ -221,8 +220,9 @@ export class Calculator {
     )
   }
 
-  /* *
-   * 获取嵌套对象属性值 */
+  /**
+   * 获取嵌套对象属性值
+   */
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     return path
       .split('.')
@@ -233,8 +233,9 @@ export class Calculator {
       )
   }
 
-  /* *
-   * 初始化计算器组件 */
+  /**
+   * 初始化计算器组件
+   */
   async init(): Promise<void> {
     try {
       await this.loadState()
@@ -242,7 +243,6 @@ export class Calculator {
       await this.initializeComponents()
       this.setupEventListeners()
       await this.themeManager.setThemeMode(this.state.settings.theme)
-  this.container.setAttribute('data-theme', this.state.settings.theme)
       this.themeManager.initReduceMotion() // 初始化减少动效模式
       this.adaptToDevice()
       
@@ -428,38 +428,25 @@ export class Calculator {
 
     // 键盘快捷键
     if (this.state.settings.enableKeyboardShortcuts) {
-      if (!this.boundHandleKeyboard) {
-        this.boundHandleKeyboard = this.handleKeyboard.bind(this)
-      }
-      document.addEventListener('keydown', this.boundHandleKeyboard)
+      document.addEventListener('keydown', this.handleKeyboard.bind(this))
     }
 
     // 窗口事件
-    if (!this.boundHandleResize) {
-      this.boundHandleResize = this.handleResize.bind(this)
-    }
-    window.addEventListener('resize', this.boundHandleResize)
-
-    if (!this.boundHandleOrientationChange) {
-      this.boundHandleOrientationChange = this.handleOrientationChange.bind(this)
-    }
-    window.addEventListener('orientationchange', this.boundHandleOrientationChange)
+    window.addEventListener('resize', this.handleResize.bind(this))
+    window.addEventListener('orientationchange', this.handleOrientationChange.bind(this))
 
     // 侧边栏外部点击关闭
-    if (!this.boundOutsideClick) {
-      this.boundOutsideClick = e => {
-        const sidebar = this.container.querySelector('#sidebar')
-        const target = e.target as Element
-        if (
-          sidebar?.classList.contains('open') &&
-          !sidebar.contains(target) &&
-          !target.closest('.header-btn')
-        ) {
-          this.closeSidebar()
-        }
+    document.addEventListener('click', e => {
+      const sidebar = this.container.querySelector('#sidebar')
+      const target = e.target as Element
+      if (
+        sidebar?.classList.contains('open') &&
+        !sidebar.contains(target) &&
+        !target.closest('.header-btn')
+      ) {
+        this.closeSidebar()
       }
-    }
-    document.addEventListener('click', this.boundOutsideClick)
+    })
   }
 
   private handleInput(value: string, type: Operation): void {
@@ -497,7 +484,13 @@ export class Calculator {
   private async handleAdvancedPanelResult(result: AdvancedPanelResult): Promise<void> {
     this.state.errorMessage = null
 
-    this.state.expression = ''
+    if (result.history?.expression) {
+      this.state.expression = result.history.expression
+    } else if (result.expression) {
+      this.state.expression = result.expression
+    } else {
+      this.state.expression = ''
+    }
 
     if (result.result) {
       this.state.result = result.result
@@ -766,14 +759,10 @@ export class Calculator {
 
       if (result.success && result.result) {
         return result.result
+      } else {
+        throw new Error(result.error || '计算失败')
       }
-
-      throw new BackendCalculationError(result.error || '计算失败')
     } catch (error) {
-      if (error instanceof BackendCalculationError) {
-        throw error
-      }
-
       // 如果 Tauri 调用失败，回退到 JavaScript 计算（开发模式）
       console.warn('Tauri 调用失败，使用回退计算:', error)
       const { evaluateExpressionSafe } = await import('../utils/evaluator')
@@ -853,11 +842,10 @@ export class Calculator {
     } = {}
   ): Promise<void> {
     const { tags, notes, metadata, persist, source } = options
-    const shouldPersist = persist ?? true
 
     let historyItem: HistoryItem | null = null
 
-    if (shouldPersist) {
+    if (persist) {
       try {
         historyItem = await invoke<HistoryItem>('record_history_entry', {
           expression,
@@ -866,7 +854,6 @@ export class Calculator {
           notes,
           metadata,
           source,
-          persist: shouldPersist,
         })
       } catch (error) {
         console.warn('持久化历史记录失败，退回本地缓存:', error)
@@ -902,7 +889,7 @@ export class Calculator {
 
     this.pushHistoryItem(historyItem)
 
-    if (!shouldPersist && this.state.history.length % 10 === 0) {
+    if (!persist && this.state.history.length % 10 === 0) {
       try {
         const backendHistory = await invoke<HistoryItem[]>('get_history', { limit: 100 })
         if (Array.isArray(backendHistory) && backendHistory.length) {
@@ -1020,7 +1007,7 @@ export class Calculator {
   }
 
   private async toggleTheme(): Promise<void> {
-    const themes: ThemeMode[] = ['dark', 'light', 'high-contrast', 'auto']
+    const themes: ThemeMode[] = ['light', 'dark', 'auto']
     const currentThemeMode = this.state.settings.theme
     const currentIndex = themes.indexOf(currentThemeMode)
     const nextIndex = (currentIndex + 1 + themes.length) % themes.length
@@ -1028,9 +1015,9 @@ export class Calculator {
 
     this.state.settings.theme = nextTheme
     await this.themeManager.setThemeMode(nextTheme)
-    this.container.setAttribute('data-theme', nextTheme)
-    await this.themeManager.getCurrentTheme()
-    this.setStatus(`已切换到${this.getThemeLabel(nextTheme)}主题`)
+    const resolvedTheme = await this.themeManager.getCurrentTheme()
+    this.container.setAttribute('data-theme', resolvedTheme.name)
+    this.setStatus(`已切换到${this.getThemeLabel(resolvedTheme.name)}主题`)
   }
 
   private handleHistorySelect(item: HistoryItem): void {
@@ -1079,8 +1066,7 @@ export class Calculator {
     })
     this.history.updateTheme(currentTheme)
     this.settings.updateTheme(currentTheme)
-  const themeAttribute = this.state.settings.theme ?? currentTheme.name
-  this.container.setAttribute('data-theme', themeAttribute)
+    this.container.setAttribute('data-theme', currentTheme.name)
 
     this.adaptToDevice()
     this.updateStatusBar()
@@ -1114,23 +1100,19 @@ export class Calculator {
     })
   }
 
-  /* *
-   * 初始化移动端专属功能 */
+  /**
+   * 初始化移动端专属功能
+   */
   private async initMobileFeatures(): Promise<void> {
     try {
       // 初始化手势操作
       const { CalculatorGestureHandler } = await import('../mobile/gesture.js')
       this.gestureHandler = new CalculatorGestureHandler(this.container)
-
-      if (!this.boundGestureListener) {
-        this.boundGestureListener = ((event: Event) => {
-          const custom = event as CustomEvent
-          this.handleGestureAction(custom.detail)
-        }) as EventListener
-      }
-
+      
       // 监听手势事件
-      this.container.addEventListener('calculatorGesture', this.boundGestureListener)
+      this.container.addEventListener('calculatorGesture', ((event: CustomEvent) => {
+        this.handleGestureAction(event.detail)
+      }) as EventListener)
       
       console.log('✅ 手势操作已启用')
     } catch (error) {
@@ -1138,8 +1120,9 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 处理手势动作 */
+  /**
+   * 处理手势动作
+   */
   private handleGestureAction(detail: { action: string; direction?: string; suggestion: string }): void {
     const { action, suggestion } = detail
 
@@ -1161,8 +1144,9 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 处理滑动手势 */
+  /**
+   * 处理滑动手势
+   */
   private handleSwipeGesture(suggestion: string): void {
     switch (suggestion) {
       case 'deleteLastDigit':
@@ -1188,8 +1172,9 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 处理长按手势 */
+  /**
+   * 处理长按手势
+   */
   private handleLongPressGesture(suggestion: string): void {
     switch (suggestion) {
       case 'editExpression':
@@ -1203,15 +1188,17 @@ export class Calculator {
     }
   }
 
-  /* *
-   * 处理缩放手势 */
+  /**
+   * 处理缩放手势
+   */
   private handlePinchGesture(suggestion: string): void {
     // TODO: 实现缩放功能
     console.log('缩放:', suggestion)
   }
 
-  /* *
-   * 复制结果到剪贴板 */
+  /**
+   * 复制结果到剪贴板
+   */
   private copyResultToClipboard(): void {
     const result = this.state.result
     navigator.clipboard.writeText(result).then(() => {
@@ -1225,8 +1212,9 @@ export class Calculator {
   }
 
 
-  /* *
-   * 显示Toast提示 */
+  /**
+   * 显示Toast提示
+   */
   private showToast(message: string): void {
     const toast = document.createElement('div')
     toast.className = 'toast-message'
@@ -1316,27 +1304,11 @@ export class Calculator {
     // 清理移动端功能
     if (this.gestureHandler) {
       this.gestureHandler.destroy()
+      this.gestureHandler = null
     }
 
-    if (this.boundHandleKeyboard) {
-      document.removeEventListener('keydown', this.boundHandleKeyboard)
-      this.boundHandleKeyboard = undefined
-    }
-    if (this.boundHandleResize) {
-      window.removeEventListener('resize', this.boundHandleResize)
-      this.boundHandleResize = undefined
-    }
-    if (this.boundHandleOrientationChange) {
-      window.removeEventListener('orientationchange', this.boundHandleOrientationChange)
-      this.boundHandleOrientationChange = undefined
-    }
-    if (this.boundOutsideClick) {
-      document.removeEventListener('click', this.boundOutsideClick)
-      this.boundOutsideClick = undefined
-    }
-    if (this.boundGestureListener) {
-      this.container.removeEventListener('calculatorGesture', this.boundGestureListener)
-      this.boundGestureListener = undefined
-    }
+    document.removeEventListener('keydown', this.handleKeyboard.bind(this))
+    window.removeEventListener('resize', this.handleResize.bind(this))
+    window.removeEventListener('orientationchange', this.handleOrientationChange.bind(this))
   }
 }
