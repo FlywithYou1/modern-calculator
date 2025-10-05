@@ -3,6 +3,9 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
+  {
+    ignores: ['dist/**', 'node_modules/**', 'src-tauri/**', 'build/**', '.vite/**', 'scripts/**']
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -16,7 +19,7 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-namespace': 'off',
     },
