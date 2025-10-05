@@ -1,5 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const rootDir = fileURLToPath(new URL('.', import.meta.url))
+const resolveFromRoot = (relativePath: string) => resolve(rootDir, relativePath)
 
 export default defineConfig({
   test: {
@@ -7,16 +11,20 @@ export default defineConfig({
     globals: true,
     setupFiles: ['src/tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
-    exclude: ['node_modules', 'dist', 'src-tauri'],
+    exclude: [
+      'node_modules',
+      'dist',
+      'src-tauri',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
-        'node_modules/',
-        'src/tests/',
+        'node_modules/**/*',
+        'src/tests/**/*',
         '**/*.d.ts',
         '**/*.config.*',
-        'dist/',
+        'dist/**/*',
       ],
     },
     testTimeout: 10000,
@@ -27,14 +35,14 @@ export default defineConfig({
     'import.meta.vitest': undefined,
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-      '@/components': resolve(__dirname, 'src/components'),
-      '@/styles': resolve(__dirname, 'src/styles'),
-      '@/utils': resolve(__dirname, 'src/utils'),
-      '@/types': resolve(__dirname, 'src/types'),
-      '@/mobile': resolve(__dirname, 'src/mobile'),
-      '@/tests': resolve(__dirname, 'src/tests'),
-    },
+    alias: [
+      { find: '@/components', replacement: resolveFromRoot('src/components') },
+      { find: '@/styles', replacement: resolveFromRoot('src/styles') },
+      { find: '@/utils', replacement: resolveFromRoot('src/utils') },
+      { find: '@/types', replacement: resolveFromRoot('src/types') },
+      { find: '@/mobile', replacement: resolveFromRoot('src/mobile') },
+      { find: '@/tests', replacement: resolveFromRoot('src/tests') },
+      { find: '@', replacement: resolveFromRoot('src') },
+    ],
   },
 })

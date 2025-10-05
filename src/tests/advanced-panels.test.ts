@@ -6,7 +6,7 @@ import {
   mapUnitCategoryLabel,
   parseMatrixInput,
   parseNumberList,
-} from '../components/AdvancedPanels'
+} from '@/components/AdvancedPanels'
 
 describe('Advanced panel helpers', () => {
   describe('parseMatrixInput', () => {

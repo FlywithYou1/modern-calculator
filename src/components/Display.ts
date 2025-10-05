@@ -2,7 +2,7 @@
  * 计算器显示屏组件
  * 负责显示表达式和计算结果，支持动画效果和多种显示模式 */
 
-import type { Theme, DisplayConfig } from '../types/calculator.js'
+import type { Theme, DisplayConfig } from '@/types/calculator'
 
 interface DisplayState {
   expression: string

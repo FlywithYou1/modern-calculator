@@ -2,8 +2,8 @@
  * 主题管理器测试 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { ThemeManager } from '../utils/theme'
-import type { Theme } from '../types/calculator'
+import { ThemeManager } from '@/utils/theme'
+import type { Theme } from '@/types/calculator'
 
 // Mock localStorage
 const localStorageMock = (() => {

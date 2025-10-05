@@ -7,7 +7,7 @@ import {
   getDebugSnapshot, 
   clearDebugData, 
   getPerformanceMetrics
-} from '../utils/mcp-debugger'
+} from '@/utils/mcp-debugger'
 
 describe('MCP Debugger', () => {
   beforeEach(() => {

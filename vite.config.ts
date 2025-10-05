@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,12 +14,12 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
-    outDir: "dist",
+    outDir: './dist',
     sourcemap: true,
     minify: 'esbuild',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
+        main: './index.html',
       },
       output: {
         manualChunks: {
@@ -30,15 +29,15 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-      '@/components': resolve(__dirname, 'src/components'),
-      '@/styles': resolve(__dirname, 'src/styles'),
-      '@/utils': resolve(__dirname, 'src/utils'),
-      '@/types': resolve(__dirname, 'src/types'),
-      '@/mobile': resolve(__dirname, 'src/mobile'),
-      '@/tests': resolve(__dirname, 'src/tests'),
-    },
+    alias: [
+      { find: '@/components', replacement: './src/components' },
+      { find: '@/styles', replacement: './src/styles' },
+      { find: '@/utils', replacement: './src/utils' },
+      { find: '@/types', replacement: './src/types' },
+      { find: '@/mobile', replacement: './src/mobile' },
+      { find: '@/tests', replacement: './src/tests' },
+      { find: '@', replacement: './src' },
+    ],
   },
   css: {
     preprocessorOptions: {

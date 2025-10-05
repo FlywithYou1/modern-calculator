@@ -2,8 +2,8 @@
  * 计算器历史记录组件
  * 负责显示、搜索和管理计算历史，支持导入导出和统计功能 */
 
-import type { Theme, HistoryItem, HistoryConfig, HistoryStats } from '../types/calculator.js'
-import { TauriService } from '../utils/tauri.js'
+import type { Theme, HistoryItem, HistoryConfig, HistoryStats } from '@/types/calculator'
+import { TauriService } from '@/utils/tauri'
 
 export class History {
   private element: HTMLElement

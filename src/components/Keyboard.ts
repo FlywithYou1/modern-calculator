@@ -1,4 +1,4 @@
-import type { KeyboardConfig, Operation, Theme } from '../types/calculator.js'
+import type { KeyboardConfig, Operation, Theme } from '@/types/calculator'
 
 interface AdvancedButtonConfig {
   id: string

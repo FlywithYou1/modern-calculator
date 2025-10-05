@@ -3,14 +3,14 @@
  * 覆盖计算器的核心功能和交互 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { Calculator } from '../components/Calculator.js'
+import { Calculator } from '@/components/Calculator'
 
 // 模拟依赖
-vi.mock('../utils/tauri.js', () => ({
+vi.mock('@/utils/tauri', () => ({
   invoke: vi.fn(),
 }))
 
-vi.mock('../utils/theme.js', () => ({
+vi.mock('@/utils/theme', () => ({
   ThemeManager: vi.fn().mockImplementation(() => ({
     setThemeMode: vi.fn().mockResolvedValue(undefined),
     getCurrentTheme: vi.fn().mockResolvedValue({
@@ -22,7 +22,7 @@ vi.mock('../utils/theme.js', () => ({
   })),
 }))
 
-vi.mock('../utils/device.js', () => ({
+vi.mock('@/utils/device', () => ({
   DeviceDetector: vi.fn().mockImplementation(() => ({
     getDeviceType: vi.fn().mockReturnValue('desktop'),
     getOrientation: vi.fn().mockReturnValue('landscape'),
@@ -31,14 +31,14 @@ vi.mock('../utils/device.js', () => ({
   })),
 }))
 
-vi.mock('../utils/mcp-debugger.js', () => ({
+vi.mock('@/utils/mcp-debugger', () => ({
   trackState: vi.fn(),
   trackPerformance: vi.fn(),
   trackError: vi.fn(),
 }))
 
 // 模拟子组件
-vi.mock('../components/Display.js', () => ({
+vi.mock('@/components/Display.js', () => ({
   Display: vi.fn().mockImplementation(() => ({
     init: vi.fn().mockResolvedValue(undefined),
     update: vi.fn(),
@@ -48,7 +48,7 @@ vi.mock('../components/Display.js', () => ({
   })),
 }))
 
-vi.mock('../components/Keyboard.js', () => ({
+vi.mock('@/components/Keyboard.js', () => ({
   AdvancedKeyboard: vi.fn().mockImplementation(() => ({
     updateConfig: vi.fn(),
     updateTheme: vi.fn(),
@@ -57,7 +57,7 @@ vi.mock('../components/Keyboard.js', () => ({
   })),
 }))
 
-vi.mock('../components/History.js', () => ({
+vi.mock('@/components/History', () => ({
   History: vi.fn().mockImplementation(() => ({
     init: vi.fn().mockResolvedValue(undefined),
     setHistory: vi.fn(),
@@ -69,7 +69,7 @@ vi.mock('../components/History.js', () => ({
   })),
 }))
 
-vi.mock('../components/Settings.js', () => ({
+vi.mock('@/components/Settings', () => ({
   Settings: vi.fn().mockImplementation(() => ({
     init: vi.fn().mockResolvedValue(undefined),
     onSettingsChanged: vi.fn(),
@@ -80,7 +80,7 @@ vi.mock('../components/Settings.js', () => ({
   })),
 }))
 
-vi.mock('../components/AdvancedPanels.js', () => ({
+vi.mock('@/components/AdvancedPanels.js', () => ({
   AdvancedPanelManager: vi.fn().mockImplementation(() => ({
     open: vi.fn(),
     destroy: vi.fn(),
@@ -88,7 +88,7 @@ vi.mock('../components/AdvancedPanels.js', () => ({
 }))
 
 // 模拟移动端功能
-vi.mock('../mobile/gesture.js', () => ({
+vi.mock('@/mobile/gesture', () => ({
   CalculatorGestureHandler: vi.fn().mockImplementation(() => ({
     destroy: vi.fn(),
   })),
@@ -138,7 +138,7 @@ describe('Calculator', () => {
     })
 
     it('应该加载设置和历史记录', async () => {
-      const { invoke } = await import('../utils/tauri.js')
+      const { invoke } = await import('@/utils/tauri')
       
       // 模拟成功的后端响应
       ;(invoke as any).mockResolvedValueOnce({
@@ -221,7 +221,7 @@ describe('Calculator', () => {
     })
 
     it('应该正确执行基本计算', async () => {
-      const { invoke } = await import('../utils/tauri.js')
+      const { invoke } = await import('@/utils/tauri')
       const calc = calculator as any
       
       // 模拟成功的计算结果
@@ -242,7 +242,7 @@ describe('Calculator', () => {
     })
 
     it('应该处理计算错误', async () => {
-      const { invoke } = await import('../utils/tauri.js')
+      const { invoke } = await import('@/utils/tauri')
       const calc = calculator as any
       
       // 模拟计算失败
@@ -318,7 +318,7 @@ describe('Calculator', () => {
     })
 
     it('应该正确添加历史记录', async () => {
-      const { invoke } = await import('../utils/tauri.js')
+      const { invoke } = await import('@/utils/tauri')
       const calc = calculator as any
       
       // 模拟成功的历史记录保存
@@ -558,7 +558,7 @@ describe('Calculator', () => {
     })
 
     it('应该在移动设备上初始化移动端功能', async () => {
-      const { DeviceDetector } = await import('../utils/device.js')
+      const { DeviceDetector } = await import('@/utils/device')
       const calc = calculator as any
       
       // 模拟移动设备
@@ -645,7 +645,7 @@ describe('Calculator', () => {
     })
 
     it('应该正确处理无效的表达式', async () => {
-      const { invoke } = await import('../utils/tauri.js')
+      const { invoke } = await import('@/utils/tauri')
       const calc = calculator as any
       
       // 模拟计算错误
@@ -708,7 +708,7 @@ describe('Calculator', () => {
     })
 
     it('应该正确跟踪性能指标', async () => {
-      const { trackPerformance } = await import('../utils/mcp-debugger.js')
+      const { trackPerformance } = await import('@/utils/mcp-debugger')
       
       const mockData = {
         operation: 'test-operation',
@@ -721,7 +721,7 @@ describe('Calculator', () => {
     })
 
     it('应该正确跟踪状态变化', async () => {
-      const { trackState } = await import('../utils/mcp-debugger.js')
+      const { trackState } = await import('@/utils/mcp-debugger')
       
       const mockState = {
         expression: '5 + 3',
@@ -735,7 +735,7 @@ describe('Calculator', () => {
     })
 
     it('应该正确跟踪错误', async () => {
-      const { trackError } = await import('../utils/mcp-debugger.js')
+      const { trackError } = await import('@/utils/mcp-debugger')
       
       const mockError = {
         type: 'TestError',
@@ -758,10 +758,10 @@ describe('Calculator', () => {
       calculator.destroy()
 
       // 验证子组件的销毁方法被调用
-      const { Display } = await import('../components/Display.js')
-      const { AdvancedKeyboard } = await import('../components/Keyboard.js')
-      const { History } = await import('../components/History.js')
-      const { Settings } = await import('../components/Settings.js')
+      const { Display } = await import('@/components/Display.js')
+      const { AdvancedKeyboard } = await import('@/components/Keyboard.js')
+      const { History } = await import('@/components/History')
+      const { Settings } = await import('@/components/Settings')
 
       expect(Display).toHaveBeenCalled()
       expect(AdvancedKeyboard).toHaveBeenCalled()

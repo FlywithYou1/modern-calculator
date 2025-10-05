@@ -2,7 +2,7 @@
  * 设备检测工具类
  * 用于检测当前设备类型和特性，以提供最佳的用户体验 */
 
-import type { DeviceType } from '../types/calculator'
+import type { DeviceType } from '@/types/calculator'
 
 export class DeviceDetector {
   private _deviceType: DeviceType | null = null

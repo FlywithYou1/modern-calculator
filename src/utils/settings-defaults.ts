@@ -1,7 +1,7 @@
 /* *
  * 应用设置默认值 */
 
-import type { AppSettings } from '../types/calculator.js'
+import type { AppSettings } from '@/types/calculator'
 
 export function createDefaultAppSettings(): AppSettings {
   return {

@@ -3,7 +3,7 @@
  * 覆盖设置面板的所有功能和交互 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { Settings } from '../components/Settings.js'
+import { Settings } from '@/components/Settings'
 
 describe('Settings', () => {
   let container: HTMLElement

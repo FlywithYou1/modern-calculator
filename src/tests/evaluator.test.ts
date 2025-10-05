@@ -3,7 +3,7 @@
  * 覆盖表达式计算、解析和验证的所有功能 */
 
 import { describe, it, expect } from 'vitest'
-import { evaluateExpressionSafe } from '../utils/evaluator.js'
+import { evaluateExpressionSafe } from '@/utils/evaluator'
 
 describe('evaluateExpressionSafe', () => {
   it('should evaluate basic arithmetic', () => {

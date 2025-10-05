@@ -2,7 +2,7 @@
  * 主题管理器
  * 负责管理应用的主题系统，支持浅色/深色模式和自定义主题 */
 
-import type { Theme, ThemeMode, ColorPalette } from '../types/calculator'
+import type { Theme, ThemeMode, ColorPalette } from '@/types/calculator'
 
 export class ThemeManager {
   private currentTheme: Theme

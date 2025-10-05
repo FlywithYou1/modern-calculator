@@ -6,6 +6,7 @@
 import { performance } from 'perf_hooks'
 import path from 'path'
 import { readFileSync, writeFileSync } from 'fs'
+import { pathUtils } from './path-utils.js'
 
 /* *
  * 性能测试套件 */
@@ -331,7 +332,7 @@ class PerformanceBenchmark {
     
     const report = {
       timestamp: new Date().toISOString(),
-      version: JSON.parse(readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), '../package.json'), 'utf-8')).version,
+      version: JSON.parse(readFileSync(pathUtils.resolveFromRoot('package.json'), 'utf-8')).version,
       platform: process.platform,
       nodeVersion: process.version,
       results: this.results,

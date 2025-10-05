@@ -3,7 +3,7 @@
  * 提供类型安全的前端与后端通信接口 */
 
 import { invoke } from '@tauri-apps/api/core'
-import type { AppSettings, HistoryItem } from '../types/calculator'
+import type { AppSettings, HistoryItem } from '@/types/calculator'
 import { createDefaultAppSettings } from './settings-defaults.js'
 
 // 与后端保持一致的结果类型

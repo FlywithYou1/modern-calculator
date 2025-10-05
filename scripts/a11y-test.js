@@ -5,14 +5,15 @@
 
 import fs from 'fs'
 import path from 'path'
+import { pathUtils } from './path-utils.js'
 
 /* *
  * 无障碍测试套件 */
-class AccessibilityTester {
+export class AccessibilityTester {
   constructor() {
     this.testResults = []
-    this.srcDir = path.join(__dirname, '../src')
-    this.distDir = path.join(__dirname, '../dist')
+    this.srcDir = pathUtils.getSrcDir()
+    this.distDir = pathUtils.getDistDir()
   }
 
   /* *
@@ -307,7 +308,7 @@ class AccessibilityTester {
    * 检查文件是否包含指定内容 */
   checkFileContains(filename, content) {
     try {
-      const filePath = path.join(__dirname, '..', filename)
+      const filePath = pathUtils.resolveFromRoot(filename)
       if (fs.existsSync(filePath)) {
         const fileContent = fs.readFileSync(filePath, 'utf-8')
         return fileContent.includes(content)
@@ -506,7 +507,9 @@ class AccessibilityTester {
     
     const report = {
       timestamp: new Date().toISOString(),
-      version: JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), '../package.json'), 'utf-8')).version,
+      version: JSON.parse(fs.readFileSync(pathUtils.resolveFromRoot('package.json'), 'utf-8')).version,
+      platform: process.platform,
+      nodeVersion: process.version,
       summary,
       details: this.testResults,
     }

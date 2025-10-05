@@ -2,7 +2,7 @@
  * 设备检测工具测试 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { DeviceDetector } from '../utils/device'
+import { DeviceDetector } from '@/utils/device'
 
 // Mock Tauri API if needed
 vi.mock('@tauri-apps/api/core', () => ({

@@ -7,6 +7,14 @@ const { spawn } = require('child_process')
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
+const { pathUtils } = require('./path-utils.cjs')
+
+const projectRoot = process.cwd()
+const tempTestDir = path.join(projectRoot, 'temp-tests')
+
+if (!fs.existsSync(tempTestDir)) {
+  fs.mkdirSync(tempTestDir, { recursive: true })
+}
 
 /* *
  * 跨平台测试套件 */
@@ -330,7 +338,7 @@ class CrossPlatformTester {
    * 验证package.json */
   async validatePackageJson() {
     try {
-      const packagePath = path.join(__dirname, '../package.json')
+      const packagePath = pathUtils.resolveFromRoot('package.json')
       const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
       
       const requiredFields = ['name', 'version', 'scripts', 'dependencies']
@@ -354,7 +362,7 @@ class CrossPlatformTester {
    * 测试依赖安装 */
   async testDependencyInstallation() {
     try {
-      const nodeModulesPath = path.join(__dirname, '../node_modules')
+      const nodeModulesPath = pathUtils.resolveFromRoot('node_modules')
       const exists = fs.existsSync(nodeModulesPath)
       
       if (!exists) {
@@ -393,8 +401,8 @@ class CrossPlatformTester {
    * 检查Tauri依赖 */
   async checkTauriDependencies() {
     try {
-      const tauriConfigPath = path.join(__dirname, '../src-tauri/tauri.conf.json')
-      const cargoPath = path.join(__dirname, '../src-tauri/Cargo.toml')
+      const tauriConfigPath = pathUtils.resolveFromRoot('src-tauri/tauri.conf.json')
+      const cargoPath = pathUtils.resolveFromRoot('src-tauri/Cargo.toml')
       
       const tauriExists = fs.existsSync(tauriConfigPath)
       const cargoExists = fs.existsSync(cargoPath)
@@ -417,7 +425,7 @@ class CrossPlatformTester {
    * 检查TypeScript配置 */
   async checkTypeScriptConfig() {
     try {
-      const tsconfigPath = path.join(__dirname, '../tsconfig.json')
+      const tsconfigPath = pathUtils.resolveFromRoot('tsconfig.json')
       const exists = fs.existsSync(tsconfigPath)
       
       if (!exists) {
@@ -560,7 +568,7 @@ class CrossPlatformTester {
   async testRustCompilation() {
     try {
       const result = await this.runCommand('cargo', ['check'], { 
-        cwd: path.join(__dirname, '../src-tauri'),
+        cwd: pathUtils.getTauriDir(),
         timeout: 120000 
       })
       return {
@@ -582,7 +590,7 @@ class CrossPlatformTester {
   async testCargoTests() {
     try {
       const result = await this.runCommand('cargo', ['test'], { 
-        cwd: path.join(__dirname, '../src-tauri'),
+        cwd: pathUtils.getTauriDir(),
         timeout: 180000 
       })
       return {
@@ -607,7 +615,7 @@ class CrossPlatformTester {
       const results = []
       
       for (const config of configs) {
-        const configPath = path.join(__dirname, '..', config)
+        const configPath = pathUtils.resolveFromRoot(config)
         if (fs.existsSync(configPath)) {
           try {
             JSON.parse(fs.readFileSync(configPath, 'utf-8'))
@@ -656,7 +664,7 @@ class CrossPlatformTester {
    * 测试文件权限 */
   async testFilePermissions() {
     try {
-      const testFile = path.join(__dirname, '../test-permission.tmp')
+  const testFile = path.join(tempTestDir, 'test-permission.tmp')
       fs.writeFileSync(testFile, 'test')
       
       const stats = fs.statSync(testFile)
@@ -683,8 +691,8 @@ class CrossPlatformTester {
    * 测试长文件名支持 */
   async testLongFilenames() {
     try {
-      const longName = 'a'.repeat(100) + '.tmp'
-      const testFile = path.join(__dirname, longName)
+  const longName = 'a'.repeat(100) + '.tmp'
+  const testFile = path.join(tempTestDir, longName)
       
       fs.writeFileSync(testFile, 'test')
       const exists = fs.existsSync(testFile)
@@ -713,7 +721,7 @@ class CrossPlatformTester {
       
       for (const name of specialChars) {
         try {
-          const testFile = path.join(__dirname, `${name}.tmp`)
+          const testFile = path.join(tempTestDir, `${name}.tmp`)
           fs.writeFileSync(testFile, 'test')
           if (fs.existsSync(testFile)) {
             supported++
@@ -740,7 +748,7 @@ class CrossPlatformTester {
    * 查找文件 */
   findFiles(dir, ext) {
     const files = []
-    const fullDir = path.join(__dirname, dir)
+    const fullDir = pathUtils.resolveFromRoot(dir)
     
     const scan = (directory) => {
       try {
@@ -768,7 +776,7 @@ class CrossPlatformTester {
    * 运行命令 */
   runCommand(command, args = [], options = {}) {
     return new Promise((resolve, reject) => {
-      const { timeout = 10000, cwd = __dirname } = options
+  const { timeout = 10000, cwd = projectRoot } = options
       
       const child = spawn(command, args, {
         cwd,

@@ -2,9 +2,9 @@
  * 计算器设置面板组件
  * 提供主题切换、精度设置、功能配置等选项，支持导入导出和实时预览 */
 
-import type { AppSettings, Theme } from '../types/calculator.js'
-import { TauriService } from '../utils/tauri.js'
-import { createDefaultAppSettings } from '../utils/settings-defaults.js'
+import type { AppSettings, Theme } from '@/types/calculator'
+import { TauriService } from '@/utils/tauri'
+import { createDefaultAppSettings } from '@/utils/settings-defaults'
 
 export class Settings {
   private element: HTMLElement

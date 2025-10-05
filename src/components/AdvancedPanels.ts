@@ -1,4 +1,4 @@
-import { invoke } from '../utils/tauri.js'
+import { invoke } from '@/utils/tauri'
 
 export type AdvancedPanelType =
   | 'matrix'

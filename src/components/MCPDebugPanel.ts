@@ -2,8 +2,8 @@
  * MCP 调试面板组件
  * 提供实时性能监控、状态可视化、错误分析和调试快照管理 */
 
-import { mcpDebugger, getDebugSnapshot, clearDebugData, getPerformanceMetrics } from '../utils/mcp-debugger.js'
-import type { MCPDebugSnapshot } from '../utils/mcp-debugger.js'
+import { mcpDebugger, getDebugSnapshot, clearDebugData, getPerformanceMetrics } from '@/utils/mcp-debugger'
+import type { MCPDebugSnapshot } from '@/utils/mcp-debugger'
 
 export interface MCPDebugPanelConfig {
   updateInterval?: number

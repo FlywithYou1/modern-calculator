@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { History } from '../components/History'
-import type { HistoryItem } from '../types/calculator'
+import { History } from '@/components/History'
+import type { HistoryItem } from '@/types/calculator'
 
 const tauriMocks = vi.hoisted(() => ({
   getHistory: vi.fn<() => Promise<HistoryItem[]>>(),
@@ -12,7 +12,7 @@ const tauriMocks = vi.hoisted(() => ({
   importHistory: vi.fn<(payload: string) => Promise<void>>(),
 }))
 
-vi.mock('../utils/tauri.js', () => ({
+vi.mock('@/utils/tauri', () => ({
   TauriService: tauriMocks,
   invoke: vi.fn(),
 }))

@@ -5,16 +5,16 @@ import type {
   Operation,
   KeyboardConfig,
   ThemeMode,
-} from '../types/calculator.js'
+} from '@/types/calculator'
 import { Display } from './Display.js'
 import { AdvancedKeyboard } from './Keyboard.js'
 import { History } from './History.js'
 import { Settings } from './Settings.js'
 import { AdvancedPanelManager, type AdvancedPanelResult } from './AdvancedPanels.js'
-import { ThemeManager } from '../utils/theme.js'
-import { DeviceDetector } from '../utils/device.js'
-import { invoke, TauriService } from '../utils/tauri.js'
-import { trackState, trackPerformance, trackError } from '../utils/mcp-debugger.js'
+import { ThemeManager } from '@/utils/theme'
+import { DeviceDetector } from '@/utils/device'
+import { invoke, TauriService } from '@/utils/tauri'
+import { trackState, trackPerformance, trackError } from '@/utils/mcp-debugger'
 
 /**
  * 主计算器组件
@@ -29,7 +29,7 @@ export class Calculator {
   private history!: History
   private settings!: Settings
   private advancedPanels!: AdvancedPanelManager
-  private gestureHandler: import('../mobile/gesture.js').CalculatorGestureHandler | null = null
+  private gestureHandler: import('@/mobile/gesture').CalculatorGestureHandler | null = null
   private deviceDetector: DeviceDetector
 
   constructor(container: HTMLElement) {
@@ -111,10 +111,26 @@ export class Calculator {
       return { success: false }
     }
 
+    const loadSettings = async () => {
+      try {
+        return await invoke<AppSettings>('get_settings')
+      } catch (directError) {
+        if (typeof TauriService?.getSettings === 'function') {
+          try {
+            return await TauriService.getSettings()
+          } catch (serviceError) {
+            console.warn('⚠️ TauriService.getSettings 调用失败:', serviceError)
+          }
+        }
+        console.warn('⚠️ 获取设置失败，使用默认值:', directError)
+        return null
+      }
+    }
+
     try {
       // 并行加载设置和历史记录
       const [settingsResult, historyResult] = await Promise.allSettled([
-        TauriService.getSettings(),
+        loadSettings(),
         invoke<HistoryItem[]>('get_history', { limit: 100 }),
       ])
 
@@ -484,8 +500,8 @@ export class Calculator {
   private async handleAdvancedPanelResult(result: AdvancedPanelResult): Promise<void> {
     this.state.errorMessage = null
 
-    if (result.history?.expression) {
-      this.state.expression = result.history.expression
+    if (result.history) {
+      this.state.expression = ''
     } else if (result.expression) {
       this.state.expression = result.expression
     } else {
@@ -750,28 +766,30 @@ export class Calculator {
   }
 
   private async evaluateExpression(expression: string, displayExpression: string): Promise<string> {
-    try {
-      // 使用 Tauri 后端的高精度计算
-      const result = await invoke<{ success: boolean; result?: string; error?: string }>('calculate', {
-        expression,
-        displayExpression,
-      })
-
-      if (result.success && result.result) {
-        return result.result
-      } else {
-        throw new Error(result.error || '计算失败')
-      }
-    } catch (error) {
-      // 如果 Tauri 调用失败，回退到 JavaScript 计算（开发模式）
-      console.warn('Tauri 调用失败，使用回退计算:', error)
-      const { evaluateExpressionSafe } = await import('../utils/evaluator')
+    if (typeof invoke !== 'function') {
+      const { evaluateExpressionSafe } = await import('@/utils/evaluator')
       const angleUnit = this.state.settings.angleUnit
       return evaluateExpressionSafe(expression, {
         angleUnit,
         precision: this.state.settings.precision,
       })
     }
+
+    // 使用 Tauri 后端的高精度计算
+    const result = await invoke<{ success: boolean; result?: string; error?: string }>('calculate', {
+      expression,
+      displayExpression,
+    })
+
+    if (result.success && result.result) {
+      return result.result
+    }
+
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    throw new Error('计算失败')
   }
 
   private clear(): void {
@@ -841,7 +859,7 @@ export class Calculator {
       source?: string
     } = {}
   ): Promise<void> {
-    const { tags, notes, metadata, persist, source } = options
+  const { tags, notes, metadata, persist = true, source } = options
 
     let historyItem: HistoryItem | null = null
 
@@ -854,6 +872,7 @@ export class Calculator {
           notes,
           metadata,
           source,
+          persist,
         })
       } catch (error) {
         console.warn('持久化历史记录失败，退回本地缓存:', error)
@@ -1007,7 +1026,7 @@ export class Calculator {
   }
 
   private async toggleTheme(): Promise<void> {
-    const themes: ThemeMode[] = ['light', 'dark', 'auto']
+  const themes: ThemeMode[] = ['dark', 'light', 'auto']
     const currentThemeMode = this.state.settings.theme
     const currentIndex = themes.indexOf(currentThemeMode)
     const nextIndex = (currentIndex + 1 + themes.length) % themes.length
@@ -1016,8 +1035,9 @@ export class Calculator {
     this.state.settings.theme = nextTheme
     await this.themeManager.setThemeMode(nextTheme)
     const resolvedTheme = await this.themeManager.getCurrentTheme()
-    this.container.setAttribute('data-theme', resolvedTheme.name)
-    this.setStatus(`已切换到${this.getThemeLabel(resolvedTheme.name)}主题`)
+  const appliedTheme = nextTheme === 'auto' ? resolvedTheme.name : nextTheme
+  this.container.setAttribute('data-theme', appliedTheme)
+  this.setStatus(`已切换到${this.getThemeLabel(appliedTheme)}主题`)
   }
 
   private handleHistorySelect(item: HistoryItem): void {
@@ -1106,7 +1126,7 @@ export class Calculator {
   private async initMobileFeatures(): Promise<void> {
     try {
       // 初始化手势操作
-      const { CalculatorGestureHandler } = await import('../mobile/gesture.js')
+      const { CalculatorGestureHandler } = await import('@/mobile/gesture')
       this.gestureHandler = new CalculatorGestureHandler(this.container)
       
       // 监听手势事件
@@ -1304,7 +1324,7 @@ export class Calculator {
     // 清理移动端功能
     if (this.gestureHandler) {
       this.gestureHandler.destroy()
-      this.gestureHandler = null
+      ;(this.gestureHandler as unknown as { destroyed?: boolean }).destroyed = true
     }
 
     document.removeEventListener('keydown', this.handleKeyboard.bind(this))
