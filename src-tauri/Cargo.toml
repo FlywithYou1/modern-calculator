@@ -5,6 +5,7 @@ description = "现代化跨平台科学计算器 - 高精度运算引擎"
 authors = ["Scientific Calculator Team"]
 license = "MIT"
 repository = "https://github.com/FlywithYou1/modern-calculator"
+edition = "2024"
 
 
 [lib]
@@ -32,7 +33,7 @@ num-complex = "0.4.6"
 # 异步运行时 (简化)
 tokio = { version = "1.47.1", features = ["rt", "sync", "macros"] }
 anyhow = "1.0.100"
-thiserror = "2.0.16"
+thiserror = "2.0.17"
 tracing = "0.1.41"
 log = "0.4.28"
 
