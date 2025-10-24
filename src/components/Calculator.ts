@@ -6,6 +6,10 @@ import type {
   KeyboardConfig,
   ThemeMode,
 } from '@/types/calculator'
+import type {
+  SimpleVoiceInputController,
+  VoiceInputStatus as SimpleVoiceInputStatus,
+} from '@/mobile/voice-input-simple'
 import { Display } from './Display.js'
 import { AdvancedKeyboard } from './Keyboard.js'
 import { History } from './History.js'
@@ -30,6 +34,10 @@ export class Calculator {
   private settings!: Settings
   private advancedPanels!: AdvancedPanelManager
   private gestureHandler: import('@/mobile/gesture').CalculatorGestureHandler | null = null
+  private voiceInput: SimpleVoiceInputController | null = null
+  private voiceInputButton: HTMLButtonElement | null = null
+  private voiceToggleHandler: (() => void | Promise<void>) | null = null
+  private voicePreviewResetTimer: number | null = null
   private deviceDetector: DeviceDetector
 
   constructor(container: HTMLElement) {
@@ -318,6 +326,17 @@ export class Calculator {
               <button class="memory-btn" id="memory-recall" title="调用内存">MR</button>
               <button class="memory-btn" id="memory-store" title="存储到内存">MS</button>
               <button class="memory-btn" id="memory-add" title="内存加">M+</button>
+            </div>
+            <div class="mobile-action-controls">
+              <button
+                type="button"
+                class="voice-input-btn"
+                id="voice-input-btn"
+                title="语音输入"
+                aria-label="语音输入"
+              >
+                🎙️
+              </button>
             </div>
           </section>
 
@@ -1135,6 +1154,7 @@ export class Calculator {
       }) as EventListener)
       
       console.log('✅ 手势操作已启用')
+      await this.setupVoiceInput()
     } catch (error) {
       console.error('❌ 手势功能初始化失败:', error)
     }
@@ -1214,6 +1234,391 @@ export class Calculator {
   private handlePinchGesture(suggestion: string): void {
     // TODO: 实现缩放功能
     console.log('缩放:', suggestion)
+  }
+
+  private async setupVoiceInput(): Promise<void> {
+    const button = this.container.querySelector('#voice-input-btn') as HTMLButtonElement | null
+    if (!button) {
+      return
+    }
+
+    this.voiceInputButton = button
+
+    try {
+      const { createVoiceInputController } = await import('@/mobile/voice-input-factory')
+      const preferNative = this.deviceDetector.isAndroid() && this.deviceDetector.isTauri()
+      this.voiceInput = await createVoiceInputController(
+        {
+          locale: navigator.language,
+          continuous: true,
+          interimResults: true,
+          autoRestart: true,
+          onResult: (transcript: string, isFinal: boolean) => this.handleVoiceResult(transcript, isFinal),
+          onError: (error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error)
+            this.setStatus(`语音输入错误: ${message}`)
+            this.updateVoiceButton('error')
+          },
+          onStatusChange: (status: SimpleVoiceInputStatus) => this.updateVoiceButton(status),
+        },
+        { preferNative }
+      )
+
+      if (!this.voiceInput.isSupported) {
+        button.disabled = true
+        button.setAttribute('aria-disabled', 'true')
+        button.classList.add('is-disabled')
+        button.title = '当前环境不支持语音输入'
+        return
+      }
+
+      this.updateVoiceButton(this.voiceInput.status())
+
+      this.voiceToggleHandler = () => {
+        if (!this.voiceInput) {
+          return
+        }
+
+        if (this.voiceInput.status() === 'listening') {
+          this.voiceInput
+            .stop()
+            .catch((toggleError: unknown) => {
+              const message = toggleError instanceof Error ? toggleError.message : '停止语音输入失败'
+              this.setStatus(`语音输入错误: ${message}`)
+              this.updateVoiceButton('error')
+            })
+        } else {
+          this.voiceInput
+            .start()
+            .catch((toggleError: unknown) => {
+              const message = toggleError instanceof Error ? toggleError.message : '启动语音输入失败'
+              this.setStatus(`语音输入错误: ${message}`)
+              this.updateVoiceButton('error')
+            })
+        }
+      }
+
+      button.addEventListener('click', this.voiceToggleHandler)
+      this.setStatus('语音输入已就绪')
+    } catch (error) {
+      console.error('❌ 语音输入初始化失败:', error)
+      button.disabled = true
+      button.setAttribute('aria-disabled', 'true')
+      button.classList.add('is-disabled')
+    }
+  }
+
+  private updateVoiceButton(status: SimpleVoiceInputStatus): void {
+    const button = this.voiceInputButton
+    if (!button) {
+      return
+    }
+
+    button.classList.remove('is-listening', 'has-error')
+    button.dataset.voiceStatus = status
+
+    switch (status) {
+      case 'listening':
+        button.classList.add('is-listening')
+        button.setAttribute('aria-pressed', 'true')
+        button.textContent = '⏹️'
+        button.title = '停止语音输入'
+        this.clearVoicePreview()
+        this.setStatus('正在倾听，请开始讲话')
+        break
+      case 'error':
+        button.classList.add('has-error')
+        button.setAttribute('aria-pressed', 'false')
+        button.textContent = '🎙️'
+        button.title = '语音输入'
+        break
+      default:
+        button.setAttribute('aria-pressed', 'false')
+        button.textContent = '🎙️'
+        button.title = '语音输入'
+        break
+    }
+  }
+
+  private handleVoiceResult(transcript: string, isFinal: boolean): void {
+    const normalized = transcript.trim()
+    if (!normalized) {
+      return
+    }
+
+    if (!isFinal) {
+      this.showVoicePreview(normalized)
+      return
+    }
+
+    this.clearVoicePreview()
+    const tokens = this.parseVoiceTranscript(normalized)
+    this.applyVoiceTokens(tokens)
+  }
+
+  private showVoicePreview(transcript: string): void {
+    const statusElement = this.container.querySelector('#status-message') as HTMLElement | null
+    if (!statusElement) {
+      return
+    }
+
+    const content = transcript.trim()
+    statusElement.textContent = content ? `语音识别中：${content}` : '语音识别中...'
+
+    if (this.voicePreviewResetTimer !== null) {
+      window.clearTimeout(this.voicePreviewResetTimer)
+    }
+
+    this.voicePreviewResetTimer = window.setTimeout(() => {
+      statusElement.textContent = '准备就绪'
+      this.voicePreviewResetTimer = null
+    }, 4000)
+  }
+
+  private clearVoicePreview(): void {
+    if (this.voicePreviewResetTimer !== null) {
+      window.clearTimeout(this.voicePreviewResetTimer)
+      this.voicePreviewResetTimer = null
+    }
+  }
+
+  private parseVoiceTranscript(transcript: string): string[] {
+    let working = transcript.trim().toLowerCase()
+    if (!working) {
+      return []
+    }
+
+    working = working.replace(/[，。！？,.!?、；;：:]/g, ' ')
+
+    const englishPhraseMap: Record<string, string> = {
+      'divided by': '÷',
+      'divide by': '÷',
+      'multiplied by': '×',
+      'multiply by': '×',
+      times: '×',
+      plus: '+',
+      minus: '-',
+      'equal to': '=',
+      equals: '=',
+      equal: '=',
+      calculate: '=',
+      result: '=',
+      'clear all': 'clear',
+      'clear entry': 'clear',
+      clear: 'clear',
+      delete: 'backspace',
+      'delete last': 'backspace',
+      backspace: 'backspace',
+      undo: 'backspace',
+      point: '.',
+      dot: '.',
+      'decimal point': '.',
+      'open bracket': '(',
+      'open parenthesis': '(',
+      'close bracket': ')',
+      'close parenthesis': ')',
+      'left bracket': '(',
+      'right bracket': ')',
+      'stop listening': 'stop',
+      stop: 'stop',
+    }
+
+    Object.entries(englishPhraseMap).forEach(([phrase, symbol]) => {
+      const pattern = phrase.replace(/\s+/g, '\\s+')
+      const regex = new RegExp(`\\b${pattern}\\b`, 'gi')
+      working = working.replace(regex, ` ${symbol} `)
+    })
+
+    const chinesePhraseMap: Record<string, string> = {
+      乘以: '×',
+      乘号: '×',
+      除以: '÷',
+      除号: '÷',
+      加上: '+',
+      加: '+',
+      减去: '-',
+      减: '-',
+      等于: '=',
+      等號: '=',
+      等号: '=',
+      结果: '=',
+      清除: 'clear',
+      清空: 'clear',
+      删除: 'backspace',
+      退格: 'backspace',
+      回退: 'backspace',
+      左括号: '(',
+      左括弧: '(',
+      左圆括号: '(',
+      右括号: ')',
+      右括弧: ')',
+      右圆括号: ')',
+      小数点: '.',
+      点: '.',
+      停止: 'stop',
+      结束: 'stop',
+    }
+
+    Object.entries(chinesePhraseMap).forEach(([phrase, symbol]) => {
+      const regex = new RegExp(phrase, 'g')
+      working = working.replace(regex, ` ${symbol} `)
+    })
+
+    working = working.replace(/([零一二两三四五六七八九壹贰叁肆伍陆柒捌玖〇十拾])/g, ' $1 ')
+
+    const rawTokens = working.split(/\s+/).filter(Boolean)
+    const tokens: string[] = []
+
+    const englishNumberMap: Record<string, string> = {
+      zero: '0',
+      one: '1',
+      two: '2',
+      three: '3',
+      four: '4',
+      five: '5',
+      six: '6',
+      seven: '7',
+      eight: '8',
+      nine: '9',
+      ten: '10',
+    }
+
+    const chineseDigitMap: Record<string, string> = {
+      零: '0',
+      一: '1',
+      二: '2',
+      两: '2',
+      三: '3',
+      四: '4',
+      五: '5',
+      六: '6',
+      七: '7',
+      八: '8',
+      九: '9',
+      〇: '0',
+      壹: '1',
+      贰: '2',
+      叁: '3',
+      肆: '4',
+      伍: '5',
+      陆: '6',
+      柒: '7',
+      捌: '8',
+      玖: '9',
+      十: '10',
+      拾: '10',
+    }
+
+  const commandTokens = new Set(['+', '-', '×', '÷', '.', '(', ')', '=', 'clear', 'backspace', 'stop'])
+
+    rawTokens.forEach(token => {
+      const lower = token.toLowerCase()
+
+      if (englishNumberMap[lower]) {
+        tokens.push(englishNumberMap[lower])
+        return
+      }
+
+      if (lower === 'pi') {
+        tokens.push('π')
+        return
+      }
+
+      if (lower === 'e') {
+        tokens.push('e')
+        return
+      }
+
+      if (commandTokens.has(lower)) {
+        tokens.push(lower)
+        return
+      }
+
+      if (/^\d+(?:\.\d+)?$/.test(lower)) {
+        tokens.push(lower)
+        return
+      }
+
+      if (chineseDigitMap[token]) {
+        tokens.push(chineseDigitMap[token])
+      }
+    })
+
+    return tokens
+  }
+
+  private applyVoiceTokens(tokens: string[]): void {
+    if (!tokens.length) {
+      this.setStatus('未识别到有效指令')
+      return
+    }
+
+    let hasEffect = false
+    let requestCalculation = false
+
+    tokens.forEach(token => {
+      switch (token) {
+        case '+':
+        case '-':
+        case '×':
+        case '÷':
+          this.appendOperator(token)
+          hasEffect = true
+          break
+        case '.':
+          this.appendNumber('.')
+          hasEffect = true
+          break
+        case '(':
+        case ')':
+          this.appendBracket(token)
+          hasEffect = true
+          break
+        case 'clear':
+          this.clear()
+          hasEffect = true
+          break
+        case 'backspace':
+          this.backspace()
+          hasEffect = true
+          break
+        case 'stop':
+          if (this.voiceInput && this.voiceInput.status() === 'listening') {
+            this.voiceInput.stop().catch(() => undefined)
+          }
+          hasEffect = true
+          break
+        case '=':
+          requestCalculation = true
+          hasEffect = true
+          break
+        default:
+          if (token === 'π') {
+            this.appendConstant('pi')
+            hasEffect = true
+          } else if (token === 'e') {
+            this.appendConstant('e')
+            hasEffect = true
+          } else if (/^\d+(?:\.\d+)?$/.test(token)) {
+            this.appendNumber(token)
+            hasEffect = true
+          }
+          break
+      }
+    })
+
+    if (hasEffect && !requestCalculation) {
+      this.updateDisplay()
+      this.setStatus('语音输入已应用')
+    }
+
+    if (requestCalculation) {
+      void this.calculate()
+    }
+
+    if (!hasEffect) {
+      this.setStatus('未识别到有效指令')
+    }
   }
 
   /**

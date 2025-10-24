@@ -368,6 +368,73 @@ body {
   }
 }
 
+.mobile-action-controls {
+  display: none;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+}
+
+[data-device='mobile'] .mobile-action-controls,
+[data-device='tablet'] .mobile-action-controls {
+  display: flex;
+}
+
+.voice-input-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.voice-input-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.voice-input-btn:active {
+  transform: scale(0.95);
+}
+
+.voice-input-btn.is-listening {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: voicePulse 1.5s ease-in-out infinite;
+}
+
+.voice-input-btn.has-error {
+  background: var(--color-error);
+  color: #fff;
+}
+
+.voice-input-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes voicePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
 // 错误消息样式
 .error-message {
   background: var(--color-error);

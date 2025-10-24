@@ -17,6 +17,7 @@ pub mod history;
 pub mod settings;
 pub mod commands;
 pub mod mcp;
+mod voice;
 
 // / 计算结果类型
 #[derive(Debug, Serialize, Deserialize)]
@@ -69,7 +70,8 @@ pub fn run() {
     let builder = builder
         // 注册 Tauri 插件
         .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_haptics::init());
+        .plugin(tauri_plugin_haptics::init())
+        .plugin(voice::init());
 
     #[cfg(test)]
     let builder = builder;
