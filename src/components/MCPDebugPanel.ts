@@ -1,6 +1,5 @@
-/* *
- * MCP 调试面板组件
- * 提供实时性能监控、状态可视化、错误分析和调试快照管理 */
+
+
 
 import { mcpDebugger, getDebugSnapshot, clearDebugData, getPerformanceMetrics } from '@/utils/mcp-debugger'
 import type { MCPDebugSnapshot } from '@/utils/mcp-debugger'
@@ -33,8 +32,7 @@ export class MCPDebugPanel {
     this.setupEventListeners()
   }
 
-  /* *
-   * 创建调试面板元素 */
+
   private createElement(): HTMLElement {
     const panel = document.createElement('div')
     panel.className = 'mcp-debug-panel'
@@ -105,8 +103,7 @@ export class MCPDebugPanel {
     return panel
   }
 
-  /* *
-   * 渲染总览面板 */
+
   private renderOverviewPanel(): string {
     return `
       <div class="overview-grid">
@@ -186,8 +183,7 @@ export class MCPDebugPanel {
     `
   }
 
-  /* *
-   * 渲染性能面板 */
+
   private renderPerformancePanel(): string {
     return `
       <div class="performance-container">
@@ -232,8 +228,7 @@ export class MCPDebugPanel {
     `
   }
 
-  /* *
-   * 渲染状态面板 */
+
   private renderStatesPanel(): string {
     return `
       <div class="states-container">
@@ -262,8 +257,7 @@ export class MCPDebugPanel {
     `
   }
 
-  /* *
-   * 渲染错误面板 */
+
   private renderErrorsPanel(): string {
     return `
       <div class="errors-container">
@@ -307,8 +301,7 @@ export class MCPDebugPanel {
     `
   }
 
-  /* *
-   * 渲染事件面板 */
+
   private renderEventsPanel(): string {
     return `
       <div class="events-container">
@@ -355,14 +348,12 @@ export class MCPDebugPanel {
     `
   }
 
-  /* *
-   * 渲染设置面板 */
+
   private renderSettingsPanel(): string {
     return `
       <div class="debug-settings-container">
         <div class="settings-section">
           <h3>调试设置</h3>
-          
           <div class="setting-item">
             <label class="setting-label">
               <input type="checkbox" class="setting-checkbox" data-setting="enabled" checked>
@@ -403,7 +394,6 @@ export class MCPDebugPanel {
 
         <div class="settings-section">
           <h3>快照管理</h3>
-          
           <div class="snapshot-actions">
             <button class="debug-btn primary" data-action="create-snapshot">
               📸 创建快照
@@ -448,20 +438,16 @@ export class MCPDebugPanel {
     `
   }
 
-  /* *
-   * 设置事件监听器 */
+
   private setupEventListeners(): void {
-    // 关闭面板
     this.element.addEventListener('click', e => {
       const target = e.target as HTMLElement
-      
       if (target.closest('[data-action="close"]') || 
           (target.classList.contains('mcp-debug-backdrop') && !target.closest('.mcp-debug-container'))) {
         this.close()
       }
     })
 
-    // 标签切换
     this.element.addEventListener('click', e => {
       const tab = (e.target as HTMLElement).closest('.debug-tab') as HTMLElement
       if (tab) {
@@ -469,7 +455,6 @@ export class MCPDebugPanel {
       }
     })
 
-    // 按钮操作
     this.element.addEventListener('click', e => {
       const target = e.target as HTMLElement
       const action = target.dataset.action
@@ -479,7 +464,6 @@ export class MCPDebugPanel {
       }
     })
 
-    // 设置变更
     this.element.addEventListener('change', e => {
       const target = e.target as HTMLInputElement | HTMLSelectElement
       const setting = target.dataset.setting
@@ -489,40 +473,33 @@ export class MCPDebugPanel {
       }
     })
 
-    // 键盘快捷键
     this.element.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         this.close()
       }
     })
 
-    // 监听MCP事件
     mcpDebugger.on('frontend-performance', this.updatePerformanceData.bind(this))
     mcpDebugger.on('frontend-error', this.updateErrorData.bind(this))
     mcpDebugger.on('frontend-state-change', this.updateStateData.bind(this))
   }
 
-  /* *
-   * 切换标签 */
+
   private switchTab(tabName: string): void {
-    // 更新标签状态
     const tabs = this.element.querySelectorAll('.debug-tab')
     tabs.forEach(tab => {
       tab.classList.toggle('active', tab.getAttribute('data-tab') === tabName)
     })
 
-    // 更新面板显示
     const panels = this.element.querySelectorAll('.debug-panel')
     panels.forEach(panel => {
       panel.classList.toggle('active', panel.getAttribute('data-panel') === tabName)
     })
 
-    // 刷新对应面板数据
     this.refreshPanelData(tabName)
   }
 
-  /* *
-   * 处理操作按钮 */
+
   private handleAction(action: string): void {
     switch (action) {
       case 'clear-data':
@@ -552,8 +529,7 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 处理设置变更 */
+
   private handleSettingChange(setting: string, element: HTMLInputElement | HTMLSelectElement): void {
     switch (setting) {
       case 'enabled':
@@ -569,12 +545,10 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 显示调试面板 */
+
   show(): void {
     this.isVisible = true
     this.element.style.display = 'flex'
-    
     setTimeout(() => {
       this.element.classList.add('visible')
     }, 10)
@@ -583,12 +557,10 @@ export class MCPDebugPanel {
     this.refreshAllPanels()
   }
 
-  /* *
-   * 关闭调试面板 */
+
   close(): void {
     this.isVisible = false
     this.element.classList.remove('visible')
-    
     setTimeout(() => {
       if (!this.isVisible) {
         this.element.style.display = 'none'
@@ -599,11 +571,9 @@ export class MCPDebugPanel {
     this.config.onClose?.()
   }
 
-  /* *
-   * 启动更新定时器 */
+
   private startUpdateTimer(): void {
     this.stopUpdateTimer()
-    
     this.updateTimer = window.setInterval(() => {
       if (this.isVisible) {
         this.updateOverviewMetrics()
@@ -612,8 +582,7 @@ export class MCPDebugPanel {
     }, this.config.updateInterval)
   }
 
-  /* *
-   * 停止更新定时器 */
+
   private stopUpdateTimer(): void {
     if (this.updateTimer) {
       clearInterval(this.updateTimer)
@@ -621,58 +590,49 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 重启更新定时器 */
+
   private restartUpdateTimer(): void {
     this.stopUpdateTimer()
     this.startUpdateTimer()
   }
 
-  /* *
-   * 更新总览指标 */
+
   private updateOverviewMetrics(): void {
     const snapshot = getDebugSnapshot()
     const metrics = getPerformanceMetrics()
 
-    // 计算平均响应时间，使用metrics或从snapshot计算
     const avgResponseTime = typeof metrics.averageResponseTime === 'number' 
       ? metrics.averageResponseTime
       : (snapshot.performance.length > 0 
           ? snapshot.performance.reduce((sum, p) => sum + p.duration, 0) / snapshot.performance.length
           : 0)
 
-    // 更新DOM
     this.updateMetricValue('avg-response-time', `${avgResponseTime.toFixed(1)}ms`)
     this.updateMetricValue('total-calculations', snapshot.performance.length.toString())
     this.updateMetricValue('total-errors', snapshot.errors.length.toString())
     this.updateMetricValue('total-interactions', snapshot.events.length.toString())
 
-    // 计算错误率
     const totalOperations = snapshot.performance.length + snapshot.errors.length
     const errorRate = totalOperations > 0 ? (snapshot.errors.length / totalOperations * 100) : 0
     this.updateMetricValue('error-rate', `${errorRate.toFixed(1)}%`)
 
-    // 最近错误时间
     const lastError = snapshot.errors[0]
     if (lastError) {
       const errorTime = new Date(lastError.timestamp)
       this.updateMetricValue('last-error-time', this.formatRelativeTime(errorTime))
     }
 
-    // 会话时长
-    const sessionStart = Date.now() - (this.config.updateInterval || 1000) * 60 // 估算
+    const sessionStart = Date.now() - (this.config.updateInterval || 1000) * 60 
     const sessionDuration = Math.floor((Date.now() - sessionStart) / (1000 * 60))
     this.updateMetricValue('session-duration', sessionDuration.toString())
   }
 
-  /* *
-   * 更新图表 */
+
   private updateCharts(): void {
     this.updatePerformanceChart()
   }
 
-  /* *
-   * 更新性能图表 */
+
   private updatePerformanceChart(): void {
     const canvas = this.element.querySelector('#performance-chart') as HTMLCanvasElement
     if (!canvas) return
@@ -683,7 +643,6 @@ export class MCPDebugPanel {
     const snapshot = getDebugSnapshot()
     const recentPerformance = snapshot.performance.slice(0, this.config.maxDataPoints || 50)
 
-    // 清除画布
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     if (recentPerformance.length === 0) {
@@ -694,7 +653,6 @@ export class MCPDebugPanel {
       return
     }
 
-    // 绘制性能折线图
     const maxDuration = Math.max(...recentPerformance.map(p => p.duration))
     const padding = 40
     const chartWidth = canvas.width - padding * 2
@@ -717,7 +675,6 @@ export class MCPDebugPanel {
 
     ctx.stroke()
 
-    // 绘制坐标轴标签
     ctx.fillStyle = '#666'
     ctx.font = '10px sans-serif'
     ctx.textAlign = 'left'
@@ -725,8 +682,7 @@ export class MCPDebugPanel {
     ctx.fillText(`${maxDuration.toFixed(1)}ms`, 5, padding)
   }
 
-  /* *
-   * 刷新所有面板 */
+
   private refreshAllPanels(): void {
     this.refreshPerformancePanel()
     this.refreshStatesPanel()
@@ -734,8 +690,7 @@ export class MCPDebugPanel {
     this.refreshEventsPanel()
   }
 
-  /* *
-   * 刷新面板数据 */
+
   private refreshPanelData(panelName: string): void {
     switch (panelName) {
       case 'performance':
@@ -753,17 +708,14 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 刷新性能面板 */
+
   private refreshPerformancePanel(): void {
     const metrics = getPerformanceMetrics()
     const calculationsContainer = this.element.querySelector(`[data-performance="calculations"]`)
-    
     if (calculationsContainer) {
       const calculationEntries = Object.entries(metrics).filter(([operation]) => 
         operation.includes('calculate') || operation.includes('compute')
       )
-      
       if (calculationEntries.length > 0) {
         calculationsContainer.innerHTML = calculationEntries.map(([operation, stats]) => `
           <div class="performance-item">
@@ -784,7 +736,6 @@ export class MCPDebugPanel {
       const renderingEntries = Object.entries(metrics).filter(([operation]) => 
         operation.includes('render') || operation.includes('display')
       )
-      
       if (renderingEntries.length > 0) {
         renderingContainer.innerHTML = renderingEntries.map(([operation, stats]) => `
           <div class="performance-item">
@@ -801,12 +752,10 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 刷新状态面板 */
+
   private refreshStatesPanel(): void {
     const snapshot = getDebugSnapshot()
     const timeline = this.element.querySelector('[data-timeline="states"]')
-    
     if (timeline && snapshot.states.length > 0) {
       timeline.innerHTML = snapshot.states.slice(0, 10).map(state => `
         <div class="timeline-item">
@@ -819,7 +768,6 @@ export class MCPDebugPanel {
       `).join('')
     }
 
-    // 更新当前状态
     const currentState = this.element.querySelector('[data-current-state]')
     if (currentState && snapshot.states[0]) {
       const state = snapshot.states[0]
@@ -846,12 +794,10 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 刷新错误面板 */
+
   private refreshErrorsPanel(): void {
     const snapshot = getDebugSnapshot()
     const errorsList = this.element.querySelector('[data-errors-list]')
-    
     if (errorsList) {
       if (snapshot.errors.length === 0) {
         errorsList.innerHTML = '<div class="no-errors">✅ 暂无错误记录</div>'
@@ -874,7 +820,6 @@ export class MCPDebugPanel {
       }
     }
 
-    // 更新错误统计
     const today = new Date()
     const todayErrors = snapshot.errors.filter(error => {
       const errorDate = new Date(error.timestamp)
@@ -885,12 +830,10 @@ export class MCPDebugPanel {
     this.updateErrorStat('today', todayErrors.toString())
   }
 
-  /* *
-   * 刷新事件面板 */
+
   private refreshEventsPanel(): void {
     const snapshot = getDebugSnapshot()
     const eventsStream = this.element.querySelector('[data-events-stream]')
-    
     if (eventsStream) {
       if (snapshot.events.length === 0) {
         eventsStream.innerHTML = '<div class="no-events">暂无事件记录</div>'
@@ -913,7 +856,6 @@ export class MCPDebugPanel {
       }
     }
 
-    // 更新事件统计
     const interactions = snapshot.events.filter(e => 
       e.type.includes('click') || e.type.includes('keydown')
     ).length
@@ -927,8 +869,7 @@ export class MCPDebugPanel {
     this.updateEventStat('calculations', calculations.toString())
   }
 
-  /* *
-   * 清除所有数据 */
+
   private clearAllData(): void {
     if (confirm('确定要清除所有调试数据吗？此操作不可撤销。')) {
       clearDebugData()
@@ -942,8 +883,7 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 导出快照 */
+
   private exportSnapshot(): void {
     const snapshot = getDebugSnapshot()
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' })
@@ -960,8 +900,7 @@ export class MCPDebugPanel {
     this.showToast('调试快照已导出')
   }
 
-  /* *
-   * 导入快照 */
+
   private importSnapshot(): void {
     const input = document.createElement('input')
     input.type = 'file'
@@ -976,8 +915,6 @@ export class MCPDebugPanel {
           try {
             const snapshot = JSON.parse(e.target?.result as string) as MCPDebugSnapshot
             console.log('导入的快照:', snapshot)
-            
-            // 处理导入的快照数据
             this.applyImportedSnapshot(snapshot)
             this.showToast('调试快照已导入并应用')
           } catch (error) {
@@ -994,33 +931,24 @@ export class MCPDebugPanel {
     input.click()
   }
 
-  /* *
-   * 应用导入的快照数据 */
+
   private applyImportedSnapshot(snapshot: MCPDebugSnapshot): void {
     try {
-      // 保存快照到本地存储
       const snapshots = JSON.parse(localStorage.getItem('mcp-debug-snapshots') || '[]')
       snapshots.unshift({
         ...snapshot,
         id: `imported-${Date.now()}`,
         timestamp: new Date().toISOString(),
       })
-      
-      // 限制快照数量
       if (snapshots.length > 10) {
         snapshots.splice(10)
       }
-      
       localStorage.setItem('mcp-debug-snapshots', JSON.stringify(snapshots))
-      
-      // 可选：应用快照数据到当前调试会话进行对比分析
       console.log('快照已保存，可用于对比分析:', {
         performance: snapshot.performance,
         states: snapshot.states?.length,
         errors: snapshot.errors?.length,
       })
-      
-      // 刷新面板显示
       this.refreshAllPanels()
     } catch (error) {
       console.error('应用快照失败:', error)
@@ -1028,12 +956,10 @@ export class MCPDebugPanel {
     }
   }
 
-  /* *
-   * 创建快照 */
+
   private createSnapshot(): void {
     const snapshot = getDebugSnapshot()
     const snapshots = JSON.parse(localStorage.getItem('mcp-debug-snapshots') || '[]')
-    
     snapshots.unshift({
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
@@ -1041,7 +967,6 @@ export class MCPDebugPanel {
       data: snapshot,
     })
 
-    // 只保留最近10个快照
     if (snapshots.length > 10) {
       snapshots.splice(10)
     }
@@ -1050,24 +975,20 @@ export class MCPDebugPanel {
     this.showToast('快照已创建')
   }
 
-  /* *
-   * 更新性能数据 */
+
   private updatePerformanceData(data: unknown): void {
-    // 添加到图表数据
     this.chartData.performance.push({
       timestamp: Date.now(),
       duration: (data as { duration: number }).duration,
       operation: (data as { operation: string }).operation,
     })
 
-    // 限制数据点数量
     if (this.chartData.performance.length > (this.config.maxDataPoints || 50)) {
       this.chartData.performance.shift()
     }
   }
 
-  /* *
-   * 更新错误数据 */
+
   private updateErrorData(_data: unknown): void {
     this.chartData.errors.push({
       timestamp: Date.now(),
@@ -1075,14 +996,11 @@ export class MCPDebugPanel {
     })
   }
 
-  /* *
-   * 更新状态数据 */
+
   private updateStateData(_data: unknown): void {
-    // 状态更新时可以触发相关更新
   }
 
-  /* *
-   * 工具方法 */
+
   private updateMetricValue(metric: string, value: string): void {
     const element = this.element.querySelector(`[data-metric="${metric}"]`)
     if (element) {
@@ -1115,13 +1033,10 @@ export class MCPDebugPanel {
   private formatRelativeTime(date: Date): string {
     const diff = Date.now() - date.getTime()
     const minutes = Math.floor(diff / (1000 * 60))
-    
     if (minutes < 1) return '刚刚'
     if (minutes < 60) return `${minutes}分钟前`
-    
     const hours = Math.floor(minutes / 60)
     if (hours < 24) return `${hours}小时前`
-    
     const days = Math.floor(hours / 24)
     return `${days}天前`
   }
@@ -1148,8 +1063,7 @@ export class MCPDebugPanel {
     }, 3000)
   }
 
-  /* *
-   * 销毁组件 */
+
   destroy(): void {
     this.stopUpdateTimer()
     if (this.element && this.element.parentNode) {

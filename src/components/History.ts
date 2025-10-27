@@ -1,6 +1,5 @@
-/* *
- * 计算器历史记录组件
- * 负责显示、搜索和管理计算历史，支持导入导出和统计功能 */
+
+
 
 import type { Theme, HistoryItem, HistoryConfig, HistoryStats } from '@/types/calculator'
 import { TauriService } from '@/utils/tauri'
@@ -24,15 +23,13 @@ export class History {
     this.setupEventListeners()
   }
 
-  /* *
-   * 初始化组件 */
+
   async init(): Promise<void> {
     await this.loadHistory()
     this.render()
   }
 
-  /* *
-   * 创建历史记录元素 */
+
   private createElement(): HTMLElement {
     const history = document.createElement('div')
     history.className = 'calculator-history'
@@ -59,7 +56,6 @@ export class History {
           </button>
         </div>
       </div>
-      
       <div class="history-search" style="display: none;">
         <input type="text" class="history-search-input" placeholder="搜索表达式或结果..." aria-label="搜索历史记录">
         <div class="history-search-filters">
@@ -110,16 +106,13 @@ export class History {
     return history
   }
 
-  /* *
-   * 设置事件监听器 */
+
   private setupEventListeners(): void {
-    // 搜索按钮
     const searchBtn = this.element.querySelector('.history-search-btn') as HTMLElement
     searchBtn?.addEventListener('click', () => {
       this.toggleSearch()
     })
 
-    // 导出按钮
     const importBtn = this.element.querySelector('.history-import-btn') as HTMLElement
     importBtn?.addEventListener('click', () => {
       this.openImportDialog()
@@ -130,26 +123,22 @@ export class History {
       void this.exportHistory()
     })
 
-    // 清空按钮
     const clearBtn = this.element.querySelector('.history-clear-btn') as HTMLElement
     clearBtn?.addEventListener('click', () => {
       void this.confirmClearHistory()
     })
 
-    // 关闭按钮
     const closeBtn = this.element.querySelector('.history-close-btn') as HTMLElement
     closeBtn?.addEventListener('click', () => {
       this.hide()
     })
 
-    // 搜索输入
     const searchInput = this.element.querySelector('.history-search-input') as HTMLInputElement
     searchInput?.addEventListener('input', e => {
       this.searchTerm = (e.target as HTMLInputElement).value
       this.filterHistory()
     })
 
-    // 时间过滤按钮
     const filterBtns = this.element.querySelectorAll('.filter-btn')
     filterBtns.forEach(btn => {
       btn.addEventListener('click', e => {
@@ -158,7 +147,6 @@ export class History {
       })
     })
 
-    // 标签过滤按钮
     const tagFilterBtns = this.element.querySelectorAll('.tag-filter-btn')
     tagFilterBtns.forEach(btn => {
       btn.addEventListener('click', e => {
@@ -167,21 +155,18 @@ export class History {
       })
     })
 
-    // 键盘导航
     this.element.addEventListener('keydown', e => {
       this.handleKeyNavigation(e)
     })
   }
 
-  /* *
-   * 渲染历史记录列表 */
+
   private render(): void {
     this.updateStats()
     this.renderHistoryList()
   }
 
-  /* *
-   * 渲染历史记录项 */
+
   private renderHistoryList(): void {
     const listElement = this.element.querySelector('.history-list') as HTMLElement
     const emptyElement = this.element.querySelector('.history-empty') as HTMLElement
@@ -213,12 +198,10 @@ export class History {
       .map(item => this.createHistoryItemHTML(item))
       .join('')
 
-    // 添加事件监听器
     this.setupHistoryItemListeners()
   }
 
-  /* *
-   * 创建历史记录项HTML */
+
   private createHistoryItemHTML(item: HistoryItem): string {
     const timestamp = this.formatTimestamp(item.timestamp)
     const tags = item.tags
@@ -287,12 +270,10 @@ export class History {
       .replace(/'/g, '&#39;')
   }
 
-  /* *
-   * 设置历史记录项事件监听器 */
+
   private setupHistoryItemListeners(): void {
     const items = this.element.querySelectorAll('.history-item')
     items.forEach(item => {
-      // 点击选择
       item.addEventListener('click', e => {
         if (!(e.target as HTMLElement).closest('.history-action-btn')) {
           const id = item.getAttribute('data-id')
@@ -303,7 +284,6 @@ export class History {
         }
       })
 
-      // 操作按钮
       const actionBtns = item.querySelectorAll('.history-action-btn')
       actionBtns.forEach(btn => {
         btn.addEventListener('click', e => {
@@ -316,8 +296,7 @@ export class History {
     })
   }
 
-  /* *
-   * 处理历史记录项操作 */
+
   private handleItemAction(action: string, id: string): void {
     const item = this.history.find(h => h.id === id)
     if (!item) return
@@ -337,22 +316,19 @@ export class History {
     }
   }
 
-  /* *
-   * 设置历史记录 */
+
   setHistory(history: HistoryItem[]): void {
     this.history = [...history]
     this.filterHistory()
     this.render()
   }
 
-  /* *
-   * 更新历史记录 */
+
   updateHistory(history: HistoryItem[]): void {
     this.setHistory(history)
   }
 
-  /* *
-   * 添加历史记录项 */
+
   addHistoryItem(item: HistoryItem): void {
     this.history.unshift(item)
     if (this.history.length > this.config.maxItems) {
@@ -363,8 +339,7 @@ export class History {
     this.render()
   }
 
-  /* *
-   * 删除历史记录项 */
+
   private deleteHistoryItem(id: string): void {
     this.history = this.history.filter(item => item.id !== id)
     this.remoteStats = null
@@ -372,20 +347,17 @@ export class History {
     this.render()
   }
 
-  /* *
-   * 显示历史记录 */
+
   show(): void {
     this.isVisible = true
     this.element.style.display = 'flex'
     this.element.classList.add('visible')
 
-    // 聚焦到关闭按钮以便键盘导航
     const closeBtn = this.element.querySelector('.history-close-btn') as HTMLElement
     closeBtn?.focus()
   }
 
-  /* *
-   * 隐藏历史记录 */
+
   hide(): void {
     this.isVisible = false
     this.element.classList.remove('visible')
@@ -396,8 +368,7 @@ export class History {
     }, 300)
   }
 
-  /* *
-   * 切换搜索栏显示 */
+
   private toggleSearch(): void {
     const searchElement = this.element.querySelector('.history-search') as HTMLElement
     const isVisible = searchElement.style.display !== 'none'
@@ -411,8 +382,7 @@ export class History {
     }
   }
 
-  /* *
-   * 过滤历史记录 */
+
   private filterHistory(): void {
     let filtered = this.applyTimeFilter([...this.history])
     filtered = this.applyTagFilter(filtered)
@@ -442,8 +412,7 @@ export class History {
     this.renderHistoryList()
   }
 
-  /* *
-   * 设置时间过滤器 */
+
   private setFilter(filter: string): void {
     const allowed = new Set(['all', 'today', 'week', 'month'])
     const normalized = allowed.has(filter) ? (filter as 'all' | 'today' | 'week' | 'month') : 'all'
@@ -460,8 +429,7 @@ export class History {
     }
   }
 
-  /* *
-   * 设置标签过滤器 */
+
   private setTagFilter(tag: string): void {
     this.activeTagFilter = tag
 
@@ -536,8 +504,7 @@ export class History {
     }
   }
 
-  /* *
-   * 更新统计信息 */
+
   private updateStats(): void {
     const fallback = this.calculateStats()
     const total = this.remoteStats?.total_items ?? fallback.totalCalculations
@@ -553,8 +520,7 @@ export class History {
     if (filteredElement) filteredElement.textContent = filtered.toString()
   }
 
-  /* *
-   * 计算统计信息 */
+
   private calculateStats(): HistoryStats {
     const today = new Date()
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -609,8 +575,7 @@ export class History {
     }
   }
 
-  /* *
-   * 导出历史记录 */
+
   private async exportHistory(): Promise<void> {
     const format = await this.showExportFormatDialog()
     if (!format) return
@@ -661,8 +626,7 @@ export class History {
     }
   }
 
-  /* *
-   * 显示导出格式选择对话框 */
+
   private async showExportFormatDialog(): Promise<string | null> {
     return new Promise(resolve => {
       const dialog = document.createElement('div')
@@ -698,7 +662,6 @@ export class History {
         resolve(format)
       }
 
-      // 添加事件监听器
       const options = dialog.querySelectorAll('.export-option')
       options.forEach(option => {
         option.addEventListener('click', () => {
@@ -720,8 +683,7 @@ export class History {
     })
   }
 
-  /* *
-   * 转换为CSV格式 */
+
   private convertToCSV(items: HistoryItem[]): string {
     const headers = ['时间戳', '表达式', '结果', '标签', '备注']
     const rows = items.map(item => [
@@ -735,8 +697,7 @@ export class History {
     return [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
   }
 
-  /* *
-   * 转换为文本格式 */
+
   private convertToText(items: HistoryItem[]): string {
     return items
       .map(item => {
@@ -748,16 +709,14 @@ export class History {
       .join('\n')
   }
 
-  /* *
-   * 确认清空历史记录 */
+
   private async confirmClearHistory(): Promise<void> {
     if (confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
       await this.clearHistory()
     }
   }
 
-  /* *
-   * 清空历史记录 */
+
   private async clearHistory(): Promise<void> {
     try {
       await TauriService.clearHistory()
@@ -778,8 +737,7 @@ export class History {
     this.showToast('历史记录已清空')
   }
 
-  /* *
-   * 加载历史记录 */
+
   private async loadHistory(): Promise<void> {
     try {
       const [history, stats] = await Promise.all([
@@ -806,21 +764,17 @@ export class History {
     }
   }
 
-  /* *
-   * 格式化时间戳 */
+
   private formatTimestamp(timestamp: string): string {
     const date = new Date(timestamp)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
 
     if (diff < 60000) {
-      // 1分钟内
       return '刚刚'
     } else if (diff < 3600000) {
-      // 1小时内
       return `${Math.floor(diff / 60000)}分钟前`
     } else if (diff < 86400000) {
-      // 24小时内
       return `${Math.floor(diff / 3600000)}小时前`
     } else {
       return date.toLocaleDateString('zh-CN', {
@@ -832,8 +786,7 @@ export class History {
     }
   }
 
-  /* *
-   * 高亮搜索词 */
+
   private highlightSearchTerm(text: string): string {
     if (!this.searchTerm) return text
 
@@ -841,8 +794,7 @@ export class History {
     return text.replace(regex, '<mark>$1</mark>')
   }
 
-  /* *
-   * 复制到剪贴板 */
+
   private async copyToClipboard(text: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text)
@@ -853,8 +805,7 @@ export class History {
     }
   }
 
-  /* *
-   * 显示提示消息 */
+
   private showToast(message: string): void {
     const toast = document.createElement('div')
     toast.className = 'toast'
@@ -863,13 +814,11 @@ export class History {
 
     this.element.appendChild(toast)
 
-    // 动画显示
     requestAnimationFrame(() => {
       toast.style.opacity = '1'
       toast.style.transform = 'translateY(0)'
     })
 
-    // 自动移除
     setTimeout(() => {
       toast.style.opacity = '0'
       toast.style.transform = 'translateY(-20px)'
@@ -881,8 +830,7 @@ export class History {
     }, 2000)
   }
 
-  /* *
-   * 键盘导航处理 */
+
   private handleKeyNavigation(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       this.hide()
@@ -890,21 +838,17 @@ export class History {
     }
   }
 
-  /* *
-   * 更新主题 */
+
   updateTheme(theme: Theme): void {
     this.element.className = `calculator-history theme-${theme.mode}`
 
-    // 应用主题颜色
     Object.entries(theme.cssVariables).forEach(([property, value]) => {
       this.element.style.setProperty(property, value)
     })
   }
 
-  /* *
-   * 处理大小变化 */
+
   handleResize(): void {
-    // 响应式调整布局
     const containerWidth = this.element.clientWidth
     if (containerWidth < 400) {
       this.element.classList.add('compact')
@@ -913,14 +857,12 @@ export class History {
     }
   }
 
-  /* *
-   * 获取当前历史记录 */
+
   getHistory(): HistoryItem[] {
     return [...this.history]
   }
 
-  /* *
-   * 销毁组件 */
+
   destroy(): void {
     if (this.element && this.element.parentNode) {
       this.element.parentNode.removeChild(this.element)

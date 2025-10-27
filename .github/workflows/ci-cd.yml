@@ -304,6 +304,15 @@ jobs:
           fi
         continue-on-error: true
 
+      - name: 解码签名密钥
+        if: secrets.ANDROID_KEYSTORE_BASE64 != ''
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+          echo "KEYSTORE_PATH=$PWD/keystore.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+
       - name: 构建 Android APK
         run: |
           echo "📱 构建 Android APK..."
@@ -311,6 +320,11 @@ jobs:
           export NDK_HOME=$ANDROID_NDK_HOME
           npm run android:build || npx tauri android build --verbose
         continue-on-error: true
+
+      - name: 清理签名密钥
+        if: always()
+        run: |
+          rm -f keystore.jks
 
       - name: 上传 Android 构建产物
         uses: actions/upload-artifact@v4

@@ -1,6 +1,6 @@
-// ! Tauri 命令处理模块
-// !
-// ! 提供前端与后端交互的命令接口
+
+
+
 
 use tauri::{State, Manager, Wry};
 use serde_json::{json, Value};
@@ -11,7 +11,7 @@ use crate::{AppState, CalculationResult, HistoryItem};
 
 type AppHandle = tauri::AppHandle<Wry>;
 
-// / 执行数学计算
+
 #[tauri::command]
 pub async fn calculate(
     expression: String,
@@ -20,40 +20,32 @@ pub async fn calculate(
 ) -> Result<CalculationResult, String> {
     let start_time = std::time::Instant::now();
     let display_expression = display_expression.unwrap_or_else(|| expression.clone());
-    
-    // 增加计算次数
     {
         let mut count = state.calculation_count.lock().await;
         *count += 1;
     }
 
-    // 克隆 计算器 (calculator) 以避免跨 await 持有锁
     let calculator = {
         let calc = state.calculator.lock().await;
         (*calc).clone()
     };
 
-    // MCP调试：记录计算开始
     #[cfg(debug_assertions)]
     {
         let debugger = crate::mcp::get_mcp_debugger();
         debugger.track_state_change(&display_expression, "计算中...", "0", None);
     }
 
-    // 执行计算
     let calculation_result = match crate::parser::parse_and_evaluate(&expression, &calculator).await {
         Ok(result) => {
             let result_str = result.to_string();
             let execution_time = start_time.elapsed().as_millis() as f64;
-            
-            // MCP调试：记录成功的计算
             #[cfg(debug_assertions)]
             {
                 let debugger = crate::mcp::get_mcp_debugger();
                 debugger.track_calculation_execution(&display_expression, &result_str, execution_time, 0);
                 debugger.track_state_change(&display_expression, &result_str, "0", None);
             }
-            
             CalculationResult {
                 success: true,
                 result: Some(result_str),
@@ -63,8 +55,6 @@ pub async fn calculate(
         },
         Err(e) => {
             let error_msg = format!("计算错误: {}", e);
-            
-            // MCP调试：记录计算错误
             #[cfg(debug_assertions)]
             {
                 let debugger = crate::mcp::get_mcp_debugger();
@@ -74,7 +64,6 @@ pub async fn calculate(
                 debugger.track_error("CalculationError", &error_msg, context);
                 debugger.track_state_change(&display_expression, "错误", "0", Some(&error_msg));
             }
-            
             CalculationResult {
                 success: false,
                 result: None,
@@ -84,7 +73,6 @@ pub async fn calculate(
         },
     };
 
-    // 如果计算成功，保存到历史记录
     if calculation_result.success {
         if let Some(ref result_value) = calculation_result.result {
             let mut history = state.history_manager.lock().await;
@@ -107,11 +95,10 @@ pub async fn calculate(
             history.add_item(history_item);
         }
     }
-    
     Ok(calculation_result)
 }
 
-// / 获取历史记录
+
 #[tauri::command]
 pub async fn get_history(
     limit: Option<usize>,
@@ -121,7 +108,7 @@ pub async fn get_history(
     Ok(history_manager.get_recent_items(limit.unwrap_or(100)))
 }
 
-// / 保存历史记录到存储
+
 #[tauri::command]
 pub async fn save_history(
     state: State<'_, AppState>,
@@ -138,7 +125,7 @@ pub async fn save_history(
         .map_err(|e| format!("保存历史记录失败: {}", e))
 }
 
-// / 获取应用设置
+
 #[tauri::command]
 pub async fn get_settings(
     state: State<'_, AppState>,
@@ -146,12 +133,11 @@ pub async fn get_settings(
     let settings_manager = state.settings_manager.lock().await;
     let s = settings_manager.get_settings();
 
-    // 将 Rust 设置映射为前端期望的 camelCase 结构与小写枚举
     let theme_mode = match &s.theme.mode {
         crate::settings::ThemeMode::Light => "light",
         crate::settings::ThemeMode::Dark => "dark",
         crate::settings::ThemeMode::Auto => "auto",
-        crate::settings::ThemeMode::Custom(_name) => "dark", // 自定义暂时映射为 dark
+        crate::settings::ThemeMode::Custom(_name) => "dark", 
     };
 
     let angle_unit = match &s.display.angle_unit {
@@ -176,7 +162,6 @@ pub async fn get_settings(
             "maxHistoryItems": s.general.max_history_items,
             "autoSave": s.general.auto_save_history,
             "enableKeyboardShortcuts": s.general.enable_keyboard_shortcuts,
-            // 后端没有直接的动画开关，这里沿用声音开关的反义作为占位，前端仍保留自身控制
             "enableAnimations": true
         },
         "layout": {
@@ -189,7 +174,7 @@ pub async fn get_settings(
     Ok(value)
 }
 
-// / 保存应用设置
+
 #[tauri::command]
 pub async fn save_settings(
     settings: Value,
@@ -201,7 +186,6 @@ pub async fn save_settings(
         .update_from_json(&settings.to_string())
         .map_err(|e| format!("设置保存失败: {}", e))?;
 
-    // 持久化到磁盘
     let settings_path = app
         .path()
         .app_data_dir()
@@ -215,7 +199,7 @@ pub async fn save_settings(
     std::fs::write(settings_path, json).map_err(|e| format!("写入设置文件失败: {}", e))
 }
 
-// / 其他简化的命令
+
 #[tauri::command]
 pub async fn export_history(
     state: State<'_, AppState>,
@@ -353,7 +337,6 @@ pub async fn reset_settings(
     let mut settings_manager = state.settings_manager.lock().await;
     settings_manager.reset_to_defaults();
 
-    // 覆盖保存默认设置
     let settings_path = app
         .path()
         .app_data_dir()
@@ -366,9 +349,9 @@ pub async fn reset_settings(
     std::fs::write(settings_path, json).map_err(|e| format!("写入设置文件失败: {}", e))
 }
 
-// / MCP调试相关命令
 
-// / 获取MCP调试性能统计
+
+
 #[tauri::command]
 pub async fn get_mcp_performance_stats() -> Result<Value, String> {
     #[cfg(debug_assertions)]
@@ -397,13 +380,11 @@ pub async fn get_mcp_performance_stats() -> Result<Value, String> {
     }
 }
 
-// / 启用/禁用MCP调试
+
 #[tauri::command]
 pub async fn set_mcp_debugging(enabled: bool) -> Result<(), String> {
     #[cfg(debug_assertions)]
     {
-        // 注意：由于 MCPDebugger 使用静态实例，我们无法直接修改
-        // 这里返回当前状态信息
         if enabled {
             Ok(())
         } else {
@@ -416,7 +397,7 @@ pub async fn set_mcp_debugging(enabled: bool) -> Result<(), String> {
     }
 }
 
-// / 进制转换命令
+
 #[tauri::command]
 pub async fn convert_base(
     number: String,
@@ -429,16 +410,14 @@ pub async fn convert_base(
         (*calc).clone()
     };
 
-    // 先从源进制转换为十进制
     let decimal_value = calculator.from_base(&number, from_base)
         .map_err(|e| format!("转换失败: {}", e))?;
 
-    // 再从十进制转换为目标进制
     calculator.to_base(decimal_value, to_base)
         .map_err(|e| format!("转换失败: {}", e))
 }
 
-// / 统计计算命令
+
 #[tauri::command]
 pub async fn calculate_statistics(
     values: Vec<f64>,
@@ -454,7 +433,6 @@ pub async fn calculate_statistics(
         (*calc).clone()
     };
 
-    // 转换为Decimal类型
     let decimal_values: Result<Vec<rust_decimal::Decimal>, _> = values.iter()
         .map(|&v| rust_decimal::Decimal::try_from(v))
         .collect();
@@ -478,7 +456,7 @@ pub async fn calculate_statistics(
         .and_then(|decimal| decimal.to_f64().ok_or("结果转换失败".to_string()))
 }
 
-// / 复数运算命令
+
 #[tauri::command]
 pub async fn calculate_complex(
     a_real: f64,
@@ -493,7 +471,6 @@ pub async fn calculate_complex(
         (*calc).clone()
     };
 
-    // 转换为Decimal类型
     let a_real_dec = rust_decimal::Decimal::try_from(a_real).map_err(|e| format!("数值转换失败: {}", e))?;
     let a_imag_dec = rust_decimal::Decimal::try_from(a_imag).map_err(|e| format!("数值转换失败: {}", e))?;
     let b_real_dec = rust_decimal::Decimal::try_from(b_real).map_err(|e| format!("数值转换失败: {}", e))?;
@@ -515,7 +492,7 @@ pub async fn calculate_complex(
         })
 }
 
-// / 矩阵运算命令
+
 #[tauri::command]
 pub async fn matrix_operation(
     operation: String,
@@ -528,21 +505,17 @@ pub async fn matrix_operation(
         (*calc).clone()
     };
 
-    // 转换为Decimal矩阵
     let convert_matrix = |data: Vec<Vec<f64>>| -> Result<crate::math::Matrix, String> {
         let decimal_data: Result<Vec<Vec<rust_decimal::Decimal>>, _> = data.iter()
             .map(|row| row.iter().map(|&v| rust_decimal::Decimal::try_from(v)).collect())
             .collect();
-        
         let decimal_data = decimal_data.map_err(|e| format!("矩阵数据转换失败: {}", e))?;
-        
         calculator.create_matrix(decimal_data.len(), decimal_data[0].len(), 
             decimal_data.iter().flatten().cloned().collect())
             .map_err(|e| format!("创建矩阵失败: {}", e))
     };
 
     let matrix_a = convert_matrix(matrix_a)?;
-    
     let result = match operation.as_str() {
         "transpose" => {
             let result = calculator.matrix_transpose(&matrix_a);
@@ -589,14 +562,12 @@ pub async fn matrix_operation(
         "add" | "subtract" | "multiply" => {
             let matrix_b = matrix_b.ok_or("二元矩阵运算需要两个矩阵")?;
             let matrix_b = convert_matrix(matrix_b)?;
-            
             let result = match operation.as_str() {
                 "add" => calculator.matrix_add(&matrix_a, &matrix_b),
                 "subtract" => calculator.matrix_subtract(&matrix_a, &matrix_b),
                 "multiply" => calculator.matrix_multiply(&matrix_a, &matrix_b),
                 _ => unreachable!(),
             }.map_err(|e| format!("矩阵运算失败: {}", e))?;
-            
             let (rows, cols) = result.dimensions();
             let mut data = Vec::new();
             for i in 0..rows {
@@ -618,7 +589,7 @@ pub async fn matrix_operation(
     Ok(result)
 }
 
-// / 单位转换命令
+
 #[tauri::command]
 pub async fn convert_units(
     value: f64,
@@ -634,14 +605,12 @@ pub async fn convert_units(
     let value_decimal = rust_decimal::Decimal::try_from(value)
         .map_err(|e| format!("数值转换失败: {}", e))?;
 
-    // 特殊处理温度转换
     if ["C", "°C", "F", "°F", "K"].contains(&from_unit.as_str()) {
         let result = calculator.convert_temperature(value_decimal, &from_unit, &to_unit)
             .map_err(|e| format!("温度转换失败: {}", e))?;
         return result.to_f64().ok_or("结果转换失败".to_string());
     }
 
-    // 普通单位转换
     let result = calculator.convert_unit(value_decimal, &from_unit, &to_unit)
         .map_err(|e| format!("单位转换失败: {}", e))?;
 

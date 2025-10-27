@@ -1,5 +1,6 @@
 import type {
   CalculatorState,
+  CalculatorSettings,
   AppSettings,
   HistoryItem,
   Operation,
@@ -10,6 +11,7 @@ import type {
   SimpleVoiceInputController,
   VoiceInputStatus as SimpleVoiceInputStatus,
 } from '@/mobile/voice-input-simple'
+import { CalculatorGestureHandler } from '@/mobile/gesture'
 import { Display } from './Display.js'
 import { AdvancedKeyboard } from './Keyboard.js'
 import { History } from './History.js'
@@ -19,11 +21,10 @@ import { ThemeManager } from '@/utils/theme'
 import { DeviceDetector } from '@/utils/device'
 import { invoke, TauriService } from '@/utils/tauri'
 import { trackState, trackPerformance, trackError } from '@/utils/mcp-debugger'
+import { applyTranslations, translate, setLanguage, onLanguageChange } from '@/utils/i18n'
+import type { ReplacementMap } from '@/utils/i18n'
+import { createDefaultAppSettings } from '@/utils/settings-defaults'
 
-/**
- * 主计算器组件
- * 协调所有子组件并管理整体状态
- */
 export class Calculator {
   protected container: HTMLElement
   protected state: CalculatorState
@@ -39,12 +40,40 @@ export class Calculator {
   private voiceToggleHandler: (() => void | Promise<void>) | null = null
   private voicePreviewResetTimer: number | null = null
   private deviceDetector: DeviceDetector
+  private statusResetTimer: number | null = null
+  private boundHandleKeyboard: (event: KeyboardEvent) => void
+  private boundResize: () => void
+  private boundOrientationChange: () => void
+  private languageUnsubscribe: (() => void) | null = null
 
   constructor(container: HTMLElement) {
     this.container = container
-    this.themeManager = new ThemeManager()
-    this.deviceDetector = new DeviceDetector()
+    this.themeManager = this.constructOrCall<ThemeManager>(ThemeManager as unknown as {
+      new (): ThemeManager
+    })
+    this.deviceDetector = this.constructOrCall<DeviceDetector>(DeviceDetector as unknown as {
+      new (): DeviceDetector
+    })
     this.state = this.getInitialState()
+    this.boundHandleKeyboard = this.handleKeyboard.bind(this)
+    this.boundResize = this.handleResize.bind(this)
+    this.boundOrientationChange = this.handleOrientationChange.bind(this)
+  }
+
+  private constructOrCall<T>(Ctor: any): T {
+    try {
+      return new Ctor() as T
+    } catch (_e) {
+      return Ctor() as T
+    }
+  }
+
+  private constructOrCallArgs<T>(Ctor: any, ...args: unknown[]): T {
+    try {
+      return new Ctor(...args) as T
+    } catch (_e) {
+      return Ctor(...args) as T
+    }
   }
 
   private getInitialState(): CalculatorState {
@@ -65,20 +94,16 @@ export class Calculator {
         showHistory: true,
         showMemory: true,
         enableKeyboardShortcuts: true,
+        language: createDefaultAppSettings().general.language,
       },
       history: [],
     }
   }
 
-  /**
-   * 从多个数据源加载应用状态
-   * 优先级: Tauri后端 > localStorage > 默认值
-   */
   private async loadState(): Promise<void> {
     const startTime = performance.now()
 
     try {
-      // 1. 尝试从 Tauri 后端加载
       const backendData = await this.loadFromBackend()
       if (backendData.success) {
         console.log('✅ 后端状态加载成功')
@@ -89,7 +114,6 @@ export class Calculator {
         return
       }
 
-      // 2. 回退到本地存储
       const localData = this.loadFromLocalStorage()
       if (localData.success) {
         console.log('✅ 本地状态加载成功')
@@ -111,9 +135,7 @@ export class Calculator {
     }
   }
 
-  /**
-   * 从Tauri后端加载状态
-   */
+
   private async loadFromBackend(): Promise<{ success: boolean }> {
     if (!invoke) {
       return { success: false }
@@ -136,18 +158,15 @@ export class Calculator {
     }
 
     try {
-      // 并行加载设置和历史记录
       const [settingsResult, historyResult] = await Promise.allSettled([
         loadSettings(),
         invoke<HistoryItem[]>('get_history', { limit: 100 }),
       ])
 
-      // 处理设置加载结果
       if (settingsResult.status === 'fulfilled' && settingsResult.value) {
         this.mapBackendSettings(settingsResult.value)
       }
 
-      // 处理历史记录加载结果
       if (historyResult.status === 'fulfilled' && Array.isArray(historyResult.value)) {
         this.state.history = historyResult.value
       }
@@ -159,13 +178,10 @@ export class Calculator {
     }
   }
 
-  /**
-   * 映射后端设置到前端格式
-   */
+
   private mapBackendSettings(backendSettings: AppSettings): void {
     const mapped = { ...this.state.settings }
 
-    // 使用类型安全的设置映射
     if (backendSettings.theme?.mode) {
       mapped.theme = backendSettings.theme.mode
     }
@@ -180,7 +196,6 @@ export class Calculator {
         : 'degrees'
     }
 
-    // 布尔值设置
     const booleanMappings = [
       ['general.enableAnimations', 'enableAnimations'],
       ['general.enableHaptic', 'enableHaptics'],
@@ -204,9 +219,7 @@ export class Calculator {
     this.state.settings = mapped
   }
 
-  /**
-   * 从本地存储加载状态
-   */
+
   private loadFromLocalStorage(): { success: boolean } {
     try {
       const savedState = localStorage.getItem('calculator-state')
@@ -216,7 +229,6 @@ export class Calculator {
 
       const parsedState = JSON.parse(savedState)
 
-      // 验证状态结构
       if (this.validateStateStructure(parsedState)) {
         this.state = { ...this.state, ...parsedState }
         return { success: true }
@@ -230,9 +242,7 @@ export class Calculator {
     }
   }
 
-  /**
-   * 验证状态结构有效性
-   */
+
   private validateStateStructure(state: unknown): boolean {
     return (
       typeof state === 'object' &&
@@ -244,9 +254,7 @@ export class Calculator {
     )
   }
 
-  /**
-   * 获取嵌套对象属性值
-   */
+
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     return path
       .split('.')
@@ -257,24 +265,24 @@ export class Calculator {
       )
   }
 
-  /**
-   * 初始化计算器组件
-   */
+
   async init(): Promise<void> {
     try {
       await this.loadState()
       this.createLayout()
+      this.applyLanguage(this.state.settings.language)
+      this.languageUnsubscribe = onLanguageChange(() => {
+        applyTranslations(document)
+        this.updateStatusBar()
+      })
       await this.initializeComponents()
       this.setupEventListeners()
       await this.themeManager.setThemeMode(this.state.settings.theme)
-      this.themeManager.initReduceMotion() // 初始化减少动效模式
+      this.themeManager.initReduceMotion() 
       this.adaptToDevice()
-      
-      // 移动端专属功能
       if (this.deviceDetector.isMobile() || this.deviceDetector.isTablet()) {
         await this.initMobileFeatures()
       }
-      
       console.log('✅ 计算器初始化完成')
     } catch (error) {
       console.error('❌ 计算器初始化失败:', error)
@@ -288,16 +296,31 @@ export class Calculator {
         <header class="calculator-header">
           <div class="header-title">
             <span class="title-icon">🧮</span>
-            <span class="title-text">科学计算器</span>
+            <span class="title-text" data-i18n="app.title"></span>
           </div>
           <div class="header-controls">
-            <button class="header-btn" id="history-btn" title="历史记录" aria-label="打开历史记录">
+            <button
+              class="header-btn"
+              id="history-btn"
+              data-i18n-title="button.history"
+              data-i18n-aria-label="button.history.aria"
+            >
               📚
             </button>
-            <button class="header-btn" id="settings-btn" title="设置" aria-label="打开设置">
+            <button
+              class="header-btn"
+              id="settings-btn"
+              data-i18n-title="button.settings"
+              data-i18n-aria-label="button.settings.aria"
+            >
               ⚙️
             </button>
-            <button class="header-btn" id="theme-btn" title="切换主题" aria-label="切换深色/浅色主题">
+            <button
+              class="header-btn"
+              id="theme-btn"
+              data-i18n-title="button.theme"
+              data-i18n-aria-label="button.theme.aria"
+            >
               🌓
             </button>
           </div>
@@ -308,32 +331,44 @@ export class Calculator {
           <!-- 显示屏区域 -->
           <section class="display-section">
             <div class="display-container" id="display-container"></div>
-            
             <!-- 状态栏 -->
             <div class="status-bar">
               <div class="status-indicators">
-                <span class="memory-indicator" id="memory-indicator" style="display: none;" title="内存中有数据">M</span>
-                <span class="angle-indicator" id="angle-indicator" title="角度单位">DEG</span>
+                <span
+                  class="memory-indicator"
+                  id="memory-indicator"
+                  style="display: none;"
+                  data-i18n-title="memory.indicator"
+                >
+                  M
+                </span>
+                <span
+                  class="angle-indicator"
+                  id="angle-indicator"
+                  data-i18n-title="angle.indicator"
+                >
+                  DEG
+                </span>
               </div>
-              <div class="status-message" id="status-message">准备就绪</div>
+              <div class="status-message" id="status-message" data-i18n="status.ready"></div>
             </div>
           </section>
 
           <!-- 控制面板 -->
           <section class="control-panel">
             <div class="memory-controls">
-              <button class="memory-btn" id="memory-clear" title="清除内存">MC</button>
-              <button class="memory-btn" id="memory-recall" title="调用内存">MR</button>
-              <button class="memory-btn" id="memory-store" title="存储到内存">MS</button>
-              <button class="memory-btn" id="memory-add" title="内存加">M+</button>
+              <button class="memory-btn" id="memory-clear" data-i18n-title="memory.title.clear">MC</button>
+              <button class="memory-btn" id="memory-recall" data-i18n-title="memory.title.recall">MR</button>
+              <button class="memory-btn" id="memory-store" data-i18n-title="memory.title.store">MS</button>
+              <button class="memory-btn" id="memory-add" data-i18n-title="memory.title.add">M+</button>
             </div>
             <div class="mobile-action-controls">
               <button
                 type="button"
                 class="voice-input-btn"
                 id="voice-input-btn"
-                title="语音输入"
-                aria-label="语音输入"
+                data-i18n-title="voice.button"
+                data-i18n-aria-label="voice.button"
               >
                 🎙️
               </button>
@@ -349,19 +384,23 @@ export class Calculator {
         <!-- 侧边栏 -->
         <aside class="calculator-sidebar" id="sidebar">
           <div class="sidebar-header">
-            <button class="sidebar-close" id="sidebar-close" aria-label="关闭侧边栏">×</button>
+            <button
+              class="sidebar-close"
+              id="sidebar-close"
+              data-i18n-aria-label="sidebar.close"
+            >
+              ×
+            </button>
           </div>
-          
           <div class="sidebar-content">
             <!-- 历史记录面板 -->
             <div class="sidebar-panel history-panel" id="history-panel" style="display: none;">
-              <h3>计算历史</h3>
+              <h3 data-i18n="history.title"></h3>
               <div class="history-container" id="history-container"></div>
             </div>
-            
             <!-- 设置面板 -->
             <div class="sidebar-panel settings-panel" id="settings-panel" style="display: none;">
-              <h3>设置</h3>
+              <h3 data-i18n="button.settings"></h3>
               <div class="settings-container" id="settings-container"></div>
             </div>
           </div>
@@ -370,7 +409,7 @@ export class Calculator {
         <!-- 加载指示器 -->
         <div class="loading-overlay" id="loading-overlay" style="display: none;">
           <div class="loading-spinner"></div>
-          <div class="loading-text">计算中...</div>
+          <div class="loading-text" data-i18n="loading.processing"></div>
         </div>
 
         <!-- 高级功能面板容器 -->
@@ -386,16 +425,16 @@ export class Calculator {
     const settingsContainer = this.container.querySelector('#settings-container') as HTMLElement
   const panelRoot = this.container.querySelector('#advanced-panel-root') as HTMLElement
 
-    // 初始化显示器
-    this.display = new Display(displayContainer, {
+    this.display = this.constructOrCallArgs<Display>(Display as unknown as {
+      new (container: HTMLElement, config: unknown): Display
+    }, displayContainer, {
       precision: this.state.settings.precision,
       theme: await this.themeManager.getCurrentTheme(),
     })
     await this.display.init()
 
-    // 初始化键盘
     const currentTheme = await this.themeManager.getCurrentTheme()
-    const deviceDetector = new DeviceDetector()
+    const deviceDetector = this.deviceDetector
     const keyboardConfig: KeyboardConfig = {
       theme: currentTheme,
       enableHaptic: this.state.settings.enableHaptics,
@@ -407,33 +446,46 @@ export class Calculator {
       onInput: this.handleInput.bind(this),
     }
 
-    this.keyboard = new AdvancedKeyboard(keyboardContainer, keyboardConfig)
+    this.keyboard = this.constructOrCallArgs<AdvancedKeyboard>(
+      AdvancedKeyboard as unknown as { new (container: HTMLElement, cfg: unknown): AdvancedKeyboard },
+      keyboardContainer,
+      keyboardConfig
+    )
 
-    // 初始化历史记录
-    this.history = new History(historyContainer, {
+    this.history = this.constructOrCallArgs<History>(
+      History as unknown as { new (container: HTMLElement, cfg: unknown): History },
+      historyContainer,
+      {
       maxItems: 100,
       onHistoryItemSelect: this.handleHistorySelect.bind(this),
       onHistoryClear: this.handleHistoryClear.bind(this),
     })
     await this.history.init()
 
-    // 初始化设置
-    this.settings = new Settings(settingsContainer)
+    this.settings = this.constructOrCallArgs<Settings>(
+      Settings as unknown as { new (container: HTMLElement): Settings },
+      settingsContainer
+    )
     await this.settings.init()
     this.settings.onSettingsChanged(this.handleSettingsChange.bind(this))
 
-    this.advancedPanels = new AdvancedPanelManager(panelRoot, {
+    this.advancedPanels = this.constructOrCallArgs<AdvancedPanelManager>(
+      AdvancedPanelManager as unknown as {
+        new (container: HTMLElement, cfg: unknown): AdvancedPanelManager
+      },
+      panelRoot,
+      {
       onResult: this.handleAdvancedPanelResult.bind(this),
-      onError: message => this.setStatus(`错误: ${message}`),
+      onError: (message: string) => this.setStatus('status.error', { message }),
     })
 
-    // 设置初始显示状态
     this.updateDisplay()
     this.updateStatusBar()
+
+    applyTranslations(this.container)
   }
 
   private setupEventListeners(): void {
-    // 标题栏按钮
     this.container
       .querySelector('#history-btn')
       ?.addEventListener('click', () => this.toggleSidebar('history'))
@@ -442,12 +494,10 @@ export class Calculator {
       ?.addEventListener('click', () => this.toggleSidebar('settings'))
     this.container.querySelector('#theme-btn')?.addEventListener('click', () => this.toggleTheme())
 
-    // 侧边栏控制
     this.container
       .querySelector('#sidebar-close')
       ?.addEventListener('click', () => this.closeSidebar())
 
-    // 内存控制按钮
     this.container
       .querySelector('#memory-clear')
       ?.addEventListener('click', () => this.memoryOperation('clear'))
@@ -461,16 +511,11 @@ export class Calculator {
       .querySelector('#memory-add')
       ?.addEventListener('click', () => this.memoryOperation('add'))
 
-    // 键盘快捷键
-    if (this.state.settings.enableKeyboardShortcuts) {
-      document.addEventListener('keydown', this.handleKeyboard.bind(this))
-    }
+    this.syncKeyboardShortcutBinding()
 
-    // 窗口事件
-    window.addEventListener('resize', this.handleResize.bind(this))
-    window.addEventListener('orientationchange', this.handleOrientationChange.bind(this))
+    window.addEventListener('resize', this.boundResize)
+    window.addEventListener('orientationchange', this.boundOrientationChange)
 
-    // 侧边栏外部点击关闭
     document.addEventListener('click', e => {
       const sidebar = this.container.querySelector('#sidebar')
       const target = e.target as Element
@@ -486,7 +531,7 @@ export class Calculator {
 
   private handleInput(value: string, type: Operation): void {
     try {
-      this.setStatus('输入中...')
+      this.setStatus('status.input')
 
       switch (type) {
         case 'number':
@@ -565,41 +610,41 @@ export class Calculator {
     switch (action) {
       case 'clear':
         this.clear()
-        this.setStatus('已清空')
+        this.setStatus('status.cleared')
         break
       case 'backspace':
         this.backspace()
-        this.setStatus('已删除')
+        this.setStatus('status.deleted')
         break
       case 'equals':
         this.calculate()
         break
       case 'negate':
         this.negate()
-        this.setStatus('已取反')
+        this.setStatus('status.negated')
         break
       case 'toggle-angle-mode':
         this.toggleAngleMode()
         break
       case 'open-matrix-panel':
         this.advancedPanels.open('matrix')
-        this.setStatus('已打开矩阵面板')
+        this.setStatus('status.matrix')
         break
       case 'open-unit-panel':
         this.advancedPanels.open('unit')
-        this.setStatus('单位转换面板')
+        this.setStatus('status.unit')
         break
       case 'open-complex-panel':
         this.advancedPanels.open('complex')
-        this.setStatus('复数运算面板')
+        this.setStatus('status.complex')
         break
-      case 'open-stats-panel':
+      case 'open-statistics-panel':
         this.advancedPanels.open('statistics')
-        this.setStatus('统计分析面板')
+        this.setStatus('status.stats')
         break
-      case 'open-base-converter':
+      case 'open-base-panel':
         this.advancedPanels.open('base')
-        this.setStatus('进制转换面板')
+        this.setStatus('status.base')
         break
     }
   }
@@ -652,24 +697,38 @@ export class Calculator {
 
   private toggleAngleMode(): void {
     const modes: Array<'degrees' | 'radians' | 'gradians'> = ['degrees', 'radians', 'gradians']
-  const currentIndex = modes.indexOf(this.state.settings.angleUnit)
-  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % modes.length : 0
-  const nextMode = modes[nextIndex] as 'degrees' | 'radians' | 'gradians'
+    const currentIndex = modes.indexOf(this.state.settings.angleUnit)
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % modes.length : 0
+    const nextMode = modes[nextIndex] as 'degrees' | 'radians' | 'gradians'
 
     this.state.settings.angleUnit = nextMode
     this.keyboard.updateConfig({ angleMode: nextMode })
     this.updateStatusBar()
-    this.setStatus(`角度单位已切换为${this.getAngleLabel(nextMode)}`)
+    this.setStatus('status.angle', { mode: this.getAngleLabel(nextMode) })
   }
 
   private getAngleLabel(mode: 'degrees' | 'radians' | 'gradians'): string {
     switch (mode) {
       case 'radians':
-        return '弧度'
+        return translate('angle.radians')
       case 'gradians':
-        return '梯度'
+        return translate('angle.gradians')
       default:
-        return '角度'
+        return translate('angle.degrees')
+    }
+  }
+
+  private applyLanguage(language: CalculatorSettings['language']): void {
+    setLanguage(language)
+    applyTranslations(document)
+    this.updateStatusBar()
+  }
+
+  private syncKeyboardShortcutBinding(): void {
+    if (this.state.settings.enableKeyboardShortcuts) {
+      document.addEventListener('keydown', this.boundHandleKeyboard)
+    } else {
+      document.removeEventListener('keydown', this.boundHandleKeyboard)
     }
   }
 
@@ -718,18 +777,16 @@ export class Calculator {
 
     try {
       this.state.isCalculating = true
-      this.setStatus('计算中...')
+      this.setStatus('status.calculating')
       this.showLoading()
       this.updateDisplay()
 
-      // MCP调试：记录计算开始
       trackState({
         expression: rawExpression,
         result: '计算中...',
         memory: this.state.memory,
       })
 
-      // 模拟计算延迟
       await new Promise(resolve => setTimeout(resolve, 100))
 
       const result = await this.evaluateExpression(expressionForEvaluation, rawExpression)
@@ -739,9 +796,8 @@ export class Calculator {
       this.state.errorMessage = null
       await this.addToHistory(rawExpression, result)
       this.state.expression = ''
-      this.setStatus('计算完成')
+      this.setStatus('status.calculationDone')
 
-      // MCP调试：记录计算成功
       trackState({
         expression: rawExpression,
         result: this.state.result,
@@ -760,7 +816,6 @@ export class Calculator {
       this.state.result = '0'
       this.showError(friendlyError)
 
-      // MCP调试：记录计算错误
       trackError({
         type: 'CalculationError',
         message: friendlyError,
@@ -794,7 +849,6 @@ export class Calculator {
       })
     }
 
-    // 使用 Tauri 后端的高精度计算
     const result = await invoke<{ success: boolean; result?: string; error?: string }>('calculate', {
       expression,
       displayExpression,
@@ -841,25 +895,24 @@ export class Calculator {
     switch (operation) {
       case 'clear':
         this.state.memory = '0'
-        this.setStatus('内存已清空')
+        this.setStatus('status.memoryCleared')
         break
       case 'recall':
         this.state.expression += this.state.memory
-        this.setStatus('已调用内存值')
+        this.setStatus('status.memoryRecalled')
         break
       case 'store':
         this.state.memory = this.state.result
-        this.setStatus('已存储到内存')
+        this.setStatus('status.memoryStored')
         break
       case 'add':
         {
-          // 避免在 case 中使用词法声明引起的 lint 告警
           let currentNum = parseFloat(this.state.memory)
           if (Number.isNaN(currentNum)) currentNum = 0
           let addNum = parseFloat(this.state.result)
           if (Number.isNaN(addNum)) addNum = 0
           this.state.memory = (currentNum + addNum).toString()
-          this.setStatus('已添加到内存')
+          this.setStatus('status.memoryAdded')
         }
         break
     }
@@ -962,14 +1015,12 @@ export class Calculator {
     const memoryIndicator = this.container.querySelector('#memory-indicator') as HTMLElement
     const angleIndicator = this.container.querySelector('#angle-indicator') as HTMLElement
 
-    // 更新内存指示器
     if (this.state.memory !== '0') {
       memoryIndicator.style.display = 'inline'
     } else {
       memoryIndicator.style.display = 'none'
     }
 
-    // 更新角度单位指示器
     switch (this.state.settings.angleUnit) {
       case 'radians':
         angleIndicator.textContent = 'RAD'
@@ -983,22 +1034,36 @@ export class Calculator {
     }
   }
 
-  protected setStatus(message: string): void {
+  protected setStatus(key: string, replacements?: ReplacementMap): void {
     const statusElement = this.container.querySelector('#status-message') as HTMLElement
     if (statusElement) {
+      const message = translate(key, replacements)
       statusElement.textContent = message
-      // 自动清除状态消息
-      setTimeout(() => {
-        if (statusElement.textContent === message) {
-          statusElement.textContent = '准备就绪'
+
+      if (key.startsWith('status.') && !replacements) {
+        statusElement.dataset.i18n = key
+      } else {
+        delete statusElement.dataset.i18n
+      }
+
+      if (this.statusResetTimer !== null) {
+        window.clearTimeout(this.statusResetTimer)
+      }
+
+      const capturedMessage = message
+      this.statusResetTimer = window.setTimeout(() => {
+        if (statusElement.textContent === capturedMessage) {
+          statusElement.textContent = translate('status.ready')
+          statusElement.dataset.i18n = 'status.ready'
         }
+        this.statusResetTimer = null
       }, 2000)
     }
   }
 
   protected showError(message: string): void {
     this.state.errorMessage = message
-    this.setStatus(`错误: ${message}`)
+    this.setStatus('status.error', { message })
     this.updateDisplay()
   }
 
@@ -1021,11 +1086,9 @@ export class Calculator {
     const historyPanel = this.container.querySelector('#history-panel') as HTMLElement
     const settingsPanel = this.container.querySelector('#settings-panel') as HTMLElement
 
-    // 隐藏所有面板
     historyPanel.style.display = 'none'
     settingsPanel.style.display = 'none'
 
-    // 显示选中的面板
     if (panel === 'history') {
       historyPanel.style.display = 'block'
       this.history.show()
@@ -1045,7 +1108,7 @@ export class Calculator {
   }
 
   private async toggleTheme(): Promise<void> {
-  const themes: ThemeMode[] = ['dark', 'light', 'auto']
+    const themes: ThemeMode[] = ['dark', 'light', 'auto']
     const currentThemeMode = this.state.settings.theme
     const currentIndex = themes.indexOf(currentThemeMode)
     const nextIndex = (currentIndex + 1 + themes.length) % themes.length
@@ -1054,9 +1117,9 @@ export class Calculator {
     this.state.settings.theme = nextTheme
     await this.themeManager.setThemeMode(nextTheme)
     const resolvedTheme = await this.themeManager.getCurrentTheme()
-  const appliedTheme = nextTheme === 'auto' ? resolvedTheme.name : nextTheme
-  this.container.setAttribute('data-theme', appliedTheme)
-  this.setStatus(`已切换到${this.getThemeLabel(appliedTheme)}主题`)
+    const appliedTheme = nextTheme === 'auto' ? resolvedTheme.name : nextTheme
+    this.container.setAttribute('data-theme', appliedTheme)
+    this.setStatus('status.themeChanged', { theme: this.getThemeLabel(appliedTheme) })
   }
 
   private handleHistorySelect(item: HistoryItem): void {
@@ -1064,13 +1127,13 @@ export class Calculator {
     this.state.result = item.result
     this.updateDisplay()
     this.closeSidebar()
-    this.setStatus('已选择历史记录')
+    this.setStatus('status.historySelected')
   }
 
   private handleHistoryClear(): void {
     this.state.history = []
     this.history.setHistory([])
-    this.setStatus('历史记录已清空')
+    this.setStatus('status.historyCleared')
   }
 
   private handleSettingsChange(settings: AppSettings): void {
@@ -1084,10 +1147,13 @@ export class Calculator {
       showHistory: settings.layout.showHistory,
       showMemory: settings.layout.showMemory ?? true,
       enableKeyboardShortcuts: settings.general.enableKeyboardShortcuts,
+      language: settings.general.language,
     }
 
     this.applySettings()
-    this.setStatus('设置已更新')
+    this.applyLanguage(this.state.settings.language)
+    this.syncKeyboardShortcutBinding()
+    this.setStatus('status.settingsUpdated')
   }
 
   private async applySettings(): Promise<void> {
@@ -1114,20 +1180,21 @@ export class Calculator {
   private getThemeLabel(mode: string): string {
     switch (mode) {
       case 'dark':
-        return '深色'
+        return translate('theme.dark')
       case 'light':
-        return '浅色'
+        return translate('theme.light')
+      case 'auto':
+        return translate('theme.auto')
       case 'high-contrast':
-        return '高对比度'
+        return translate('theme.highContrast')
       default:
         return mode
     }
   }
 
   private adaptToDevice(): void {
-    const deviceDetector = new DeviceDetector()
-    const deviceType = deviceDetector.getDeviceType()
-    const isLandscape = deviceDetector.getOrientation() === 'landscape'
+    const deviceType = this.deviceDetector.getDeviceType()
+    const isLandscape = this.deviceDetector.getOrientation() === 'landscape'
 
     this.container.setAttribute('data-device', deviceType)
     this.container.setAttribute('data-orientation', isLandscape ? 'landscape' : 'portrait')
@@ -1139,20 +1206,16 @@ export class Calculator {
     })
   }
 
-  /**
-   * 初始化移动端专属功能
-   */
+
   private async initMobileFeatures(): Promise<void> {
     try {
-      // 初始化手势操作
-      const { CalculatorGestureHandler } = await import('@/mobile/gesture')
-      this.gestureHandler = new CalculatorGestureHandler(this.container)
-      
-      // 监听手势事件
+      this.gestureHandler = this.constructOrCallArgs(
+        CalculatorGestureHandler as unknown as { new (container: HTMLElement): unknown },
+        this.container
+      ) as unknown as ReturnType<any>
       this.container.addEventListener('calculatorGesture', ((event: CustomEvent) => {
         this.handleGestureAction(event.detail)
       }) as EventListener)
-      
       console.log('✅ 手势操作已启用')
       await this.setupVoiceInput()
     } catch (error) {
@@ -1160,9 +1223,7 @@ export class Calculator {
     }
   }
 
-  /**
-   * 处理手势动作
-   */
+
   private handleGestureAction(detail: { action: string; direction?: string; suggestion: string }): void {
     const { action, suggestion } = detail
 
@@ -1184,21 +1245,17 @@ export class Calculator {
     }
   }
 
-  /**
-   * 处理滑动手势
-   */
+
   private handleSwipeGesture(suggestion: string): void {
     switch (suggestion) {
       case 'deleteLastDigit':
         this.backspace()
         break
       case 'undoLastOperation':
-        // TODO: 实现撤销功能
         console.log('撤销操作')
         break
       case 'showHistory':
         {
-          // 打开历史记录面板（显示侧边栏）
           const historyBtn = document.getElementById('history-btn')
           if (historyBtn) {
             historyBtn.click()
@@ -1206,33 +1263,25 @@ export class Calculator {
         }
         break
       case 'hideExtendedPanel':
-        // TODO: 关闭扩展面板
         console.log('关闭扩展面板')
         break
     }
   }
 
-  /**
-   * 处理长按手势
-   */
+
   private handleLongPressGesture(suggestion: string): void {
     switch (suggestion) {
       case 'editExpression':
-        // TODO: 编辑表达式
         console.log('编辑表达式')
         break
       case 'showButtonMenu':
-        // TODO: 显示按钮菜单
         console.log('显示按钮菜单')
         break
     }
   }
 
-  /**
-   * 处理缩放手势
-   */
+
   private handlePinchGesture(suggestion: string): void {
-    // TODO: 实现缩放功能
     console.log('缩放:', suggestion)
   }
 
@@ -1256,7 +1305,7 @@ export class Calculator {
           onResult: (transcript: string, isFinal: boolean) => this.handleVoiceResult(transcript, isFinal),
           onError: (error: unknown) => {
             const message = error instanceof Error ? error.message : String(error)
-            this.setStatus(`语音输入错误: ${message}`)
+            this.setStatus('status.voiceError', { message })
             this.updateVoiceButton('error')
           },
           onStatusChange: (status: SimpleVoiceInputStatus) => this.updateVoiceButton(status),
@@ -1268,7 +1317,8 @@ export class Calculator {
         button.disabled = true
         button.setAttribute('aria-disabled', 'true')
         button.classList.add('is-disabled')
-        button.title = '当前环境不支持语音输入'
+        button.title = translate('voice.button.unsupported')
+        button.dataset.i18nTitle = 'voice.button.unsupported'
         return
       }
 
@@ -1284,7 +1334,7 @@ export class Calculator {
             .stop()
             .catch((toggleError: unknown) => {
               const message = toggleError instanceof Error ? toggleError.message : '停止语音输入失败'
-              this.setStatus(`语音输入错误: ${message}`)
+              this.setStatus('status.voiceError', { message })
               this.updateVoiceButton('error')
             })
         } else {
@@ -1292,14 +1342,14 @@ export class Calculator {
             .start()
             .catch((toggleError: unknown) => {
               const message = toggleError instanceof Error ? toggleError.message : '启动语音输入失败'
-              this.setStatus(`语音输入错误: ${message}`)
+              this.setStatus('status.voiceError', { message })
               this.updateVoiceButton('error')
             })
         }
       }
 
       button.addEventListener('click', this.voiceToggleHandler)
-      this.setStatus('语音输入已就绪')
+      this.setStatus('status.voiceReady')
     } catch (error) {
       console.error('❌ 语音输入初始化失败:', error)
       button.disabled = true
@@ -1322,20 +1372,23 @@ export class Calculator {
         button.classList.add('is-listening')
         button.setAttribute('aria-pressed', 'true')
         button.textContent = '⏹️'
-        button.title = '停止语音输入'
+        button.title = translate('voice.button.stop')
+        button.dataset.i18nTitle = 'voice.button.stop'
         this.clearVoicePreview()
-        this.setStatus('正在倾听，请开始讲话')
+        this.setStatus('status.voiceListening')
         break
       case 'error':
         button.classList.add('has-error')
         button.setAttribute('aria-pressed', 'false')
         button.textContent = '🎙️'
-        button.title = '语音输入'
+        button.title = translate('voice.button')
+        button.dataset.i18nTitle = 'voice.button'
         break
       default:
         button.setAttribute('aria-pressed', 'false')
         button.textContent = '🎙️'
-        button.title = '语音输入'
+        button.title = translate('voice.button')
+        button.dataset.i18nTitle = 'voice.button'
         break
     }
   }
@@ -1363,14 +1416,22 @@ export class Calculator {
     }
 
     const content = transcript.trim()
-    statusElement.textContent = content ? `语音识别中：${content}` : '语音识别中...'
+    const messageKey = content ? 'status.voicePreview' : 'status.voicePreviewFallback'
+    statusElement.textContent = translate(messageKey, content ? { content } : undefined)
+
+    if (!content) {
+      statusElement.dataset.i18n = messageKey
+    } else {
+      delete statusElement.dataset.i18n
+    }
 
     if (this.voicePreviewResetTimer !== null) {
       window.clearTimeout(this.voicePreviewResetTimer)
     }
 
     this.voicePreviewResetTimer = window.setTimeout(() => {
-      statusElement.textContent = '准备就绪'
+      statusElement.textContent = translate('status.ready')
+      statusElement.dataset.i18n = 'status.ready'
       this.voicePreviewResetTimer = null
     }, 4000)
   }
@@ -1509,7 +1570,7 @@ export class Calculator {
       拾: '10',
     }
 
-  const commandTokens = new Set(['+', '-', '×', '÷', '.', '(', ')', '=', 'clear', 'backspace', 'stop'])
+    const commandTokens = new Set(['+', '-', '×', '÷', '.', '(', ')', '=', 'clear', 'backspace', 'stop'])
 
     rawTokens.forEach(token => {
       const lower = token.toLowerCase()
@@ -1549,7 +1610,7 @@ export class Calculator {
 
   private applyVoiceTokens(tokens: string[]): void {
     if (!tokens.length) {
-      this.setStatus('未识别到有效指令')
+      this.setStatus('status.voiceNoCommand')
       return
     }
 
@@ -1609,7 +1670,7 @@ export class Calculator {
 
     if (hasEffect && !requestCalculation) {
       this.updateDisplay()
-      this.setStatus('语音输入已应用')
+      this.setStatus('status.voiceApplied')
     }
 
     if (requestCalculation) {
@@ -1617,33 +1678,29 @@ export class Calculator {
     }
 
     if (!hasEffect) {
-      this.setStatus('未识别到有效指令')
+      this.setStatus('status.voiceNoCommand')
     }
   }
 
-  /**
-   * 复制结果到剪贴板
-   */
+
   private copyResultToClipboard(): void {
     const result = this.state.result
     navigator.clipboard.writeText(result).then(() => {
-      this.showToast('✅ 已复制到剪贴板')
+      this.showToast('toast.copySuccess')
       if (navigator.vibrate) {
         navigator.vibrate(50)
       }
     }).catch(() => {
-      this.showToast('❌ 复制失败')
+      this.showToast('toast.copyError')
     })
   }
 
 
-  /**
-   * 显示Toast提示
-   */
-  private showToast(message: string): void {
+
+  private showToast(key: string, replacements?: ReplacementMap): void {
     const toast = document.createElement('div')
     toast.className = 'toast-message'
-    toast.textContent = message
+    toast.textContent = translate(key, replacements)
     toast.style.cssText = `
       position: fixed;
       top: 80px;
@@ -1657,9 +1714,7 @@ export class Calculator {
       z-index: 9999;
       animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s;
     `
-    
     document.body.appendChild(toast)
-    
     setTimeout(() => {
       toast.remove()
     }, 3000)
@@ -1713,8 +1768,7 @@ export class Calculator {
 
   private handleOrientationChange(): void {
     setTimeout(() => {
-      const deviceDetector = new DeviceDetector()
-      const isLandscape = deviceDetector.getOrientation() === 'landscape'
+      const isLandscape = this.deviceDetector.getOrientation() === 'landscape'
       this.container.setAttribute('data-orientation', isLandscape ? 'landscape' : 'portrait')
       this.keyboard.handleResize()
     }, 100)
@@ -1726,14 +1780,27 @@ export class Calculator {
     this.history?.destroy()
     this.settings?.destroy()
 
-    // 清理移动端功能
     if (this.gestureHandler) {
       this.gestureHandler.destroy()
       ;(this.gestureHandler as unknown as { destroyed?: boolean }).destroyed = true
     }
 
-    document.removeEventListener('keydown', this.handleKeyboard.bind(this))
-    window.removeEventListener('resize', this.handleResize.bind(this))
-    window.removeEventListener('orientationchange', this.handleOrientationChange.bind(this))
+    if (this.voiceInputButton && this.voiceToggleHandler) {
+      this.voiceInputButton.removeEventListener('click', this.voiceToggleHandler)
+    }
+
+    if (this.languageUnsubscribe) {
+      this.languageUnsubscribe()
+      this.languageUnsubscribe = null
+    }
+
+    if (this.statusResetTimer !== null) {
+      window.clearTimeout(this.statusResetTimer)
+      this.statusResetTimer = null
+    }
+
+    document.removeEventListener('keydown', this.boundHandleKeyboard)
+    window.removeEventListener('resize', this.boundResize)
+    window.removeEventListener('orientationchange', this.boundOrientationChange)
   }
 }

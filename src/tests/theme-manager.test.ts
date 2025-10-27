@@ -1,11 +1,11 @@
-/* *
- * 主题管理器测试 */
+
+
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ThemeManager } from '@/utils/theme'
 import type { Theme } from '@/types/calculator'
 
-// Mock localStorage
+
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
 
@@ -23,7 +23,7 @@ const localStorageMock = (() => {
   }
 })()
 
-// Mock Tauri Store plugin
+
 vi.mock('@tauri-apps/plugin-store', () => ({
   Store: {
     load: vi.fn().mockResolvedValue({
@@ -34,13 +34,13 @@ vi.mock('@tauri-apps/plugin-store', () => ({
   }
 }))
 
-// Mock window.__TAURI__
+
 Object.defineProperty(window, '__TAURI__', {
   value: undefined,
   writable: true
 })
 
-// Mock window.matchMedia
+
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 })
@@ -51,8 +51,8 @@ Object.defineProperty(window, 'matchMedia', {
     matches: query === '(prefers-color-scheme: dark)' ? false : true,
     media: query,
     onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
+    addListener: vi.fn(), 
+    removeListener: vi.fn(), 
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
@@ -66,20 +66,15 @@ describe('ThemeManager', () => {
     localStorage.clear()
     document.documentElement.className = ''
     document.documentElement.removeAttribute('data-theme')
-    
-    // Clear all CSS custom properties
     const root = document.documentElement
     root.style.removeProperty('--color-primary')
     root.style.removeProperty('--color-background')
     root.style.removeProperty('--color-text')
-    // ... clear all other theme properties
-    
     vi.clearAllMocks()
     themeManager = new ThemeManager()
   })
 
   afterEach(() => {
-    // Clean up any added meta elements
     const metaThemeColor = document.querySelector('meta[name="theme-color"]')
     if (metaThemeColor) {
       metaThemeColor.remove()
@@ -93,7 +88,6 @@ describe('ThemeManager', () => {
 
     it('应该异步初始化并应用主题', async () => {
       await themeManager.init()
-      
       const currentTheme = themeManager.getCurrentTheme()
       expect(currentTheme).toBeDefined()
       expect(currentTheme.colors).toBeDefined()
@@ -101,7 +95,6 @@ describe('ThemeManager', () => {
     })
 
     it('应该处理初始化错误并回退到系统主题', async () => {
-      // Mock localStorage to throw error during theme loading
       const originalGetItem = localStorage.getItem
       localStorage.getItem = vi.fn().mockImplementation(() => {
         throw new Error('Storage access denied')
@@ -112,7 +105,6 @@ describe('ThemeManager', () => {
       const currentTheme = themeManager.getCurrentTheme()
       expect(currentTheme).toBeDefined()
 
-      // Restore
       localStorage.getItem = originalGetItem
     })
   })
@@ -125,14 +117,12 @@ describe('ThemeManager', () => {
     it('应该返回当前主题的副本', () => {
       const theme1 = themeManager.getCurrentTheme()
       const theme2 = themeManager.getCurrentTheme()
-      
       expect(theme1).toEqual(theme2)
-      expect(theme1).not.toBe(theme2) // Should be different objects (cloned)
+      expect(theme1).not.toBe(theme2) 
     })
 
     it('返回的主题应该包含必要的属性', () => {
       const theme = themeManager.getCurrentTheme()
-      
       expect(theme).toHaveProperty('name')
       expect(theme).toHaveProperty('mode')
       expect(theme).toHaveProperty('type')
@@ -150,7 +140,6 @@ describe('ThemeManager', () => {
 
     it('应该正确设置浅色主题', async () => {
       await themeManager.setThemeMode('light')
-      
       const theme = themeManager.getCurrentTheme()
       expect(theme.mode).toBe('light')
       expect(theme.name).toBe('light')
@@ -159,7 +148,6 @@ describe('ThemeManager', () => {
 
     it('应该正确设置深色主题', async () => {
       await themeManager.setThemeMode('dark')
-      
       const theme = themeManager.getCurrentTheme()
       expect(theme.mode).toBe('dark')
       expect(theme.name).toBe('dark')
@@ -168,15 +156,13 @@ describe('ThemeManager', () => {
 
     it('应该正确设置高对比度主题', async () => {
       await themeManager.setThemeMode('high-contrast')
-      
       const theme = themeManager.getCurrentTheme()
-      expect(theme.mode).toBe('dark') // High contrast is mostly dark
+      expect(theme.mode).toBe('dark') 
       expect(theme.name).toBe('high-contrast')
     })
 
     it('应该正确设置自动主题', async () => {
       await themeManager.setThemeMode('auto')
-      
       const theme = themeManager.getCurrentTheme()
       expect(['light', 'dark']).toContain(theme.mode)
     })
@@ -209,7 +195,6 @@ describe('ThemeManager', () => {
       }
 
       themeManager.setCustomTheme(customTheme)
-      
       const theme = themeManager.getCurrentTheme()
       expect(theme.name).toBe('custom')
       expect(theme.colors.primary).toBe('#ff6b6b')
@@ -232,11 +217,9 @@ describe('ThemeManager', () => {
       }
 
       themeManager.setCustomTheme(partialCustomTheme)
-      
       const theme = themeManager.getCurrentTheme()
       expect(theme.colors.primary).toBe('#ff6b6b')
       expect(theme.colors.accent).toBe('#ffd93d')
-      // Other properties should remain from the original theme
       expect(theme.colors.background).toBe('#1a1a1a')
     })
   })
@@ -249,10 +232,8 @@ describe('ThemeManager', () => {
     it('应该正确切换主题模式', async () => {
       await themeManager.setThemeMode('light')
       expect(themeManager.getCurrentTheme().mode).toBe('light')
-      
       await themeManager.toggleTheme()
       expect(themeManager.getCurrentTheme().mode).toBe('dark')
-      
       await themeManager.toggleTheme()
       expect(themeManager.getCurrentTheme().mode).toBe('light')
     })
@@ -265,10 +246,8 @@ describe('ThemeManager', () => {
 
     it('应该在主题变化时调用监听器', () => {
       const mockCallback = vi.fn()
-      
       themeManager.onThemeChange(mockCallback)
       themeManager.setCustomTheme({ name: 'test' })
-      
       expect(mockCallback).toHaveBeenCalledTimes(1)
       expect(mockCallback).toHaveBeenCalledWith(expect.objectContaining({
         name: 'test'
@@ -278,13 +257,11 @@ describe('ThemeManager', () => {
     it('应该返回取消监听的函数', () => {
       const mockCallback = vi.fn()
       const unsubscribe = themeManager.onThemeChange(mockCallback)
-      
       themeManager.setCustomTheme({ name: 'test1' })
       expect(mockCallback).toHaveBeenCalledTimes(1)
-      
       unsubscribe()
       themeManager.setCustomTheme({ name: 'test2' })
-      expect(mockCallback).toHaveBeenCalledTimes(1) // Should not be called again
+      expect(mockCallback).toHaveBeenCalledTimes(1) 
     })
 
     it('应该处理监听器回调中的错误', () => {
@@ -292,14 +269,11 @@ describe('ThemeManager', () => {
         throw new Error('Callback error')
       })
       const normalCallback = vi.fn()
-      
       themeManager.onThemeChange(errorCallback)
       themeManager.onThemeChange(normalCallback)
-      
       expect(() => {
         themeManager.setCustomTheme({ name: 'test' })
       }).not.toThrow()
-      
       expect(errorCallback).toHaveBeenCalled()
       expect(normalCallback).toHaveBeenCalled()
     })
@@ -313,7 +287,6 @@ describe('ThemeManager', () => {
     it('应该生成正确的 CSS 变量', () => {
       const theme = themeManager.getCurrentTheme()
       const cssVars = themeManager.generateCSSVariables(theme)
-      
       expect(cssVars).toContain('--color-primary:')
       expect(cssVars).toContain('--color-secondary:')
       expect(cssVars).toContain('--color-background:')
@@ -324,7 +297,6 @@ describe('ThemeManager', () => {
       expect(cssVars).toContain('--color-error:')
       expect(cssVars).toContain('--color-warning:')
       expect(cssVars).toContain('--color-success:')
-      
       expect(cssVars).toContain(theme.colors.primary)
       expect(cssVars).toContain(theme.colors.background)
     })
@@ -338,7 +310,6 @@ describe('ThemeManager', () => {
     it('应该正确导出主题', () => {
       const themeJson = themeManager.exportTheme()
       const parsedTheme = JSON.parse(themeJson) as Theme
-      
       expect(parsedTheme).toHaveProperty('name')
       expect(parsedTheme).toHaveProperty('colors')
       expect(parsedTheme.colors).toHaveProperty('primary')
@@ -375,7 +346,6 @@ describe('ThemeManager', () => {
     it('应该拒绝无效的主题格式', () => {
       const invalidThemeJson = JSON.stringify({
         name: 'invalid',
-        // Missing required fields
       })
 
       const result = themeManager.importTheme(invalidThemeJson)
@@ -398,9 +368,7 @@ describe('ThemeManager', () => {
 
     it('应该重置为默认主题', async () => {
       await themeManager.resetToDefault()
-      
       const theme = themeManager.getCurrentTheme()
-      // Should reset to system theme (auto)
       expect(['light', 'dark']).toContain(theme.mode)
       expect(theme.name).toMatch(/^(light|dark)$/)
     })
@@ -413,11 +381,8 @@ describe('ThemeManager', () => {
 
     it('应该启用减少动效模式', () => {
       themeManager.setReduceMotion(true)
-      
       expect(document.documentElement.getAttribute('data-reduce-motion')).toBe('true')
       expect(localStorage.getItem('calculator-reduce-motion')).toBe('true')
-      
-      // Check CSS variables are set to 0
       const root = document.documentElement
       expect(root.style.getPropertyValue('--transition-fast')).toBe('0s')
       expect(root.style.getPropertyValue('--transition-normal')).toBe('0s')
@@ -425,11 +390,8 @@ describe('ThemeManager', () => {
 
     it('应该禁用减少动效模式', () => {
       themeManager.setReduceMotion(false)
-      
       expect(document.documentElement.getAttribute('data-reduce-motion')).toBeNull()
       expect(localStorage.getItem('calculator-reduce-motion')).toBe('false')
-      
-      // Check CSS variables are removed
       const root = document.documentElement
       expect(root.style.getPropertyValue('--transition-fast')).toBe('')
     })
@@ -437,15 +399,12 @@ describe('ThemeManager', () => {
     it('应该正确检测减少动效设置', () => {
       themeManager.setReduceMotion(true)
       expect(themeManager.getReduceMotion()).toBe(true)
-      
       themeManager.setReduceMotion(false)
       expect(themeManager.getReduceMotion()).toBe(false)
     })
 
     it('应该回退到系统偏好', () => {
       localStorage.clear()
-      
-      // Mock system prefers reduced motion
       const originalMatchMedia = window.matchMedia
       window.matchMedia = vi.fn().mockImplementation((query: string) => ({
         matches: query === '(prefers-reduced-motion: reduce)',
@@ -457,7 +416,6 @@ describe('ThemeManager', () => {
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
       })) as unknown as typeof window.matchMedia
-      
       const reduceMotion = themeManager.getReduceMotion()
       expect(reduceMotion).toBe(true)
 
@@ -472,36 +430,26 @@ describe('ThemeManager', () => {
 
     it('应该正确设置 data-theme 属性', async () => {
       await themeManager.setThemeMode('dark')
-      
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-      
       await themeManager.setThemeMode('light')
-      
       expect(document.documentElement.getAttribute('data-theme')).toBe('light')
     })
 
     it('应该正确设置 CSS 自定义属性', async () => {
       await themeManager.setThemeMode('dark')
-      
       const root = document.documentElement
       const primaryColor = root.style.getPropertyValue('--color-primary')
       const backgroundColor = root.style.getPropertyValue('--color-background')
-      
-      expect(primaryColor).toBe('#60a5fa') // Dark theme primary color
-      expect(backgroundColor).toBe('#1e293b') // Dark theme background
+      expect(primaryColor).toBe('#60a5fa') 
+      expect(backgroundColor).toBe('#1e293b') 
     })
 
     it('应该创建或更新 meta theme-color 标签', async () => {
-      // Check if meta tag is created
       await themeManager.setThemeMode('dark')
-      
       let metaThemeColor = document.querySelector('meta[name="theme-color"]')
       expect(metaThemeColor).toBeTruthy()
       expect(metaThemeColor?.getAttribute('content')).toBe('#0f172a')
-      
-      // Check if meta tag is updated
       await themeManager.setThemeMode('light')
-      
       metaThemeColor = document.querySelector('meta[name="theme-color"]')
       expect(metaThemeColor?.getAttribute('content')).toBe('#667eea')
     })
@@ -515,38 +463,25 @@ describe('ThemeManager', () => {
       })
 
       const themeManager = new ThemeManager()
-      
-      // Should not throw even if localStorage fails
       await expect(themeManager.setThemeMode('dark')).resolves.not.toThrow()
-      
-      // Restore
       localStorage.setItem = originalSetItem
     })
 
     it('应该处理多个监听器的注册和注销', async () => {
       await themeManager.init()
-      
       const callbacks = Array.from({ length: 5 }, () => vi.fn())
       const unsubscribers = callbacks.map(callback => 
         themeManager.onThemeChange(callback)
       )
-      
       themeManager.setCustomTheme({ name: 'test' })
-      
       callbacks.forEach(callback => {
         expect(callback).toHaveBeenCalledTimes(1)
       })
-      
-      // Unsubscribe some listeners
       unsubscribers.slice(0, 3).forEach(unsubscribe => unsubscribe())
-      
       themeManager.setCustomTheme({ name: 'test2' })
-      
-      // Only remaining listeners should be called
       callbacks.slice(3).forEach(callback => {
         expect(callback).toHaveBeenCalledTimes(2)
       })
-      
       callbacks.slice(0, 3).forEach(callback => {
         expect(callback).toHaveBeenCalledTimes(1)
       })
@@ -556,29 +491,23 @@ describe('ThemeManager', () => {
   describe('性能测试', () => {
     it('主题切换应该在合理时间内完成', async () => {
       await themeManager.init()
-      
       const startTime = performance.now()
-      
       for (let i = 0; i < 50; i++) {
         await themeManager.setThemeMode(i % 2 === 0 ? 'light' : 'dark')
       }
-      
       const endTime = performance.now()
-      expect(endTime - startTime).toBeLessThan(500) // Should complete in less than 500ms
+      expect(endTime - startTime).toBeLessThan(500) 
     })
 
     it('CSS 变量生成应该在合理时间内完成', async () => {
       await themeManager.init()
       const theme = themeManager.getCurrentTheme()
-      
       const startTime = performance.now()
-      
       for (let i = 0; i < 100; i++) {
         themeManager.generateCSSVariables(theme)
       }
-      
       const endTime = performance.now()
-      expect(endTime - startTime).toBeLessThan(50) // Should complete in less than 50ms
+      expect(endTime - startTime).toBeLessThan(50) 
     })
   })
 })

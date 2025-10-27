@@ -2,10 +2,8 @@ import Decimal from 'decimal.js'
 
 Decimal.set({ precision: 50, rounding: Decimal.ROUND_HALF_EVEN, toExpNeg: -100, toExpPos: 100 })
 
-/* *
- * 安全表达式求值器（前端回退用）
- * 使用 decimal.js 提供金融级精度，避免 JS 浮点误差。
- * 支持: + - * / ^ ( )，函数: sin cos tan ln log sqrt，常数: π pi e */
+
+
 
 export type AngleUnit = 'degrees' | 'radians' | 'gradians'
 
@@ -45,7 +43,7 @@ const functions: Record<string, (args: Decimal[], unit: AngleUnit) => Decimal> =
   ln: args => {
     const val = requireArg(args, 0)
     if (val.isNegative() || val.isZero()) {
-      throw new Error('计算结果无效') // ln of non-positive number is undefined
+      throw new Error('计算结果无效') 
     }
     return Decimal.ln(val)
   },
@@ -53,26 +51,25 @@ const functions: Record<string, (args: Decimal[], unit: AngleUnit) => Decimal> =
     if (args.length === 1) {
       const val = requireArg(args, 0)
       if (val.isNegative() || val.isZero()) {
-        throw new Error('计算结果无效') // log of non-positive number is undefined
+        throw new Error('计算结果无效') 
       }
-      return Decimal.log10(val) // log10(val)
+      return Decimal.log10(val) 
     } else {
-      const base = requireArg(args, 0) // First argument is base
-      const val = requireArg(args, 1) // Second argument is value
-      
+      const base = requireArg(args, 0) 
+      const val = requireArg(args, 1) 
       if (val.isNegative() || val.isZero()) {
-        throw new Error('计算结果无效') // log of non-positive number is undefined
+        throw new Error('计算结果无效') 
       }
       if (base.isNegative() || base.isZero() || base.equals(1)) {
-        throw new Error('计算结果无效') // invalid log base
+        throw new Error('计算结果无效') 
       }
-      return Decimal.log(val).div(Decimal.log(base)) // log_base(val)
+      return Decimal.log(val).div(Decimal.log(base)) 
     }
   },
   sqrt: args => {
     const val = requireArg(args, 0)
     if (val.isNegative()) {
-      throw new Error('计算结果无效') // sqrt of negative number is undefined in real numbers
+      throw new Error('计算结果无效') 
     }
     return val.sqrt()
   },
@@ -95,7 +92,6 @@ export function evaluateExpressionSafe(input: string, opts: EvalOptions = {}): s
   const result = evalRPN(rpn, angleUnit)
 
   if (!result.isFinite() && !result.isNaN()) {
-    // Allow infinity but not NaN
     if (isNaN(result.toNumber())) {
       throw new Error('计算结果无效')
     }
@@ -120,13 +116,9 @@ function tokenize(input: string): Tok[] {
     if (/[0-9.]/.test(c)) {
       let j = i + 1
       while (j < input.length && /[0-9.]/.test(input[j]!)) j++
-      
-      // Check for scientific notation
       if (j < input.length && (input[j] === 'e' || input[j] === 'E')) {
         let k = j + 1
-        // Handle optional + or - after e
         if (k < input.length && (input[k] === '+' || input[k] === '-')) k++
-        // Parse exponent digits
         while (k < input.length && /[0-9]/.test(input[k]!)) k++
         const literal = input.slice(i, k)
         try {
@@ -134,10 +126,8 @@ function tokenize(input: string): Tok[] {
           i = k
           continue
         } catch {
-          // If Decimal parsing fails, treat it as identifier (e.g., e3 as variable)
         }
       }
-      
       const literal = input.slice(i, j)
       if (!/^\d*(?:\.\d*)?$/.test(literal)) throw new Error('无效数字')
       out.push({ type: 'num', v: new Decimal(literal) })
@@ -270,11 +260,9 @@ function evalRPN(rpn: Tok[], unit: AngleUnit): Decimal {
         case '/':
           if (b.isZero()) {
             if (a.isZero()) {
-              // 0/0 = NaN
               stack.push(new Decimal(NaN))
             } else {
-              // For decimal.js, handle division by zero manually
-              const result = a.toNumber() / 0 // Will produce Infinity
+              const result = a.toNumber() / 0 
               stack.push(new Decimal(result))
             }
           } else {
@@ -307,7 +295,6 @@ function evalRPN(rpn: Tok[], unit: AngleUnit): Decimal {
 }
 
 function formatResult(value: Decimal, precision: number): string {
-  // Handle infinity and NaN cases
   if (!value.isFinite() || isNaN(value.toNumber())) {
     const num = value.toNumber()
     if (isNaN(num)) {
@@ -315,17 +302,14 @@ function formatResult(value: Decimal, precision: number): string {
     }
     return value.isNegative() ? '-Infinity' : 'Infinity'
   }
-  
   if (precision === 0) {
     const integer = value.toDecimalPlaces(0, Decimal.ROUND_HALF_EVEN)
     return normalizeString(integer.toString())
   }
 
-  // For very large numbers, use scientific notation only if they exceed 19 digits
   const absValue = value.abs()
   if (absValue.gte(1e19) || (absValue.gt(0) && absValue.lt(1e-6))) {
     const expStr = value.toExponential(precision)
-    // Normalize scientific notation: remove trailing zeros, normalize exponent
     return normalizeString(expStr)
   }
 
@@ -337,13 +321,10 @@ function formatResult(value: Decimal, precision: number): string {
 function normalizeString(input: string): string {
   let s = input
   if (s.includes('e') || s.includes('E')) {
-    // Normalize scientific notation
     return s.replace(/\.0+e/, 'e').replace(/e\+?0+/, 'e')
   }
   if (s.includes('.')) {
-    // Remove trailing .0 for whole numbers
     s = s.replace(/\.0+$/, '')
-    // Remove trailing zeros after decimal point
     s = s.replace(/(\d+\.\d*?[1-9])0+$/, '$1')
   }
   if (s === '-0') s = '0'

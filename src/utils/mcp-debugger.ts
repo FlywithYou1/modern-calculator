@@ -1,6 +1,5 @@
-/* *
- * MCP (Model Context Protocol) 调试工具
- * 提供实时性能监控、状态追踪、错误诊断等开发辅助功能 */
+
+
 
 import { invoke } from './tauri.js'
 
@@ -81,40 +80,33 @@ export interface MCPPerformanceMetrics {
   }
 }
 
-/* *
- * MCP 调试器类 */
+
+
 export class MCPDebugger {
   private isEnabled: boolean = false
   private statsUpdateInterval: number | null = null
   private eventCallbacks: Map<string, ((data: unknown) => void)[]> = new Map()
-  
-  // 本地调试数据存储
   private states: MCPStateRecord[] = []
   private performanceRecords: MCPPerformanceRecord[] = []
   private errorRecords: MCPErrorRecord[] = []
   private eventRecords: MCPDebugEvent[] = []
-  
-  // 存储限制
   private readonly MAX_STATES = 100
   private readonly MAX_PERFORMANCE = 200
   private readonly MAX_ERRORS = 50
   private readonly MAX_EVENTS = 100
 
   constructor() {
-    this.isEnabled = import.meta.env.DEV // 开发环境下默认启用
+    this.isEnabled = import.meta.env.DEV 
   }
 
-  /* *
-   * 启用/禁用调试功能 */
+
   async setEnabled(enabled: boolean): Promise<void> {
     this.isEnabled = enabled
 
     if (enabled) {
-      // 启动性能监控
       this.startPerformanceMonitoring()
       console.log('🔧 MCP 调试器已启用')
     } else {
-      // 停止性能监控
       this.stopPerformanceMonitoring()
       console.log('🔧 MCP 调试器已禁用')
     }
@@ -126,8 +118,7 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 获取性能统计数据 */
+
   async getPerformanceStats(): Promise<MCPPerformanceStats | null> {
     if (!this.isEnabled) return null
 
@@ -140,8 +131,7 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 启动性能监控 */
+
   private startPerformanceMonitoring(): void {
     if (this.statsUpdateInterval) return
 
@@ -150,11 +140,10 @@ export class MCPDebugger {
       if (stats) {
         this.emitEvent('performance-update', stats)
       }
-    }, 2000) // 每2秒更新一次
+    }, 2000) 
   }
 
-  /* *
-   * 停止性能监控 */
+
   private stopPerformanceMonitoring(): void {
     if (this.statsUpdateInterval) {
       clearInterval(this.statsUpdateInterval)
@@ -162,8 +151,7 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 监听调试事件 */
+
   on(eventType: string, callback: (data: unknown) => void): void {
     if (!this.eventCallbacks.has(eventType)) {
       this.eventCallbacks.set(eventType, [])
@@ -171,8 +159,7 @@ export class MCPDebugger {
     this.eventCallbacks.get(eventType)!.push(callback)
   }
 
-  /* *
-   * 移除事件监听器 */
+
   off(eventType: string, callback: (data: unknown) => void): void {
     const callbacks = this.eventCallbacks.get(eventType)
     if (callbacks) {
@@ -183,8 +170,7 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 发出调试事件 */
+
   private emitEvent(eventType: string, data: unknown): void {
     const callbacks = this.eventCallbacks.get(eventType)
     if (callbacks) {
@@ -198,8 +184,7 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 记录前端状态变化 */
+
   trackFrontendState(state: {
     expression: string
     result: string
@@ -222,8 +207,7 @@ export class MCPDebugger {
     this.emitEvent('frontend-state-change', record)
   }
 
-  /* *
-   * 记录前端性能指标 */
+
   trackFrontendPerformance(metrics: {
     operation: string
     duration: number
@@ -245,8 +229,7 @@ export class MCPDebugger {
     this.emitEvent('frontend-performance', record)
   }
 
-  /* *
-   * 记录前端错误 */
+
   trackFrontendError(error: {
     type: string
     message: string
@@ -269,8 +252,7 @@ export class MCPDebugger {
     this.emitEvent('frontend-error', record)
   }
 
-  /* *
-   * 记录事件 */
+
   trackEvent(event: {
     type: string
     target?: string
@@ -300,8 +282,7 @@ export class MCPDebugger {
     this.emitEvent('event-tracked', record)
   }
 
-  /* *
-   * 获取调试数据快照 */
+
   getDebugSnapshot(): MCPDebugSnapshot {
     return {
       timestamp: new Date().toISOString(),
@@ -317,14 +298,12 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 获取性能统计 */
+
   getPerformanceMetrics(): MCPPerformanceMetrics {
     const metrics: MCPPerformanceMetrics = {}
 
     for (const record of this.performanceRecords) {
       const { operation, duration } = record
-      
       if (!metrics[operation]) {
         metrics[operation] = {
           count: 0,
@@ -346,19 +325,16 @@ export class MCPDebugger {
     return metrics
   }
 
-  /* *
-   * 清除所有调试数据 */
+
   clearDebugData(): void {
     this.states = []
     this.performanceRecords = []
     this.errorRecords = []
     this.eventRecords = []
-    
     console.log('🧹 [MCP] 调试数据已清除')
   }
 
-  /* *
-   * 创建性能监控装饰器 */
+
   createPerformanceDecorator(operationName: string) {
     return (target: unknown, propertyName: string, descriptor: PropertyDescriptor) => {
       const method = descriptor.value
@@ -402,8 +378,7 @@ export class MCPDebugger {
     }
   }
 
-  /* *
-   * 销毁调试器 */
+
   destroy(): void {
     this.stopPerformanceMonitoring()
     this.eventCallbacks.clear()
@@ -411,17 +386,15 @@ export class MCPDebugger {
   }
 }
 
-// 创建全局调试器实例
+
 export const mcpDebugger = new MCPDebugger()
 
-// 开发环境下自动启用
+
 if (import.meta.env.DEV) {
   mcpDebugger.setEnabled(true)
 
-  // 在控制台提供全局访问
   ;(window as unknown as Record<string, unknown>).mcpDebugger = mcpDebugger
 
-  // 提供便捷的调试命令
   ;(window as unknown as Record<string, unknown>).mcpStats = () => mcpDebugger.getPerformanceStats()
   ;(window as unknown as Record<string, unknown>).mcpEnable = () => mcpDebugger.setEnabled(true)
   ;(window as unknown as Record<string, unknown>).mcpDisable = () => mcpDebugger.setEnabled(false)
@@ -432,7 +405,7 @@ if (import.meta.env.DEV) {
   console.log('  mcpDisable() - 禁用调试')
 }
 
-// 便捷函数导出
+
 export const trackState = (state: {
   expression: string
   result: string
@@ -465,8 +438,7 @@ export const clearDebugData = () => mcpDebugger.clearDebugData()
 
 export const getPerformanceMetrics = () => mcpDebugger.getPerformanceMetrics()
 
-/* *
- * 性能监控装饰器
- * 使用方法：@性能 (performance)('操作名称') */
+
+
 export const Performance = (operationName: string) =>
   mcpDebugger.createPerformanceDecorator(operationName)

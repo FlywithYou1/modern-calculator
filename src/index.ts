@@ -6,6 +6,8 @@
 import './styles/index.scss'
 import './styles/calculator.scss'
 import { Calculator } from './components/Calculator'
+import { translate, setLanguage } from '@/utils/i18n'
+import { createDefaultAppSettings } from '@/utils/settings-defaults'
 
 /* *
  * 应用主类 */
@@ -21,6 +23,12 @@ class App {
   async init(): Promise<void> {
     try {
       console.log('🚀 正在初始化计算器应用...')
+
+      // 初始化默认语言（可在设置中更改）
+      try {
+        const defaultLang = createDefaultAppSettings().general.language
+        setLanguage(defaultLang)
+      } catch {}
 
       // 显示加载界面
       this.showLoadingScreen()
@@ -65,19 +73,19 @@ class App {
                 <line x1="9" y1="15" x2="15" y2="15"/>
               </svg>
             </div>
-            <h1 class="loading-title">🧮 科学计算器</h1>
-            <p class="loading-subtitle">现代化 · 高精度 · 跨平台</p>
+            <h1 class="loading-title">🧮 ${translate('app.loading.title')}</h1>
+            <p class="loading-subtitle">${translate('app.loading.subtitle')}</p>
             <div class="loading-progress">
               <div class="progress-bar">
                 <div class="progress-fill"></div>
               </div>
-              <div class="loading-text">正在加载计算引擎...</div>
+              <div class="loading-text">${translate('app.loading.status')}</div>
             </div>
             <div class="feature-highlights">
-              <div class="feature">✨ 金融级精度计算</div>
-              <div class="feature">🔬 完整科学计算函数</div>
-              <div class="feature">📱 响应式跨平台设计</div>
-              <div class="feature">🎨 深色/浅色主题</div>
+              <div class="feature">${translate('app.loading.feature.precision')}</div>
+              <div class="feature">${translate('app.loading.feature.science')}</div>
+              <div class="feature">${translate('app.loading.feature.responsive')}</div>
+              <div class="feature">${translate('app.loading.feature.theme')}</div>
             </div>
           </div>
         </div>
@@ -241,23 +249,23 @@ class App {
         <div class="error-screen">
           <div class="error-content">
             <div class="error-icon">❌</div>
-            <h1 class="error-title">启动失败</h1>
+            <h1 class="error-title">${translate('app.error.title')}</h1>
             <p class="error-message">${message}</p>
             <div class="error-actions">
               <button onclick="location.reload()" class="retry-btn">
-                🔄 重新加载
+                🔄 ${translate('app.error.retry')}
               </button>
               <button onclick="this.showSystemInfo()" class="info-btn">
-                ℹ️ 系统信息
+                ℹ️ ${translate('app.error.info')}
               </button>
             </div>
             <div class="error-details">
               <details>
-                <summary>技术详情</summary>
+                <summary>${translate('app.error.details')}</summary>
                 <div class="tech-info">
-                  <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
-                  <p><strong>屏幕分辨率:</strong> ${screen.width}x${screen.height}</p>
-                  <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                  <p><strong>${translate('app.error.details.userAgent')}:</strong> ${navigator.userAgent}</p>
+                  <p><strong>${translate('app.error.details.resolution')}:</strong> ${screen.width}x${screen.height}</p>
+                  <p><strong>${translate('app.error.details.time')}:</strong> ${new Date().toLocaleString()}</p>
                 </div>
               </details>
             </div>

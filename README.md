@@ -327,6 +327,19 @@ modern-calculator/
 └── 📋 package.json            # 项目配置
 ```
 
+### 🌍 多语言与本地化（i18n）
+
+- 应用支持多语言（简体中文、English、日本語、Español）。
+- 切换方式：打开 设置 → 语言与地区，选择语言后即时生效，无需重启。
+- 本地化实现完全离线，不依赖任何网络服务；在前端通过 `data-i18n*` 属性自动应用翻译。
+- 词条位置：`src/utils/i18n.ts`（内置翻译表）。可按需在 `src/locales/` 添加扩展文件。
+
+### 🪟 Windows (GNU) 构建/测试说明
+
+- 本项目保持跨平台优先，默认不要求安装 MSVC。
+- 已在 `src-tauri/build.rs` 中自动为 `windows-gnu` 目标设置 `TAURI_SKIP_WINDOWS_RESOURCE=true`，避免 `windres/rc` 资源编译依赖，保证 `cargo build/test` 可在 GNU 工具链运行。
+- 如需带 Windows 资源的正式安装包，可在 MSVC 工具链下构建或显式移除该跳过逻辑。
+
 ### 📦 构建产物位置
 
 - `vite build` 生成的静态资源会输出到 `dist/` 目录（HTML、JS、CSS、Source Map）。

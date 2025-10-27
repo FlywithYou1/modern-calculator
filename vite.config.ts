@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [],
   clearScreen: false,
   server: {
-    port: 3000,
+    port: 5173,
     strictPort: false,
     host: '0.0.0.0', // 允许移动端访问
     watch: {
@@ -23,8 +23,16 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
       },
       output: {
-        manualChunks: {
-          vendor: ['@tauri-apps/api'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('decimal.js')) {
+              return 'decimal'
+            }
+            if (id.includes('@tauri-apps')) {
+              return 'tauri'
+            }
+            return 'vendor'
+          }
         },
       },
     },

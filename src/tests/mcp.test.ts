@@ -29,7 +29,6 @@ describe('MCP Debugger', () => {
 
       trackState(state)
       const snapshot = getDebugSnapshot()
-      
       expect(snapshot.states).toHaveLength(1)
       expect(snapshot.states.length).toBeGreaterThan(0)
       if (snapshot.states[0]) {
@@ -59,10 +58,8 @@ describe('MCP Debugger', () => {
         operation: 'calculate',
         duration: 125.5,
       })
-      
       const snapshot = getDebugSnapshot()
       expect(snapshot.performance).toHaveLength(1)
-      
       if (snapshot.performance[0]) {
         expect(snapshot.performance[0].operation).toBe('calculate')
         expect(snapshot.performance[0].duration).toBe(125.5)
@@ -76,7 +73,6 @@ describe('MCP Debugger', () => {
 
       const metrics = getPerformanceMetrics()
       expect(Object.keys(metrics)).toContain('calculate')
-      
       if (metrics.calculate) {
         expect(metrics.calculate.count).toBe(3)
         expect(metrics.calculate.average).toBe(150)
@@ -98,7 +94,6 @@ describe('MCP Debugger', () => {
 
       trackError(error)
       const snapshot = getDebugSnapshot()
-      
       expect(snapshot.errors).toHaveLength(1)
       if (snapshot.errors[0]) {
         expect(snapshot.errors[0].type).toBe('CalculationError')
@@ -131,7 +126,6 @@ describe('MCP Debugger', () => {
 
       trackEvent(event)
       const snapshot = getDebugSnapshot()
-      
       expect(snapshot.events).toHaveLength(1)
       if (snapshot.events[0]) {
         expect(snapshot.events[0].type).toBe('button-click')
@@ -171,7 +165,6 @@ describe('MCP Debugger', () => {
       trackEvent({ type: 'test-event', target: 'test-target' })
 
       const snapshot = getDebugSnapshot()
-      
       expect(snapshot.timestamp).toBeDefined()
       expect(snapshot.states).toHaveLength(1)
       expect(snapshot.performance).toHaveLength(1)
@@ -184,14 +177,10 @@ describe('MCP Debugger', () => {
     it('should be JSON serializable', () => {
       trackState({ expression: '2+2', result: '4', memory: '0' })
       trackPerformance({ operation: 'calculate', duration: 50 })
-      
       const snapshot = getDebugSnapshot()
-      
       expect(() => JSON.stringify(snapshot)).not.toThrow()
-      
       const serialized = JSON.stringify(snapshot)
       const parsed = JSON.parse(serialized)
-      
       expect(parsed.states).toHaveLength(1)
       expect(parsed.performance).toHaveLength(1)
     })

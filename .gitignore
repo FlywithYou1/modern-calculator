@@ -35,6 +35,11 @@ src-tauri/ios/
 .DS_Store
 Thumbs.db
 
+# Android signing keys
+keystore/
+*.jks
+*.keystore
+
 # Logs
 *.log
 

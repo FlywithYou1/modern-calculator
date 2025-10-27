@@ -1,5 +1,5 @@
-/* *
- * 应用设置默认值 */
+
+
 
 import type { AppSettings } from '@/types/calculator'
 
@@ -54,6 +54,7 @@ export function createDefaultAppSettings(): AppSettings {
       autoSaveHistory: true,
       enableKeyboardShortcuts: true,
       enableAnimations: true,
+      language: 'zh-CN',
     },
     advanced: {
       keyboard: {

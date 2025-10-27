@@ -9,6 +9,10 @@
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
 /* *
+ * 语言代码 */
+export type LanguageCode = 'zh-CN' | 'en-US' | 'ja-JP' | 'es-ES'
+
+/* *
  * 主题模式枚举 */
 export type ThemeMode = 'light' | 'dark' | 'high-contrast' | 'auto'
 
@@ -43,6 +47,7 @@ export interface CalculatorSettings {
   showHistory: boolean
   showMemory: boolean
   enableKeyboardShortcuts: boolean
+  language: LanguageCode
 }
 
 // ==================== UI 组件类型 ====================
@@ -214,6 +219,7 @@ export interface GeneralSettings {
   autoSaveHistory: boolean
   enableKeyboardShortcuts: boolean
   enableAnimations: boolean
+  language: LanguageCode
 }
 
 /* *

@@ -1,8 +1,8 @@
-/* *
- * 计算器设置面板组件
- * 提供主题切换、精度设置、功能配置等选项，支持导入导出和实时预览 */
+
+
 
 import type { AppSettings, Theme } from '@/types/calculator'
+import { getAvailableLanguages } from '@/utils/i18n'
 import { TauriService } from '@/utils/tauri'
 import { createDefaultAppSettings } from '@/utils/settings-defaults'
 
@@ -12,7 +12,6 @@ export class Settings {
   private settings: AppSettings
   private onSettingsChange?: (settings: AppSettings) => void
   private isVisible: boolean = false
-  // 存放需要在 destroy 时移除的全局事件清理函数
   private _cleanupHandlers: Array<() => void> = []
 
   constructor(container: HTMLElement) {
@@ -23,17 +22,14 @@ export class Settings {
     this.setupEventListeners()
   }
 
-  /* *
-   * 初始化组件 */
+
   async init(): Promise<void> {
     await this.loadSettings()
     this.render()
   }
 
-  /* *
-   * 获取默认设置 */
-  /* *
-   * 创建设置面板元素 */
+
+
   private createElement(): HTMLElement {
     const settings = document.createElement('div')
     settings.className = 'calculator-settings'
@@ -43,8 +39,7 @@ export class Settings {
     return settings
   }
 
-  /* *
-   * 渲染设置面板 */
+
   private render(): void {
     this.element.innerHTML = `
       <div class="settings-overlay">
@@ -63,7 +58,6 @@ export class Settings {
               </button>
             </div>
           </div>
-          
           <div class="settings-content">
             <div class="settings-tabs">
               <button class="settings-tab active" data-tab="theme">主题</button>
@@ -72,7 +66,6 @@ export class Settings {
               <button class="settings-tab" data-tab="general">通用</button>
               <button class="settings-tab" data-tab="advanced">高级</button>
             </div>
-            
             <div class="settings-panels">
               <!-- 为满足测试中对 .settings-section 索引的断言，将高级面板置于最前，保证第2个section为关于信息 -->
               <div class="settings-panel-content" data-panel="advanced">
@@ -86,17 +79,14 @@ export class Settings {
               <div class="settings-panel-content" data-panel="display">
                 ${this.renderDisplaySettings()}
               </div>
-              
               <div class="settings-panel-content" data-panel="layout">
                 ${this.renderLayoutSettings()}
               </div>
-              
               <div class="settings-panel-content" data-panel="general">
                 ${this.renderGeneralSettings()}
               </div>
             </div>
           </div>
-          
           <div class="settings-footer">
             <button class="settings-btn secondary reset-btn">重置为默认</button>
             <div class="settings-footer-actions">
@@ -109,13 +99,11 @@ export class Settings {
     `
   }
 
-  /* *
-   * 渲染主题设置 */
+
   private renderThemeSettings(): string {
     return `
       <div class="settings-section">
         <h3 class="section-title">主题模式</h3>
-        
         <div class="theme-mode-selector">
           <div class="radio-group">
             <label class="radio-option ${this.settings.theme.mode === 'light' ? 'selected' : ''}">
@@ -125,7 +113,6 @@ export class Settings {
                 <span>浅色模式</span>
               </div>
             </label>
-            
             <label class="radio-option ${this.settings.theme.mode === 'dark' ? 'selected' : ''}">
               <input type="radio" name="theme-mode" value="dark" ${this.settings.theme.mode === 'dark' ? 'checked' : ''}>
               <div class="radio-content">
@@ -133,7 +120,6 @@ export class Settings {
                 <span>深色模式</span>
               </div>
             </label>
-            
             <label class="radio-option ${this.settings.theme.mode === 'high-contrast' ? 'selected' : ''}">
               <input type="radio" name="theme-mode" value="high-contrast" ${this.settings.theme.mode === 'high-contrast' ? 'checked' : ''}>
               <div class="radio-content">
@@ -141,7 +127,6 @@ export class Settings {
                 <span>高对比度</span>
               </div>
             </label>
-            
             <label class="radio-option ${this.settings.theme.mode === 'auto' ? 'selected' : ''}">
               <input type="radio" name="theme-mode" value="auto" ${this.settings.theme.mode === 'auto' ? 'checked' : ''}>
               <div class="radio-content">
@@ -155,7 +140,6 @@ export class Settings {
 
       <div class="settings-section">
         <h3 class="section-title">自定义颜色</h3>
-        
         <div class="color-settings">
           <div class="color-setting">
             <label for="primary-color">主要颜色</label>
@@ -164,7 +148,6 @@ export class Settings {
               <input type="text" class="color-text" value="${this.settings.theme.colors.primary}" data-setting="theme.colors.primary">
             </div>
           </div>
-          
           <div class="color-setting">
             <label for="secondary-color">次要颜色</label>
             <div class="color-input-group">
@@ -172,7 +155,6 @@ export class Settings {
               <input type="text" class="color-text" value="${this.settings.theme.colors.secondary}" data-setting="theme.colors.secondary">
             </div>
           </div>
-          
           <div class="color-setting">
             <label for="accent-color">强调颜色</label>
             <div class="color-input-group">
@@ -197,13 +179,11 @@ export class Settings {
     `
   }
 
-  /* *
-   * 渲染显示设置 */
+
   private renderDisplaySettings(): string {
     return `
       <div class="settings-section">
         <h3 class="section-title">数值显示</h3>
-        
         <div class="setting-item">
           <label for="decimal-places">小数位数</label>
           <div class="number-input-group">
@@ -211,7 +191,6 @@ export class Settings {
             <span class="number-value">${this.settings.display.decimalPlaces}</span>
           </div>
         </div>
-        
         <div class="setting-item">
           <label for="angle-unit">角度单位</label>
           <select id="angle-unit" data-setting="display.angleUnit">
@@ -220,7 +199,6 @@ export class Settings {
             <option value="gradians" ${this.settings.display.angleUnit === 'gradians' ? 'selected' : ''}>梯度 (grad)</option>
           </select>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="scientific-notation" ${this.settings.display.scientificNotation ? 'checked' : ''} data-setting="display.scientificNotation">
@@ -229,7 +207,6 @@ export class Settings {
           </label>
           <div class="setting-description">当数值过大或过小时自动使用科学记数法</div>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="thousands-separator" ${this.settings.display.thousandSeparator ? 'checked' : ''} data-setting="display.thousandSeparator">
@@ -242,7 +219,6 @@ export class Settings {
 
       <div class="settings-section">
         <h3 class="section-title">字体设置</h3>
-        
         <div class="setting-item">
           <label for="font-size">字体大小</label>
           <div class="number-input-group">
@@ -254,13 +230,11 @@ export class Settings {
     `
   }
 
-  /* *
-   * 渲染布局设置 */
+
   private renderLayoutSettings(): string {
     return `
       <div class="settings-section">
         <h3 class="section-title">键盘布局</h3>
-        
         <div class="setting-item">
           <label for="keyboard-layout">布局类型</label>
           <select id="keyboard-layout" data-setting="layout.keyboardLayout">
@@ -269,7 +243,6 @@ export class Settings {
             <option value="programmer" ${this.settings.layout.keyboardLayout === 'programmer' ? 'selected' : ''}>程序员计算器</option>
           </select>
         </div>
-        
         <div class="setting-item">
           <label for="button-size">按钮大小</label>
           <div class="radio-group horizontal">
@@ -287,7 +260,6 @@ export class Settings {
             </label>
           </div>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="compact-mode" ${this.settings.layout.compactMode ? 'checked' : ''} data-setting="layout.compactMode">
@@ -296,7 +268,6 @@ export class Settings {
           </label>
           <div class="setting-description">减少界面间距和边距</div>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="show-history" ${this.settings.layout.showHistory ? 'checked' : ''} data-setting="layout.showHistory">
@@ -309,13 +280,11 @@ export class Settings {
     `
   }
 
-  /* *
-   * 渲染通用设置 */
+
   private renderGeneralSettings(): string {
     return `
       <div class="settings-section">
         <h3 class="section-title">交互体验</h3>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="enable-haptic" ${this.settings.general.enableHaptic ? 'checked' : ''} data-setting="general.enableHaptic">
@@ -324,7 +293,6 @@ export class Settings {
           </label>
           <div class="setting-description">按钮点击时提供震动反馈（移动设备）</div>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="enable-animations" ${this.settings.general.enableAnimations ? 'checked' : ''} data-setting="general.enableAnimations">
@@ -333,7 +301,6 @@ export class Settings {
           </label>
           <div class="setting-description">启用按钮点击和界面切换动画</div>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="enable-shortcuts" ${this.settings.general.enableKeyboardShortcuts ? 'checked' : ''} data-setting="general.enableKeyboardShortcuts">
@@ -346,7 +313,6 @@ export class Settings {
 
       <div class="settings-section">
         <h3 class="section-title">历史记录</h3>
-        
         <div class="setting-item">
           <label for="max-history">最大记录数</label>
           <div class="number-input-group">
@@ -354,7 +320,6 @@ export class Settings {
             <span class="number-value">${this.settings.general.maxHistoryItems}</span>
           </div>
         </div>
-        
         <div class="setting-item checkbox-item">
           <label class="checkbox-label">
             <input type="checkbox" id="auto-save-history" ${this.settings.general.autoSaveHistory ? 'checked' : ''} data-setting="general.autoSaveHistory">
@@ -364,16 +329,27 @@ export class Settings {
           <div class="setting-description">应用关闭时自动保存计算历史记录</div>
         </div>
       </div>
+
+      <div class="settings-section">
+        <h3 class="section-title">语言与地区</h3>
+        <div class="setting-item">
+          <label for="app-language">界面语言</label>
+          <select id="app-language" data-setting="general.language">
+            ${getAvailableLanguages()
+              .map(l => `<option value="${l.code}" ${this.settings.general.language === l.code ? 'selected' : ''}>${l.label}</option>`) 
+              .join('')}
+          </select>
+          <div class="setting-description">切换后界面文案将自动更新</div>
+        </div>
+      </div>
     `
   }
 
-  /* *
-   * 渲染高级设置 */
+
   private renderAdvancedSettings(): string {
     return `
       <div class="settings-section">
         <h3 class="section-title">数据管理</h3>
-        
         <div class="setting-item">
           <label>设置管理</label>
           <div class="action-buttons">
@@ -387,7 +363,6 @@ export class Settings {
             </button>
           </div>
         </div>
-        
         <div class="setting-item">
           <label>历史记录管理</label>
           <div class="action-buttons">
@@ -415,7 +390,6 @@ export class Settings {
 
       <div class="settings-section">
         <h3 class="section-title">关于应用</h3>
-        
         <div class="about-info">
           <div class="info-item">
             <span class="info-label">版本号</span>
@@ -434,10 +408,8 @@ export class Settings {
     `
   }
 
-  /* *
-   * 设置事件监听器 */
+
   private setupEventListeners(): void {
-    // 关闭按钮
     this.element.addEventListener('click', e => {
       const target = e.target as HTMLElement
 
@@ -452,7 +424,6 @@ export class Settings {
       }
   })
 
-    // 标签切换
     this.element.addEventListener('click', e => {
       const tab = (e.target as HTMLElement).closest('.settings-tab') as HTMLElement
       if (tab) {
@@ -460,13 +431,10 @@ export class Settings {
       }
     })
 
-    // 设置变更
-    // 使用捕获阶段处理 change（测试中手动触发的事件不冒泡）
     this.element.addEventListener('change', e => {
       const target = e.target as HTMLInputElement | HTMLSelectElement
       const settingPath = target.getAttribute('data-setting')
 
-      // 特殊处理：主题模式单选框（无 data-setting）
       if (!settingPath && target instanceof HTMLInputElement && target.name === 'theme-mode') {
         const value = target.value as AppSettings['theme']['mode']
         if (value === 'light' || value === 'dark' || value === 'high-contrast' || value === 'auto') {
@@ -481,8 +449,6 @@ export class Settings {
       }
   }, true)
 
-    // 实时预览（滑块）
-    // 滑块实时预览（捕获阶段，确保手动触发事件可被监听到）
     this.element.addEventListener('input', e => {
       const target = e.target as HTMLInputElement
 
@@ -500,8 +466,6 @@ export class Settings {
       }
   }, true)
 
-    // 颜色输入同步
-    // 颜色输入同步（捕获阶段）
     this.element.addEventListener('input', e => {
       const target = e.target as HTMLInputElement
 
@@ -525,7 +489,6 @@ export class Settings {
       }
   }, true)
 
-    // 键盘快捷键（文档级，便于测试分发事件）
     const keydownHandler = (e: KeyboardEvent) => {
       if (!this.isVisible) return
       if (e.key === 'Escape') {
@@ -536,37 +499,29 @@ export class Settings {
       }
     }
     document.addEventListener('keydown', keydownHandler, true)
-    // 同时监听容器，适配测试中在容器上触发的键盘事件
     this.container.addEventListener('keydown', keydownHandler, true)
-    // 在组件销毁时移除
     this._cleanupHandlers.push(() => document.removeEventListener('keydown', keydownHandler))
     this._cleanupHandlers.push(() => this.container.removeEventListener('keydown', keydownHandler, true))
   }
 
-  /* *
-   * 切换标签 */
+
   private switchTab(tabName: string): void {
-    // 更新标签状态
     const tabs = this.element.querySelectorAll('.settings-tab')
     tabs.forEach(tab => {
       tab.classList.toggle('active', tab.getAttribute('data-tab') === tabName)
     })
 
-    // 更新面板显示
     const panels = this.element.querySelectorAll('.settings-panel-content')
     panels.forEach(panel => {
       panel.classList.toggle('active', panel.getAttribute('data-panel') === tabName)
     })
   }
 
-  /* *
-   * 更新设置值 */
+
   private updateSetting(path: string, element: HTMLInputElement | HTMLSelectElement): void {
     const pathParts = path.split('.')
-    // 使用类型安全的方式访问嵌套对象
     let current: Record<string, unknown> = this.settings as unknown as Record<string, unknown>
 
-    // 导航到父对象
     for (let i = 0; i < pathParts.length - 1; i++) {
       const key = pathParts[i]
       if (key) {
@@ -577,7 +532,6 @@ export class Settings {
       }
     }
 
-    // 设置值
     const finalKey = pathParts[pathParts.length - 1]
     let value: string | number | boolean = element.value
 
@@ -591,25 +545,21 @@ export class Settings {
       current[finalKey] = value
     }
 
-    // 实时应用某些设置
     if (path.startsWith('theme.')) {
       this.applyThemePreview()
     }
   }
 
-  /* *
-   * 应用主题预览 */
+
   private applyThemePreview(): void {
     if (this.onSettingsChange) {
       this.onSettingsChange(this.cloneSettings(this.settings))
     }
   }
 
-  /* *
-   * 保存设置 */
+
   private async saveSettings(): Promise<void> {
     try {
-      // 非 Tauri 环境下，直接触发前端回调并关闭面板，保持测试同步语义
       if (!TauriService.isTauriEnvironment()) {
         if (this.onSettingsChange) {
           this.onSettingsChange(this.cloneSettings(this.settings))
@@ -620,7 +570,6 @@ export class Settings {
       }
 
       await TauriService.saveSettings(this.settings)
-      // 后端保存成功
       if (this.onSettingsChange) {
         this.onSettingsChange(this.cloneSettings(this.settings))
       }
@@ -628,7 +577,6 @@ export class Settings {
       this.hide()
     } catch (error) {
       console.error('保存设置失败:', error)
-      // 测试环境/非 Tauri 场景下也应触发前端回调，保证行为一致
       if (this.onSettingsChange) {
         this.onSettingsChange(this.cloneSettings(this.settings))
       }
@@ -636,11 +584,9 @@ export class Settings {
     }
   }
 
-  /* *
-   * 确认重置设置 */
+
   private confirmReset(): void {
     if (window.confirm('确定要重置所有设置为默认值吗？此操作不可撤销。')) {
-      // 非 Tauri 环境同步重置，保证测试中的立即断言通过
       if (!TauriService.isTauriEnvironment()) {
         this.settings = createDefaultAppSettings()
         this.render()
@@ -654,11 +600,9 @@ export class Settings {
     }
   }
 
-  /* *
-   * 重置设置 */
+
   private async resetSettings(): Promise<void> {
     try {
-      // 非 Tauri 环境：直接同步恢复默认值，保证测试立即观察到变化
       if (!TauriService.isTauriEnvironment()) {
         this.settings = createDefaultAppSettings()
         this.render()
@@ -681,8 +625,7 @@ export class Settings {
     }
   }
 
-  /* *
-   * 加载设置 */
+
   private async loadSettings(): Promise<void> {
     try {
       const remoteSettings = await TauriService.getSettings()
@@ -695,8 +638,7 @@ export class Settings {
     }
   }
 
-  /* *
-   * 显示设置面板 */
+
   show(): void {
     this.isVisible = true
     this.element.style.display = 'flex'
@@ -704,13 +646,11 @@ export class Settings {
       this.element.classList.add('visible')
     }, 10)
 
-    // 聚焦到关闭按钮
     const closeBtn = this.element.querySelector('.settings-close-btn') as HTMLElement
     closeBtn?.focus()
   }
 
-  /* *
-   * 隐藏设置面板 */
+
   hide(): void {
     this.isVisible = false
     this.element.classList.remove('visible')
@@ -721,38 +661,32 @@ export class Settings {
     }, 300)
   }
 
-  /* *
-   * 设置变更回调 */
+
   onSettingsChanged(callback: (settings: AppSettings) => void): void {
     this.onSettingsChange = callback
   }
 
-  /* *
-   * 获取当前设置 */
+
   getSettings(): AppSettings {
     return this.cloneSettings(this.settings)
   }
 
-  /* *
-   * 更新设置 */
+
   updateSettings(newSettings: Partial<AppSettings>): void {
     this.settings = this.mergeSettings(this.settings, newSettings)
     this.render()
   }
 
-  /* *
-   * 更新主题 */
+
   updateTheme(theme: Theme): void {
     this.element.className = `calculator-settings theme-${theme.mode}`
 
-    // 应用主题颜色
     Object.entries(theme.cssVariables).forEach(([property, value]) => {
       this.element.style.setProperty(property, value)
     })
   }
 
-  /* *
-   * 显示提示消息 */
+
   private showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
     const toast = document.createElement('div')
     toast.className = `toast toast-${type}`
@@ -761,12 +695,10 @@ export class Settings {
 
     document.body.appendChild(toast)
 
-    // 动画显示
     setTimeout(() => {
       toast.classList.add('show')
     }, 10)
 
-    // 自动移除
     setTimeout(() => {
       toast.classList.remove('show')
       setTimeout(() => {
@@ -777,14 +709,12 @@ export class Settings {
     }, 3000)
   }
 
-  /* *
-   * 深拷贝设置对象 */
+
   private cloneSettings(settings: AppSettings): AppSettings {
     return JSON.parse(JSON.stringify(settings)) as AppSettings
   }
 
-  /* *
-   * 合并设置对象 */
+
   private mergeSettings(base: AppSettings, patch: Partial<AppSettings>): AppSettings {
     const merged: AppSettings = {
       ...base,
@@ -816,13 +746,10 @@ export class Settings {
     return merged
   }
 
-  /* *
-   * 销毁组件 */
+
   destroy(): void {
-    // 清理文档级事件
     this._cleanupHandlers?.forEach(fn => {
       try { fn() } catch (err) {
-        // 忽略清理时的异常，避免影响销毁流程
         void err
       }
     })

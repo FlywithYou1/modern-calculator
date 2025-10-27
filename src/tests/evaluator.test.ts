@@ -1,6 +1,5 @@
-/* *
- * 求值器 (求值器 (evaluator)) 工具函数测试
- * 覆盖表达式计算、解析和验证的所有功能 */
+
+
 
 import { describe, it, expect } from 'vitest'
 import { evaluateExpressionSafe } from '@/utils/evaluator'
@@ -18,16 +17,13 @@ describe('evaluateExpressionSafe', () => {
   })
 
   it('should support constants and trig (degrees by default)', () => {
-    // sin(30°) = 0.5
     expect(evaluateExpressionSafe('sin(30)', { precision: 6 })).toBe('0.5')
-    // cos(60°) = 0.5
     expect(evaluateExpressionSafe('cos(60)', { precision: 6 })).toBe('0.5')
-    // 2π ~= 6.283185...
     expect(evaluateExpressionSafe('2*pi', { precision: 6 })).toBe('6.283185')
   })
 
   it('should evaluate logarithms', () => {
-    expect(evaluateExpressionSafe('log(100)')).toBe('2') // log10
+    expect(evaluateExpressionSafe('log(100)')).toBe('2') 
     expect(evaluateExpressionSafe('log(2,8)', { precision: 6 })).toBe('3')
     expect(evaluateExpressionSafe('ln(e)')).toBe('1')
   })
@@ -49,7 +45,7 @@ describe('evaluateExpressionSafe', () => {
     expect(evaluateExpressionSafe('2+3*4-5')).toBe('9')
     expect(evaluateExpressionSafe('(2+3)*4-5')).toBe('15')
     expect(evaluateExpressionSafe('2+3*(4-5)')).toBe('-1')
-    expect(evaluateExpressionSafe('2^3^2')).toBe('512') // Right associative: 2^(3^2)
+    expect(evaluateExpressionSafe('2^3^2')).toBe('512') 
   })
 
   it('should handle negative numbers correctly', () => {
@@ -66,18 +62,13 @@ describe('evaluateExpressionSafe', () => {
   })
 
   it('should handle angle units correctly', () => {
-    // Degrees (default)
     expect(evaluateExpressionSafe('sin(30)', { precision: 6 })).toBe('0.5')
     expect(evaluateExpressionSafe('cos(60)', { precision: 6 })).toBe('0.5')
     expect(evaluateExpressionSafe('tan(45)', { precision: 6 })).toBe('1')
-    
-    // Radians
     expect(evaluateExpressionSafe('sin(pi/6)', { precision: 6, angleUnit: 'radians' })).toBe('0.5')
     expect(evaluateExpressionSafe('cos(pi/3)', { precision: 6, angleUnit: 'radians' })).toBe('0.5')
     expect(evaluateExpressionSafe('tan(pi/4)', { precision: 6, angleUnit: 'radians' })).toBe('1')
-    
-    // Gradians
-    expect(evaluateExpressionSafe('sin(50)', { precision: 6, angleUnit: 'gradians' })).toBe('0.707107') // sin(50g) = sin(π/4)
+    expect(evaluateExpressionSafe('sin(50)', { precision: 6, angleUnit: 'gradians' })).toBe('0.707107') 
   })
 
   it('should handle mathematical constants', () => {
@@ -103,9 +94,9 @@ describe('evaluateExpressionSafe', () => {
   })
 
   it('should handle function with multiple arguments', () => {
-    expect(evaluateExpressionSafe('log(10,100)')).toBe('2') // log base 10 of 100
-    expect(evaluateExpressionSafe('log(2,8)')).toBe('3') // log base 2 of 8
-    expect(evaluateExpressionSafe('log(10)', { precision: 10 })).toBe('1') // log10(10)
+    expect(evaluateExpressionSafe('log(10,100)')).toBe('2') 
+    expect(evaluateExpressionSafe('log(2,8)')).toBe('3') 
+    expect(evaluateExpressionSafe('log(10)', { precision: 10 })).toBe('1') 
   })
 
   it('should handle special numeric results', () => {
@@ -121,8 +112,8 @@ describe('evaluateExpressionSafe', () => {
   })
 
   it('should handle nested functions', () => {
-    expect(evaluateExpressionSafe('sqrt(sin(30)^2+cos(30)^2)', { precision: 6 })).toBe('1') // Pythagorean identity
-    expect(evaluateExpressionSafe('log(10,log(2,8))', { precision: 10 })).toBe('0.4771212547') // log base 10 of log base 2 of 8
+    expect(evaluateExpressionSafe('sqrt(sin(30)^2+cos(30)^2)', { precision: 6 })).toBe('1') 
+    expect(evaluateExpressionSafe('log(10,log(2,8))', { precision: 10 })).toBe('0.4771212547') 
   })
 
   it('should handle parentheses nesting', () => {
@@ -147,30 +138,25 @@ describe('evaluateExpressionSafe', () => {
     expect(evaluateExpressionSafe('5/2', { precision: 5 })).toBe('2.5')
     expect(evaluateExpressionSafe('1/3', { precision: 6 })).toBe('0.333333')
     expect(evaluateExpressionSafe('2/3', { precision: 6 })).toBe('0.666667')
-    expect(evaluateExpressionSafe('1/0')).toBe('Infinity') // Should return Infinity
+    expect(evaluateExpressionSafe('1/0')).toBe('Infinity') 
   })
 })
 
 describe('Evaluator Performance', () => {
   it('should handle large expressions efficiently', () => {
     const startTime = performance.now()
-    
-    // Test with a moderately complex expression
     for (let i = 0; i < 100; i++) {
       evaluateExpressionSafe(`${i} + ${i * 2} - ${i / 2}`)
     }
-    
     const endTime = performance.now()
-    expect(endTime - startTime).toBeLessThan(500) // Should complete in less than 500ms
+    expect(endTime - startTime).toBeLessThan(500) 
   })
 
   it('should handle nested function calls efficiently', () => {
     const complexExpression = 'sqrt(sin(45)^2 + cos(45)^2) + log(10,100) + exp(0)'
     const startTime = performance.now()
-    
     evaluateExpressionSafe(complexExpression)
-    
     const endTime = performance.now()
-    expect(endTime - startTime).toBeLessThan(100) // Should complete in less than 100ms
+    expect(endTime - startTime).toBeLessThan(100) 
   })
 })
