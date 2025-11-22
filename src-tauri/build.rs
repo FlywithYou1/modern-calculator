@@ -1,5 +1,6 @@
 fn main() {
-  println!("cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=x86_64-pc-windows-gnu");
-  println!("cargo:rustc-cfg=desktop");
+  unsafe {
+    std::env::set_var("RC", r"C:\Users\liang\Desktop\789\mcp\src-tauri\windres-wrapper.cmd");
+  }
   tauri_build::build()
 }

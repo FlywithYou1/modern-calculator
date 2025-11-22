@@ -17,7 +17,6 @@ pub mod history;
 pub mod settings;
 pub mod commands;
 pub mod mcp;
-mod voice;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,8 +69,7 @@ pub fn run() {
     let builder = builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_haptics::init())
-        .plugin(voice::init());
+        .plugin(tauri_plugin_haptics::init());
 
     #[cfg(test)]
     let builder = builder;

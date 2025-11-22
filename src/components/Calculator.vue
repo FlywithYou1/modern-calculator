@@ -3,9 +3,11 @@ import { ref, computed } from 'vue';
 import { evaluate, format } from 'mathjs';
 import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import AdvancedPanels from './AdvancedPanels.vue';
 
 const { t } = useI18n();
+const appWindow = getCurrentWindow();
 
 const display = ref('0');
 const history = ref('');
@@ -17,6 +19,16 @@ const showAdvanced = ref(false);
 const toggleMode = () => {
   mode.value = mode.value === 'standard' ? 'scientific' : 'standard';
 };
+
+const minimize = () => appWindow.minimize();
+const maximize = async () => {
+  if (await appWindow.isMaximized()) {
+    appWindow.unmaximize();
+  } else {
+    appWindow.maximize();
+  }
+};
+const closeApp = () => appWindow.close();
 
 const append = (char: string) => {
   if (display.value === 'Error') display.value = '0';
@@ -67,10 +79,6 @@ const calculate = async () => {
       .replace(/÷/g, '/')
       .replace(/π/g, 'pi')
       .replace(/√/g, 'sqrt');
-    
-    // Handle continuous calculation logic if needed, but parser handles it.
-    // The issue might be user expectation of "1+1" -> "2" when "+" is pressed.
-    // But for expression calculator, we just evaluate on "=".
     
     history.value = display.value + ' =';
     
@@ -172,59 +180,110 @@ const buttons = computed(() => {
 
   return mode.value === 'scientific' ? scientific : standard;
 });
-
-const handleBtn = (btn: any) => {
-  if (btn.action) {
-    btn.action();
-  } else {
-    append(btn.value || btn.label);
-  }
-};
 </script>
 
 <template>
-  <div class="calculator" :class="{ scientific: mode === 'scientific' }">
+  <div class="calculator">
+    <div class="window-controls">
+      <div class="traffic-lights">
+        <button class="traffic-light close" @click="closeApp"></button>
+        <button class="traffic-light minimize" @click="minimize"></button>
+        <button class="traffic-light maximize" @click="maximize"></button>
+      </div>
+    </div>
+
     <div class="display">
       <div class="history">{{ history }}</div>
       <div class="current">{{ display }}</div>
     </div>
+
     <div class="keypad" :class="{ scientific: mode === 'scientific' }">
       <button
         v-for="btn in buttons"
         :key="btn.label"
-        :class="['btn', btn.type]"
-        @click="handleBtn(btn)"
+        class="btn"
+        :class="[btn.type]"
+        @click="btn.action ? btn.action() : append(btn.value || btn.label)"
       >
         {{ btn.text || btn.label }}
       </button>
     </div>
-    <AdvancedPanels :is-open="showAdvanced" @close="showAdvanced = false" />
+
+    <AdvancedPanels
+      v-if="showAdvanced"
+      :is-open="showAdvanced"
+      @close="showAdvanced = false"
+    />
   </div>
 </template>
 
 <style scoped lang="scss">
 .calculator {
-  width: 100%;
-  max-width: 320px;
-  transition: max-width 0.3s ease;
-  
-  &.scientific {
-    max-width: 500px;
-  }
-
-  /* Apple Liquid Glass Effect */
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
-    0 0 20px rgba(255, 255, 255, 0.1) inset;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  animation: fadeIn 0.5s ease-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .window-controls {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    -webkit-app-region: drag;
+
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+      padding-left: 4px;
+
+      .traffic-light {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        position: relative;
+        -webkit-app-region: no-drag;
+        transition: transform 0.2s ease;
+
+        &:hover { transform: scale(1.1); }
+        &:active { transform: scale(0.9); }
+
+        &.close {
+          background: #ff5f56;
+          border: 1px solid #e0443e;
+          &:hover::before { content: '×'; color: #550000; position: absolute; top: -2px; left: 3px; font-size: 10px; }
+        }
+        &.minimize {
+          background: #ffbd2e;
+          border: 1px solid #dea123;
+          &:hover::before { content: '−'; color: #553300; position: absolute; top: -4px; left: 3px; font-size: 10px; }
+        }
+        &.maximize {
+          background: #27c93f;
+          border: 1px solid #1aab29;
+          &:hover::before { content: '+'; color: #004400; position: absolute; top: -2px; left: 3px; font-size: 10px; }
+        }
+      }
+    }
+  }
 
   /* Light reflection effect */
   &::before {
@@ -252,12 +311,19 @@ const handleBtn = (btn: any) => {
     text-align: right;
     box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.25);
+      box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.15);
+    }
     
     .history {
       color: rgba(255, 255, 255, 0.6);
       font-size: 14px;
       min-height: 20px;
       margin-bottom: 8px;
+      transition: color 0.3s;
     }
     
     .current {
@@ -266,6 +332,7 @@ const handleBtn = (btn: any) => {
       font-weight: 200;
       word-break: break-all;
       text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.1s;
     }
   }
 
@@ -273,6 +340,8 @@ const handleBtn = (btn: any) => {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
+    flex: 1;
+    transition: all 0.3s ease;
     
     &.scientific {
       grid-template-columns: repeat(5, 1fr);
@@ -287,22 +356,42 @@ const handleBtn = (btn: any) => {
       padding: 16px 0;
       border-radius: 16px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
       user-select: none;
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
       position: relative;
       overflow: hidden;
 
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 60%);
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+        transition: transform 0.3s, opacity 0.3s;
+      }
+
+      &:active::after {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 1;
+        transition: 0s;
+      }
+
       &:hover {
         background: rgba(255, 255, 255, 0.2);
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         border-color: rgba(255, 255, 255, 0.3);
+        z-index: 1;
       }
 
       &:active {
-        transform: translateY(1px) scale(0.98);
+        transform: translateY(1px) scale(0.95);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       }
 
@@ -314,6 +403,7 @@ const handleBtn = (btn: any) => {
         
         &:hover {
           background: rgba(255, 165, 0, 1);
+          box-shadow: 0 0 15px rgba(255, 165, 0, 0.4);
         }
       }
 
@@ -334,7 +424,14 @@ const handleBtn = (btn: any) => {
         
         &:hover {
           background: rgba(255, 59, 48, 0.2);
+          box-shadow: 0 0 15px rgba(255, 59, 48, 0.2);
         }
+      }
+
+      &.active {
+        background: rgba(255, 59, 48, 0.8);
+        color: white;
+        animation: pulse 1.5s infinite;
       }
       
       &.num {
@@ -348,5 +445,11 @@ const handleBtn = (btn: any) => {
       }
     }
   }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
 }
 </style>

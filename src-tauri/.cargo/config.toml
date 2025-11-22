@@ -1,2 +1,5 @@
 [build]
 target = "x86_64-pc-windows-gnu"
+
+[env]
+RC = "C:\\Users\\liang\\Desktop\\789\\mcp\\src-tauri\\windres-wrapper.cmd"
