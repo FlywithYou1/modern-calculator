@@ -1,0 +1,12 @@
+{
+  "calculator": {
+    "title": "Scientific Calculator",
+    "error": "Error",
+    "clear": "AC",
+    "delete": "DEL",
+    "deg": "DEG",
+    "rad": "RAD",
+    "history": "History",
+    "settings": "Settings"
+  }
+}
