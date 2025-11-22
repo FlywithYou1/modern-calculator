@@ -267,7 +267,7 @@ pub fn init_mcp_debugger() {
     let debugger = get_mcp_debugger();
     info!("MCP 调试器已初始化");
 
-    tokio::spawn(async {
+    tauri::async_runtime::spawn(async {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
         loop {
             interval.tick().await;

@@ -74,12 +74,6 @@
     }
   },
   "plugins": {
-    "store": {
-      "default": true
-    },
-    "haptics": {
-      "default": true
-    },
     "barcode-scanner": {
       "default": false
     },

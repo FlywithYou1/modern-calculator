@@ -1079,10 +1079,6 @@ impl Calculator {
         Ok(((new - original) / original) * Decimal::from(100))
     }
 
-    pub fn evaluate(&self, _expression: &crate::parser::ASTNode) -> Result<Decimal, MathError> {
-        Ok(Decimal::from(42))
-    }
-
     pub fn set_angle_mode(&mut self, mode: AngleMode) {
         self.angle_mode = mode;
     }

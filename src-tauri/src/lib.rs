@@ -68,6 +68,7 @@ pub fn run() {
 
     #[cfg(not(test))]
     let builder = builder
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_haptics::init())
         .plugin(voice::init());

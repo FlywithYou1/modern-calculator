@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import Calculator from "./components/Calculator.vue";
+import TitleBar from "./components/TitleBar.vue";
 </script>
 
 <template>
-  <div class="app-container" data-tauri-drag-region>
+  <TitleBar />
+  <div class="app-container">
     <Calculator />
   </div>
 </template>
@@ -15,6 +17,8 @@ import Calculator from "./components/Calculator.vue";
   display: flex;
   justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at center, #1a1a2e 0%, #16213e 100%);
+  /* Deep space gradient background */
+  background: radial-gradient(circle at 50% 0%, #2b32b2 0%, #141e30 100%);
+  overflow: hidden;
 }
 </style>
