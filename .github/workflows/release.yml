@@ -107,19 +107,21 @@ jobs:
             mingw-w64-ucrt-x86_64-toolchain
 
       - name: 🦀 设置 Rust (nightly-gnu)
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-x86_64-pc-windows-gnu
           targets: x86_64-pc-windows-gnu
           components: rustfmt, clippy
 
-      - name: � 确保 GNU target 已安装
+      - name: 🔧 配置 Rust 默认目标
         shell: pwsh
         run: |
+          rustup default nightly-x86_64-pc-windows-gnu
           rustup target add x86_64-pc-windows-gnu
+          rustup component add rust-std-x86_64-pc-windows-gnu
           rustup show
+          rustc --print target-libdir
 
-      - name: �📦 设置 Node.js
+      - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
