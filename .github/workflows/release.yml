@@ -1,4 +1,4 @@
-name: 自动构建与发布
+name: 🚀 自动发布
 
 on:
   push:
@@ -20,9 +20,9 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  # 创建 Release
+  # ==================== 创建 Release ====================
   create-release:
-    name: 创建 Release
+    name: 📦 创建 Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -32,10 +32,10 @@ jobs:
       version: ${{ steps.get_version.outputs.version }}
 
     steps:
-      - name: 检出代码
+      - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: 获取版本号
+      - name: 🏷️ 获取版本号
         id: get_version
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -46,7 +46,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📦 构建版本: $VERSION"
 
-      - name: 创建 Release
+      - name: 🎉 创建 Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
@@ -66,33 +66,35 @@ jobs:
             - 🎨 深色/浅色主题
             
             ### 📥 下载
-            - **Windows**: 下载 `.msi` 或 `.exe` 安装包
-            - **Linux**: 下载 `.deb`（Debian/Ubuntu）或 `.AppImage`（通用）
-            - **Android**: 下载 `.apk` 安装包
+            | 平台 | 格式 | 说明 |
+            |------|------|------|
+            | 🪟 Windows | `.msi` / `.exe` | 安装包 |
+            | 🐧 Linux | `.deb` / `.AppImage` | Debian 或通用 |
+            | 🍎 macOS | `.dmg` | 磁盘镜像 |
+            | 🤖 Android | `.apk` | 安装包 |
             
             ### 🛠️ 技术栈
             - Frontend: Vue 3 + TypeScript + Vite
             - Backend: Rust (nightly) + Tauri 2.0
-            - Build: GNU Toolchain (Windows)
             
             ---
             *自动构建于 ${{ github.sha }}*
           draft: false
           prerelease: ${{ contains(steps.get_version.outputs.version, 'alpha') || contains(steps.get_version.outputs.version, 'beta') || contains(steps.get_version.outputs.version, 'rc') }}
 
-  # Windows 构建 (GNU 工具链)
+  # ==================== Windows 构建 ====================
   build-windows:
-    name: Windows 构建 (GNU)
+    name: 🪟 Windows 发布
     needs: create-release
     runs-on: windows-latest
     permissions:
       contents: write
 
     steps:
-      - name: 检出代码
+      - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 MSYS2
+      - name: 🔧 安装 MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -101,30 +103,31 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-toolchain
 
-      - name: 设置 Rust 工具链 (nightly-gnu)
+      - name: 🦀 设置 Rust (nightly-gnu)
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly-x86_64-pc-windows-gnu
+          targets: x86_64-pc-windows-gnu
           components: rustfmt, clippy
 
-      - name: 设置 Node.js
+      - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Rust 缓存
+      - name: 💾 Rust 缓存
         uses: swatinem/rust-cache@v2
         with:
           workspaces: 'src-tauri -> target'
 
-      - name: 安装前端依赖
+      - name: 📚 安装前端依赖
         run: npm ci
 
-      - name: 构建前端
+      - name: 🔨 构建前端
         run: npm run build
 
-      - name: 构建 Windows 应用
+      - name: 📦 构建 Windows 应用
         shell: pwsh
         env:
           CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
@@ -132,56 +135,57 @@ jobs:
           $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
           npm run tauri build
 
-      - name: 列出构建产物
+      - name: 📋 列出产物
         shell: pwsh
         run: |
-          Write-Host "=== 📦 Windows 构建产物 ===" -ForegroundColor Cyan
-          $bundlePath = "src-tauri/target/x86_64-pc-windows-gnu/release/bundle"
-          if (Test-Path $bundlePath) {
-            Get-ChildItem -Path $bundlePath -Recurse -File | ForEach-Object {
-              Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
+          Write-Host "=== 🪟 Windows 构建产物 ===" -ForegroundColor Cyan
+          $paths = @(
+            "src-tauri/target/x86_64-pc-windows-gnu/release/bundle",
+            "src-tauri/target/release/bundle"
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path) {
+              Get-ChildItem -Path $path -Recurse -File | ForEach-Object {
+                Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
+              }
             }
-          } else {
-            Write-Host "  产物目录不存在: $bundlePath"
           }
 
-      - name: 上传 MSI 安装包
+      - name: 📤 上传到 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.version }}
           files: |
             src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
-
-      - name: 上传 NSIS 安装包
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.create-release.outputs.version }}
-          files: |
             src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
 
-      - name: 上传 Windows Artifacts
+      - name: 📤 上传 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installers
+          name: windows-release
           path: |
             src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
             src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
           retention-days: 30
           if-no-files-found: warn
 
-  # Linux 构建
+  # ==================== Linux 构建 ====================
   build-linux:
-    name: Linux 构建
+    name: 🐧 Linux 发布
     needs: create-release
     runs-on: ubuntu-22.04
     permissions:
       contents: write
 
     steps:
-      - name: 检出代码
+      - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装系统依赖
+      - name: 🔧 安装系统依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -198,62 +202,123 @@ jobs:
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev
 
-      - name: 设置 Rust 工具链 (nightly)
+      - name: 🦀 设置 Rust (nightly)
         uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt, clippy
 
-      - name: 设置 Node.js
+      - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Rust 缓存
+      - name: 💾 Rust 缓存
         uses: swatinem/rust-cache@v2
         with:
           workspaces: 'src-tauri -> target'
 
-      - name: 安装前端依赖
+      - name: 📚 安装前端依赖
         run: npm ci
 
-      - name: 构建前端
+      - name: 🔨 构建前端
         run: npm run build
 
-      - name: 构建 Linux 应用
+      - name: 📦 构建 Linux 应用
         run: npm run tauri build
 
-      - name: 列出构建产物
+      - name: 📋 列出产物
         run: |
-          echo "=== 📦 Linux 构建产物 ==="
+          echo "=== 🐧 Linux 构建产物 ==="
           find src-tauri/target/release/bundle -type f -exec ls -lh {} \;
 
-      - name: 上传 DEB 包
+      - name: 📤 上传到 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.version }}
           files: |
             src-tauri/target/release/bundle/deb/*.deb
-
-      - name: 上传 AppImage
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.create-release.outputs.version }}
-          files: |
             src-tauri/target/release/bundle/appimage/*.AppImage
 
-      - name: 上传 Linux Artifacts
+      - name: 📤 上传 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-installers
+          name: linux-release
           path: |
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
           retention-days: 30
 
-  # Android 构建 (可选)
+  # ==================== macOS 构建 ====================
+  build-macos:
+    name: 🍎 macOS 发布
+    needs: create-release
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🦀 设置 Rust (nightly)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
+
+      - name: 📦 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 💾 Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'src-tauri -> target'
+
+      - name: 📚 安装前端依赖
+        run: npm ci
+
+      - name: 🔨 构建前端
+        run: npm run build
+
+      - name: 📦 构建 macOS 应用 (Universal)
+        run: npm run tauri build -- --target universal-apple-darwin
+        continue-on-error: true
+
+      - name: 📦 构建 macOS 应用 (Native)
+        if: failure()
+        run: npm run tauri build
+
+      - name: 📋 列出产物
+        run: |
+          echo "=== 🍎 macOS 构建产物 ==="
+          find src-tauri/target -name "*.dmg" 2>/dev/null | head -10
+
+      - name: 📤 上传到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.create-release.outputs.version }}
+          files: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+
+      - name: 📤 上传 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ==================== Android 构建 ====================
   build-android:
-    name: Android 构建
+    name: 🤖 Android 发布
     needs: create-release
     runs-on: ubuntu-22.04
     permissions:
@@ -261,87 +326,83 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-android]') }}
 
     steps:
-      - name: 检出代码
+      - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 Java
+      - name: ☕ 设置 Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 设置 Android SDK
+      - name: 🤖 设置 Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: 安装 NDK
+      - name: 📱 安装 NDK
         run: |
           sdkmanager --install "ndk;26.1.10909125"
           echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
 
-      - name: 设置 Rust 工具链 (nightly)
+      - name: 🦀 设置 Rust (nightly)
         uses: dtolnay/rust-toolchain@nightly
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
-      - name: 设置 Node.js
+      - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Rust 缓存
+      - name: 💾 Rust 缓存
         uses: swatinem/rust-cache@v2
         with:
           workspaces: 'src-tauri -> target'
 
-      - name: 安装前端依赖
+      - name: 📚 安装前端依赖
         run: npm ci
 
-      - name: 初始化 Android 项目
-        run: |
-          if [ ! -d "src-tauri/gen/android" ]; then
-            npm run tauri android init
-          fi
+      - name: 🔧 初始化 Android 项目
+        run: npm run tauri android init
         continue-on-error: true
 
-      - name: 构建 Android APK
+      - name: 📦 构建 Android APK
         run: npm run tauri android build --apk
         continue-on-error: true
 
-      - name: 上传 APK
+      - name: 📤 上传到 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.version }}
-          files: |
-            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          files: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
         continue-on-error: true
 
-      - name: 上传 Android Artifacts
+      - name: 📤 上传 Artifact
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: android-apk
-          path: |
-            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          name: android-release
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           retention-days: 30
         continue-on-error: true
 
-  # 构建完成通知
-  notify:
-    name: 构建完成
-    needs: [create-release, build-windows, build-linux]
+  # ==================== 发布汇总 ====================
+  summary:
+    name: 📊 发布汇总
+    needs: [create-release, build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     if: always()
 
     steps:
-      - name: 汇总构建结果
+      - name: 📋 汇总结果
         run: |
-          echo "## 🎉 构建完成汇总"
+          echo "## 🎉 发布汇总"
           echo ""
           echo "| 平台 | 状态 |"
           echo "|------|------|"
-          echo "| Windows (GNU) | ${{ needs.build-windows.result == 'success' && '✅ 成功' || '❌ 失败' }} |"
-          echo "| Linux | ${{ needs.build-linux.result == 'success' && '✅ 成功' || '❌ 失败' }} |"
+          echo "| 🪟 Windows | ${{ needs.build-windows.result == 'success' && '✅ 成功' || '❌ 失败' }} |"
+          echo "| 🐧 Linux | ${{ needs.build-linux.result == 'success' && '✅ 成功' || '❌ 失败' }} |"
+          echo "| 🍎 macOS | ${{ needs.build-macos.result == 'success' && '✅ 成功' || '❌ 失败' }} |"
           echo ""
-          echo "📦 Release: ${{ needs.create-release.outputs.version }}"
-          echo "🔗 下载地址: https://github.com/${{ github.repository }}/releases/tag/${{ needs.create-release.outputs.version }}"
+          echo "📦 版本: ${{ needs.create-release.outputs.version }}"
+          echo "🔗 下载: https://github.com/${{ github.repository }}/releases/tag/${{ needs.create-release.outputs.version }}"
