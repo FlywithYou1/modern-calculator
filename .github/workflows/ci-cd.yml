@@ -94,10 +94,22 @@ jobs:
       - name: 设置 Rust 工具链 (nightly)
         uses: dtolnay/rust-toolchain@nightly
 
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Rust 缓存
         uses: swatinem/rust-cache@v2
         with:
           workspaces: 'src-tauri -> target'
+
+      - name: 安装前端依赖
+        run: npm ci
+
+      - name: 构建前端
+        run: npm run build
 
       - name: 编译检查
         working-directory: src-tauri
@@ -106,6 +118,25 @@ jobs:
       - name: 运行单元测试
         working-directory: src-tauri
         run: cargo test --workspace --all-features
+
+      - name: 构建 Tauri 应用
+        run: npm run tauri build
+
+      - name: 列出构建产物
+        run: |
+          echo "=== Linux 构建产物 ==="
+          find src-tauri/target/release/bundle -type f -exec ls -lh {} \; 2>/dev/null || echo "No bundle found"
+
+      - name: 上传 Linux 安装包
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: linux-installers-${{ github.run_number }}
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 7
+          if-no-files-found: warn
 
   # Windows 构建 (GNU 工具链)
   backend-windows:
@@ -148,26 +179,53 @@ jobs:
         run: npm run build
 
       - name: Rust 编译检查
-        shell: msys2 {0}
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: |
-          export PATH="/ucrt64/bin:$PATH"
-          cd src-tauri && cargo check --workspace
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          cd src-tauri
+          cargo check --workspace
 
       - name: 运行 Rust 测试
-        shell: msys2 {0}
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: |
-          export PATH="/ucrt64/bin:$PATH"
-          cd src-tauri && cargo test --workspace
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          cd src-tauri
+          cargo test --workspace
 
-      - name: 上传 Windows 构建产物
+      - name: 构建 Tauri 应用
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
+        run: |
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          npm run tauri build
+
+      - name: 列出构建产物
+        shell: pwsh
+        run: |
+          Write-Host "=== Windows 构建产物 ===" -ForegroundColor Cyan
+          if (Test-Path "src-tauri/target/x86_64-pc-windows-gnu/release/bundle") {
+            Get-ChildItem -Path "src-tauri/target/x86_64-pc-windows-gnu/release/bundle" -Recurse -File | ForEach-Object {
+              Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
+            }
+          } else {
+            Write-Host "  构建产物目录不存在"
+          }
+
+      - name: 上传 Windows 安装包
         uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: windows-check-${{ github.run_number }}
+          name: windows-installers-${{ github.run_number }}
           path: |
-            src-tauri/Cargo.toml
-            src-tauri/Cargo.lock
-          retention-days: 3
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+          retention-days: 7
+          if-no-files-found: warn
 
   # 构建状态汇总
   build-summary:

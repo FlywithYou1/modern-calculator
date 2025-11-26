@@ -125,24 +125,49 @@ jobs:
         run: npm run build
 
       - name: 构建 Windows 应用
-        shell: msys2 {0}
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: |
-          export PATH="/ucrt64/bin:$PATH"
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
           npm run tauri build
+
+      - name: 列出构建产物
+        shell: pwsh
+        run: |
+          Write-Host "=== 📦 Windows 构建产物 ===" -ForegroundColor Cyan
+          $bundlePath = "src-tauri/target/x86_64-pc-windows-gnu/release/bundle"
+          if (Test-Path $bundlePath) {
+            Get-ChildItem -Path $bundlePath -Recurse -File | ForEach-Object {
+              Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
+            }
+          } else {
+            Write-Host "  产物目录不存在: $bundlePath"
+          }
 
       - name: 上传 MSI 安装包
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.version }}
           files: |
-            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
 
       - name: 上传 NSIS 安装包
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.version }}
           files: |
-            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+
+      - name: 上传 Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: |
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+          retention-days: 30
+          if-no-files-found: warn
 
   # Linux 构建
   build-linux:
@@ -198,6 +223,11 @@ jobs:
       - name: 构建 Linux 应用
         run: npm run tauri build
 
+      - name: 列出构建产物
+        run: |
+          echo "=== 📦 Linux 构建产物 ==="
+          find src-tauri/target/release/bundle -type f -exec ls -lh {} \;
+
       - name: 上传 DEB 包
         uses: softprops/action-gh-release@v2
         with:
@@ -211,6 +241,15 @@ jobs:
           tag_name: ${{ needs.create-release.outputs.version }}
           files: |
             src-tauri/target/release/bundle/appimage/*.AppImage
+
+      - name: 上传 Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 30
 
   # Android 构建 (可选)
   build-android:
@@ -275,6 +314,16 @@ jobs:
           tag_name: ${{ needs.create-release.outputs.version }}
           files: |
             src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+        continue-on-error: true
+
+      - name: 上传 Android Artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: android-apk
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          retention-days: 30
         continue-on-error: true
 
   # 构建完成通知
