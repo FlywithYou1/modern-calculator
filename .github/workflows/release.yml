@@ -378,7 +378,7 @@ jobs:
         continue-on-error: true
 
       - name: 📦 构建 Android APK
-        run: npm run tauri android build -- --apk
+        run: npm run tauri android build -- --apk true
         continue-on-error: true
 
       - name: 📤 上传到 Release

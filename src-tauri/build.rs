@@ -47,7 +47,7 @@ fn main() {
             std::fs::write(&rc_file, rc_content).ok();
             
             // 使用 embed-resource 编译
-            embed_resource::compile(&rc_file, embed_resource::NONE);
+            let _ = embed_resource::compile(&rc_file, embed_resource::NONE);
         }
         
         // 调用 tauri_build，它会跳过已存在的资源
