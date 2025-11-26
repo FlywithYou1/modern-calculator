@@ -139,14 +139,21 @@ jobs:
       - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: 🔧 安装 MSYS2
+      - name: 🔧 安装 MSYS2 / UCRT64 (for GNU)
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: true
-          install: >-
+          install: >
             mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-binutils
+            mingw-w64-ucrt-x86_64-windres
+          path-type: minimal
+
+      - name: 🔧 添加 ucrt64 到 PATH
+        shell: bash
+        run: |
+          echo "C:/msys64/ucrt64/bin" >> $GITHUB_PATH
 
       - name: 🦀 设置 Rust (nightly-gnu)
         uses: dtolnay/rust-toolchain@nightly
@@ -154,14 +161,15 @@ jobs:
           targets: x86_64-pc-windows-gnu
           components: rustfmt, clippy
 
-      - name: 🔧 配置 Rust 默认目标
-        shell: pwsh
+      - name: 🔧 验证工具链
+        shell: bash
         run: |
-          rustup default nightly-x86_64-pc-windows-gnu
-          rustup target add x86_64-pc-windows-gnu
-          rustup component add rust-std-x86_64-pc-windows-gnu
-          rustup show
-          rustc --print target-libdir
+          echo "windres -> $(which windres || true)"
+          echo "ar -> $(which ar || true)"
+          echo "gcc -> $(which gcc || true)"
+          windres --version || true
+          ar --version || true
+          gcc --version || true
 
       - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
@@ -184,9 +192,7 @@ jobs:
         shell: pwsh
         env:
           CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
-          WINDRES: C:\msys64\ucrt64\bin\windres.exe
         run: |
-          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
           cd src-tauri
           cargo check --workspace
 
@@ -194,9 +200,7 @@ jobs:
         shell: pwsh
         env:
           CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
-          WINDRES: C:\msys64\ucrt64\bin\windres.exe
         run: |
-          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
           cd src-tauri
           cargo test --workspace
 
@@ -204,9 +208,7 @@ jobs:
         shell: pwsh
         env:
           CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
-          WINDRES: C:\msys64\ucrt64\bin\windres.exe
         run: |
-          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
           npm run tauri build
 
       - name: 📋 列出产物
@@ -224,6 +226,10 @@ jobs:
               }
             }
           }
+          # Debug: list generated libs
+          Write-Host "=== Debug: Generated Libs ===" -ForegroundColor Yellow
+          Get-ChildItem -Path src-tauri/target -Recurse -Filter "libapp_icon.a" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+          Get-ChildItem -Path src-tauri/target -Recurse -Filter "app_icon.o" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
 
       - name: 📤 上传 Windows 安装包
         uses: actions/upload-artifact@v4
@@ -348,11 +354,10 @@ jobs:
 
       - name: 🔧 初始化 Android 项目
         run: npm run tauri android init
-        continue-on-error: true
 
-      - name: 📦 构建 Android APK
-        run: npm run tauri android build -- --apk true
-        continue-on-error: true
+      - name: 📦 构建 Android APK (Debug Signed)
+        # 使用 --debug 确保 APK 使用调试密钥签名，避免 "PackageInfo is null" 错误
+        run: npm run tauri android build -- --debug --apk
 
       - name: 📋 列出产物
         run: |
