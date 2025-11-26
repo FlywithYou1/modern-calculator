@@ -1,0 +1,277 @@
+name: 跨平台构建 (Linux + Windows + Android)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      build_android:
+        description: '是否构建Android'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cross-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  NODE_VERSION: '24'  # Node.js 24 (Latest)
+
+jobs:
+  # 前端质量检查和构建
+  frontend:
+    name: 前端构建与质量检查
+    runs-on: ubuntu-22.04
+    outputs:
+      build-success: ${{ steps.build.outcome == 'success' }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 安装项目依赖
+        run: npm ci
+
+      - name: 构建前端应用
+        id: build
+        run: npm run build
+
+      - name: 验证构建产物
+        run: |
+          echo "=== 📦 构建产物验证 ==="
+          if [ ! -f "dist/index.html" ]; then
+            echo "❌ 构建失败: 主入口文件缺失"
+            exit 1
+          fi
+
+          echo "✅ 构建产物验证通过"
+          echo "📊 构建统计:"
+          ls -lah dist/
+          echo "💾 总大小: $(du -sh dist/ | cut -f1)"
+
+      - name: 上传前端构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-${{ github.run_number }}
+          path: dist/
+          retention-days: 7
+
+  # Rust 后端构建与测试 (Linux)
+  backend-linux:
+    name: 后端构建与测试 (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            pkg-config \
+            libglib2.0-dev \
+            libgdk-pixbuf2.0-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: 设置 Rust 工具链 (nightly)
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'src-tauri -> target'
+
+      - name: 安装前端依赖
+        run: npm ci
+
+      - name: 构建前端
+        run: npm run build
+
+      - name: 编译检查
+        working-directory: src-tauri
+        run: cargo check --workspace --all-features
+
+      - name: 运行单元测试
+        working-directory: src-tauri
+        run: cargo test --workspace --all-features
+
+      - name: 构建 Tauri 应用
+        run: npm run tauri build
+
+      - name: 列出构建产物
+        run: |
+          echo "=== Linux 构建产物 ==="
+          find src-tauri/target/release/bundle -type f -exec ls -lh {} \; 2>/dev/null || echo "No bundle found"
+
+      - name: 上传 Linux 安装包
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: linux-installers-${{ github.run_number }}
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 7
+          if-no-files-found: warn
+
+  # Windows 构建 (GNU 工具链)
+  backend-windows:
+    name: Windows 构建 (GNU)
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-toolchain
+
+      - name: 设置 Rust 工具链 (nightly-gnu)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-x86_64-pc-windows-gnu
+          targets: x86_64-pc-windows-gnu
+          components: rustfmt, clippy
+
+      - name: 确保 GNU target 已安装
+        shell: pwsh
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          rustup show
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'src-tauri -> target'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建前端
+        run: npm run build
+
+      - name: Rust 编译检查
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
+        run: |
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          cd src-tauri
+          cargo check --workspace
+
+      - name: 运行 Rust 测试
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
+        run: |
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          cd src-tauri
+          cargo test --workspace
+
+      - name: 构建 Tauri 应用
+        shell: pwsh
+        env:
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
+        run: |
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          npm run tauri build
+
+      - name: 列出构建产物
+        shell: pwsh
+        run: |
+          Write-Host "=== Windows 构建产物 ===" -ForegroundColor Cyan
+          if (Test-Path "src-tauri/target/x86_64-pc-windows-gnu/release/bundle") {
+            Get-ChildItem -Path "src-tauri/target/x86_64-pc-windows-gnu/release/bundle" -Recurse -File | ForEach-Object {
+              Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
+            }
+          } else {
+            Write-Host "  构建产物目录不存在"
+          }
+
+      - name: 上传 Windows 安装包
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: windows-installers-${{ github.run_number }}
+          path: |
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+          retention-days: 7
+          if-no-files-found: warn
+
+  # 构建状态汇总
+  build-summary:
+    name: 构建状态汇总
+    runs-on: ubuntu-22.04
+    needs: [frontend, backend-linux, backend-windows]
+    if: always()
+
+    steps:
+      - name: 汇总构建结果
+        run: |
+          echo "=== 🎯 跨平台构建流水线汇总 ==="
+          echo ""
+
+          # 前端构建状态
+          if [ "${{ needs.frontend.result }}" == "success" ]; then
+            echo "✅ 前端构建: 成功"
+          else
+            echo "❌ 前端构建: ${{ needs.frontend.result }}"
+          fi
+
+          # Linux 后端状态
+          if [ "${{ needs.backend-linux.result }}" == "success" ]; then
+            echo "✅ Linux 后端 (Rust nightly): 成功"
+          else
+            echo "❌ Linux 后端: ${{ needs.backend-linux.result }}"
+          fi
+
+          # Windows 后端状态
+          if [ "${{ needs.backend-windows.result }}" == "success" ]; then
+            echo "✅ Windows 后端 (GNU): 成功"
+          else
+            echo "❌ Windows 后端: ${{ needs.backend-windows.result }}"
+          fi
+
+          echo ""
+          echo "🔗 构建产物下载: GitHub Actions Artifacts"
+          echo "📅 保留时间: 7天"
+          echo "🚀 技术栈: TypeScript 5.x + Rust nightly + Tauri 2.x"
+          echo "🔧 Windows 工具链: GNU (x86_64-pc-windows-gnu)"
+          echo "🌍 支持平台: Linux + Windows + Android"

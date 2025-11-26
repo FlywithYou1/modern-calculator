@@ -18,6 +18,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  NODE_VERSION: '24'  # Node.js 24 (Latest)
+  JAVA_VERSION: '24'  # Java 24 (Latest)
+  NDK_VERSION: '28.0.13004108'  # Android NDK r28 (2025 Latest)
 
 jobs:
   # ==================== 创建 Release ====================
@@ -110,10 +113,16 @@ jobs:
           targets: x86_64-pc-windows-gnu
           components: rustfmt, clippy
 
-      - name: 📦 设置 Node.js
+      - name: � 确保 GNU target 已安装
+        shell: pwsh
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          rustup show
+
+      - name: �📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: 💾 Rust 缓存
@@ -208,7 +217,7 @@ jobs:
       - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: 💾 Rust 缓存
@@ -267,7 +276,7 @@ jobs:
       - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: 💾 Rust 缓存
@@ -333,15 +342,15 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: 🤖 设置 Android SDK
         uses: android-actions/setup-android@v3
 
       - name: 📱 安装 NDK
         run: |
-          sdkmanager --install "ndk;26.1.10909125"
-          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+          sdkmanager --install "ndk;${{ env.NDK_VERSION }}"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
 
       - name: 🦀 设置 Rust (nightly)
         uses: dtolnay/rust-toolchain@nightly
@@ -351,7 +360,7 @@ jobs:
       - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: 💾 Rust 缓存

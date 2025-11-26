@@ -18,6 +18,7 @@ pub async fn calculate(
     display_expression: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<CalculationResult, String> {
+    #[cfg(debug_assertions)]
     let start_time = std::time::Instant::now();
     let display_expression = display_expression.unwrap_or_else(|| expression.clone());
     {
@@ -39,9 +40,9 @@ pub async fn calculate(
     let calculation_result = match crate::parser::parse_and_evaluate(&expression, &calculator).await {
         Ok(result) => {
             let result_str = result.to_string();
-            let execution_time = start_time.elapsed().as_millis() as f64;
             #[cfg(debug_assertions)]
             {
+                let execution_time = start_time.elapsed().as_millis() as f64;
                 let debugger = crate::mcp::get_mcp_debugger();
                 debugger.track_calculation_execution(&display_expression, &result_str, execution_time, 0);
                 debugger.track_state_change(&display_expression, &result_str, "0", None);
@@ -382,10 +383,10 @@ pub async fn get_mcp_performance_stats() -> Result<Value, String> {
 
 
 #[tauri::command]
-pub async fn set_mcp_debugging(enabled: bool) -> Result<(), String> {
+pub async fn set_mcp_debugging(_enabled: bool) -> Result<(), String> {
     #[cfg(debug_assertions)]
     {
-        if enabled {
+        if _enabled {
             Ok(())
         } else {
             Err("MCP调试器无法在运行时禁用".to_string())

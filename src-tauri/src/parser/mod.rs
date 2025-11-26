@@ -611,12 +611,13 @@ impl<'a> Evaluator<'a> {
 
 
 pub async fn parse_and_evaluate(expression: &str, calculator: &Calculator) -> Result<Decimal, MathError> {
+    #[cfg(debug_assertions)]
     let parse_start = std::time::Instant::now();
     let parser = ExpressionParser::new();
     let ast = parser.parse(expression)?;
-    let parse_time = parse_start.elapsed().as_millis() as f64;
     #[cfg(debug_assertions)]
     {
+        let parse_time = parse_start.elapsed().as_millis() as f64;
         let debugger = crate::mcp::get_mcp_debugger();
         debugger.track_expression_parsing(expression, &ast, parse_time);
     }
