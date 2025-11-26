@@ -18,9 +18,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  NODE_VERSION: '24'  # Node.js 24 (Latest)
-  JAVA_VERSION: '25'  # Java 25 LTS (Latest, 2025-09-16)
-  NDK_VERSION: '28.0.13004108'  # Android NDK r28 (2025 Latest)
+  NODE_VERSION: '22'  # Node.js 22 LTS
+  JAVA_VERSION: '21'  # Java 21 LTS (Gradle 不支持 Java 25)
+  NDK_VERSION: '27.2.12479018'  # Android NDK r27c LTS
 
 jobs:
   # ==================== 创建 Release ====================
@@ -378,7 +378,7 @@ jobs:
         continue-on-error: true
 
       - name: 📦 构建 Android APK
-        run: npm run tauri android build --apk
+        run: npm run tauri android build -- --apk
         continue-on-error: true
 
       - name: 📤 上传到 Release
