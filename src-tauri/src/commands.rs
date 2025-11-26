@@ -616,3 +616,327 @@ pub async fn convert_units(
 
     result.to_f64().ok_or("结果转换失败".to_string())
 }
+
+
+/// 计算数值导数
+#[tauri::command]
+pub async fn calculate_derivative(
+    expression: String,
+    x: f64,
+    h: Option<f64>,
+) -> Result<f64, String> {
+    use mathjs_eval::MathEvaluator;
+    
+    let evaluator = MathEvaluator::new();
+    let f = |x_val: f64| -> Result<f64, crate::math::MathError> {
+        evaluator.evaluate_at(&expression, x_val)
+            .map_err(|e| crate::math::MathError::ParseError(e))
+    };
+    
+    let calc = crate::math::Calculator::default();
+    calc.numerical_derivative(f, x, h)
+        .map_err(|e| format!("计算导数失败: {}", e))
+}
+
+/// 计算定积分
+#[tauri::command]
+pub async fn calculate_integral(
+    expression: String,
+    a: f64,
+    b: f64,
+    n: Option<usize>,
+) -> Result<f64, String> {
+    use mathjs_eval::MathEvaluator;
+    
+    let evaluator = MathEvaluator::new();
+    let f = |x_val: f64| -> Result<f64, crate::math::MathError> {
+        evaluator.evaluate_at(&expression, x_val)
+            .map_err(|e| crate::math::MathError::ParseError(e))
+    };
+    
+    let calc = crate::math::Calculator::default();
+    calc.numerical_integral(f, a, b, n)
+        .map_err(|e| format!("计算积分失败: {}", e))
+}
+
+/// 生成函数绘图数据点
+#[tauri::command]
+pub async fn generate_function_plot(
+    expression: String,
+    x_min: f64,
+    x_max: f64,
+    points: Option<usize>,
+) -> Result<Vec<(f64, f64)>, String> {
+    use mathjs_eval::MathEvaluator;
+    
+    let evaluator = MathEvaluator::new();
+    let f = |x_val: f64| -> Result<f64, crate::math::MathError> {
+        evaluator.evaluate_at(&expression, x_val)
+            .map_err(|e| crate::math::MathError::ParseError(e))
+    };
+    
+    let calc = crate::math::Calculator::default();
+    calc.generate_plot_points(f, x_min, x_max, points.unwrap_or(200))
+        .map_err(|e| format!("生成绘图数据失败: {}", e))
+}
+
+/// 增强的矩阵运算
+#[tauri::command]
+pub async fn advanced_matrix_operation(
+    operation: String,
+    matrix_a: Vec<Vec<f64>>,
+    power: Option<i32>,
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let calculator = {
+        let calc = state.calculator.lock().await;
+        (*calc).clone()
+    };
+
+    let convert_matrix = |data: Vec<Vec<f64>>| -> Result<crate::math::Matrix, String> {
+        let decimal_data: Result<Vec<Vec<rust_decimal::Decimal>>, _> = data.iter()
+            .map(|row| row.iter().map(|&v| rust_decimal::Decimal::try_from(v)).collect())
+            .collect();
+        let decimal_data = decimal_data.map_err(|e| format!("矩阵数据转换失败: {}", e))?;
+        calculator.create_matrix(decimal_data.len(), decimal_data[0].len(), 
+            decimal_data.iter().flatten().cloned().collect())
+            .map_err(|e| format!("创建矩阵失败: {}", e))
+    };
+
+    let matrix_a = convert_matrix(matrix_a)?;
+    
+    let result = match operation.as_str() {
+        "trace" => {
+            let trace = calculator.matrix_trace(&matrix_a)
+                .map_err(|e| format!("计算迹失败: {}", e))?;
+            serde_json::json!({
+                "trace": trace.to_f64().unwrap_or(0.0)
+            })
+        },
+        "rank" => {
+            let rank = calculator.matrix_rank(&matrix_a)
+                .map_err(|e| format!("计算秩失败: {}", e))?;
+            serde_json::json!({
+                "rank": rank
+            })
+        },
+        "frobenius_norm" => {
+            let norm = calculator.matrix_frobenius_norm(&matrix_a)
+                .map_err(|e| format!("计算范数失败: {}", e))?;
+            serde_json::json!({
+                "norm": norm.to_f64().unwrap_or(0.0)
+            })
+        },
+        "power" => {
+            let p = power.ok_or("矩阵幂运算需要指定幂次")?;
+            let result = calculator.matrix_power(&matrix_a, p)
+                .map_err(|e| format!("矩阵幂运算失败: {}", e))?;
+            let (rows, cols) = result.dimensions();
+            let mut data = Vec::new();
+            for i in 0..rows {
+                let mut row = Vec::new();
+                for j in 0..cols {
+                    row.push(result.get(i, j).unwrap().to_f64().unwrap_or(0.0));
+                }
+                data.push(row);
+            }
+            serde_json::json!({
+                "matrix": data,
+                "rows": rows,
+                "cols": cols
+            })
+        },
+        "lu" => {
+            let (l, u) = calculator.matrix_lu_decomposition(&matrix_a)
+                .map_err(|e| format!("LU分解失败: {}", e))?;
+            let (l_rows, l_cols) = l.dimensions();
+            let (u_rows, u_cols) = u.dimensions();
+            
+            let mut l_data = Vec::new();
+            for i in 0..l_rows {
+                let mut row = Vec::new();
+                for j in 0..l_cols {
+                    row.push(l.get(i, j).unwrap().to_f64().unwrap_or(0.0));
+                }
+                l_data.push(row);
+            }
+            
+            let mut u_data = Vec::new();
+            for i in 0..u_rows {
+                let mut row = Vec::new();
+                for j in 0..u_cols {
+                    row.push(u.get(i, j).unwrap().to_f64().unwrap_or(0.0));
+                }
+                u_data.push(row);
+            }
+            
+            serde_json::json!({
+                "L": l_data,
+                "U": u_data
+            })
+        },
+        _ => return Err(format!("未知的矩阵操作: {}", operation)),
+    };
+
+    Ok(result)
+}
+
+/// 简单的数学表达式求值器模块
+mod mathjs_eval {
+    pub struct MathEvaluator;
+    
+    impl MathEvaluator {
+        pub fn new() -> Self {
+            Self
+        }
+        
+        /// 在指定的 x 值处计算表达式
+        pub fn evaluate_at(&self, expression: &str, x: f64) -> Result<f64, String> {
+            // 简单的表达式解析和求值
+            let expr = expression
+                .replace("x", &format!("({})", x))
+                .replace("X", &format!("({})", x))
+                .replace("pi", &std::f64::consts::PI.to_string())
+                .replace("π", &std::f64::consts::PI.to_string())
+                .replace("e", &std::f64::consts::E.to_string());
+            
+            self.eval_simple(&expr)
+        }
+        
+        fn eval_simple(&self, expr: &str) -> Result<f64, String> {
+            let expr = expr.trim();
+            
+            // 处理函数调用
+            if let Some(result) = self.try_eval_function(expr) {
+                return result;
+            }
+            
+            // 处理括号
+            if expr.starts_with('(') && expr.ends_with(')') {
+                let inner = &expr[1..expr.len()-1];
+                if self.is_balanced(inner) {
+                    return self.eval_simple(inner);
+                }
+            }
+            
+            // 处理加减法（最低优先级）
+            if let Some(pos) = self.find_operator(expr, &['+', '-']) {
+                let left = &expr[..pos];
+                let op = expr.chars().nth(pos).unwrap();
+                let right = &expr[pos+1..];
+                
+                if !left.is_empty() {
+                    let left_val = self.eval_simple(left)?;
+                    let right_val = self.eval_simple(right)?;
+                    return Ok(if op == '+' { left_val + right_val } else { left_val - right_val });
+                } else if op == '-' {
+                    // 一元负号
+                    return Ok(-self.eval_simple(right)?);
+                }
+            }
+            
+            // 处理乘除法
+            if let Some(pos) = self.find_operator(expr, &['*', '/']) {
+                let left = &expr[..pos];
+                let op = expr.chars().nth(pos).unwrap();
+                let right = &expr[pos+1..];
+                
+                let left_val = self.eval_simple(left)?;
+                let right_val = self.eval_simple(right)?;
+                
+                return Ok(if op == '*' { 
+                    left_val * right_val 
+                } else { 
+                    if right_val == 0.0 {
+                        return Err("除以零".to_string());
+                    }
+                    left_val / right_val 
+                });
+            }
+            
+            // 处理幂运算
+            if let Some(pos) = self.find_operator(expr, &['^']) {
+                let left = &expr[..pos];
+                let right = &expr[pos+1..];
+                
+                let left_val = self.eval_simple(left)?;
+                let right_val = self.eval_simple(right)?;
+                
+                return Ok(left_val.powf(right_val));
+            }
+            
+            // 尝试解析为数字
+            expr.parse::<f64>().map_err(|_| format!("无法解析表达式: {}", expr))
+        }
+        
+        fn try_eval_function(&self, expr: &str) -> Option<Result<f64, String>> {
+            // 使用函数指针类型而不是闭包数组
+            let functions: &[(&str, fn(f64) -> f64)] = &[
+                ("sin(", f64::sin),
+                ("cos(", f64::cos),
+                ("tan(", f64::tan),
+                ("asin(", f64::asin),
+                ("acos(", f64::acos),
+                ("atan(", f64::atan),
+                ("sinh(", f64::sinh),
+                ("cosh(", f64::cosh),
+                ("tanh(", f64::tanh),
+                ("sqrt(", f64::sqrt),
+                ("cbrt(", f64::cbrt),
+                ("ln(", f64::ln),
+                ("log(", f64::log10),
+                ("log10(", f64::log10),
+                ("exp(", f64::exp),
+                ("abs(", f64::abs),
+                ("floor(", f64::floor),
+                ("ceil(", f64::ceil),
+                ("round(", f64::round),
+            ];
+            
+            for (prefix, func) in functions.iter() {
+                if expr.starts_with(prefix) && expr.ends_with(')') {
+                    let inner = &expr[prefix.len()..expr.len()-1];
+                    return Some(self.eval_simple(inner).map(|x| func(x)));
+                }
+            }
+            
+            None
+        }
+        
+        fn find_operator(&self, expr: &str, ops: &[char]) -> Option<usize> {
+            let mut paren_depth = 0;
+            let chars: Vec<char> = expr.chars().collect();
+            
+            // 从右到左查找（确保左结合性）
+            for i in (0..chars.len()).rev() {
+                match chars[i] {
+                    ')' => paren_depth += 1,
+                    '(' => paren_depth -= 1,
+                    c if paren_depth == 0 && ops.contains(&c) => {
+                        // 确保不是一元运算符
+                        if i > 0 || c != '-' {
+                            return Some(i);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+        
+        fn is_balanced(&self, expr: &str) -> bool {
+            let mut depth = 0;
+            for c in expr.chars() {
+                match c {
+                    '(' => depth += 1,
+                    ')' => {
+                        depth -= 1;
+                        if depth < 0 { return false; }
+                    }
+                    _ => {}
+                }
+            }
+            depth == 0
+        }
+    }
+}

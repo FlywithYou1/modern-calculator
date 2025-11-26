@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted, watch, nextTick } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { create, all } from 'mathjs';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 const math = create(all);
 
@@ -20,6 +23,7 @@ const error = ref<string | null>(null);
 const matrixOp = ref('add');
 const matrixA = ref('');
 const matrixB = ref('');
+const matrixPower = ref(2);
 
 // Statistics State
 const statsOp = ref('mean');
@@ -45,10 +49,22 @@ const baseTo = ref(2);
 const calculusOp = ref('derivative');
 const calculusExpr = ref('x^2');
 const calculusVar = ref('x');
+const calculusPoint = ref(1); // 求导点
+const integralLower = ref(0); // 积分下限
+const integralUpper = ref(1); // 积分上限
+const integralSteps = ref(100); // 积分精度
 
 // Equation State
 const equationExpr = ref('x^2 - 4 = 0');
-const equationVar = ref('x'); // Note: mathjs solve is limited, might need custom logic or just simplify
+const equationVar = ref('x');
+
+// Function Plot State
+const plotExpr = ref('sin(x)');
+const plotXMin = ref(-10);
+const plotXMax = ref(10);
+const plotPoints = ref(200);
+const chartCanvas = ref<HTMLCanvasElement | null>(null);
+let chartInstance: Chart | null = null;
 
 const tabs = [
   { id: 'matrix', label: '矩阵' },
@@ -57,6 +73,7 @@ const tabs = [
   { id: 'unit', label: '单位' },
   { id: 'base', label: '进制' },
   { id: 'calculus', label: '微积分' },
+  { id: 'plot', label: '函数图' },
   { id: 'equation', label: '方程' },
 ];
 
@@ -67,6 +84,11 @@ const matrixOperations = [
   { label: '转置', value: 'transpose' },
   { label: '行列式', value: 'determinant' },
   { label: '求逆', value: 'inverse' },
+  { label: '矩阵迹', value: 'trace' },
+  { label: '矩阵秩', value: 'rank' },
+  { label: 'Frobenius范数', value: 'frobenius_norm' },
+  { label: '矩阵幂', value: 'power' },
+  { label: 'LU分解', value: 'lu' },
 ];
 
 const statOperations = [
@@ -89,8 +111,9 @@ const complexOperations = [
 ];
 
 const calculusOperations = [
-  { label: '求导 (Derivative)', value: 'derivative' },
-  // Integral is harder in mathjs symbolic, but we can try simplify
+  { label: '符号求导 (Symbolic)', value: 'derivative' },
+  { label: '数值求导 (Numerical)', value: 'numerical_derivative' },
+  { label: '数值积分 (Integral)', value: 'integral' },
 ];
 
 const unitCategories: Record<string, any[]> = {
@@ -128,6 +151,8 @@ const unitCategories: Record<string, any[]> = {
 const baseOptions = [2, 8, 10, 16];
 
 const requiresSecondMatrix = computed(() => ['add', 'subtract', 'multiply'].includes(matrixOp.value));
+const requiresPower = computed(() => matrixOp.value === 'power');
+const isAdvancedMatrixOp = computed(() => ['trace', 'rank', 'frobenius_norm', 'power', 'lu'].includes(matrixOp.value));
 
 const currentUnitOptions = computed(() => unitCategories[unitCategory.value] || []);
 
@@ -143,6 +168,26 @@ const calculateMatrix = async () => {
   try {
     error.value = null;
     const mA = parseMatrix(matrixA.value);
+    
+    // 使用高级矩阵操作命令
+    if (isAdvancedMatrixOp.value) {
+      const res = await invoke<any>('advanced_matrix_operation', {
+        operation: matrixOp.value,
+        matrixA: mA,
+        power: requiresPower.value ? matrixPower.value : null,
+      });
+      
+      if (res.matrix) {
+        result.value = formatMatrix(res.matrix);
+      } else if (res.l && res.u) {
+        result.value = `L矩阵:\n${formatMatrix(res.l)}\n\nU矩阵:\n${formatMatrix(res.u)}`;
+      } else if (res.value !== undefined) {
+        result.value = res.value.toString();
+      }
+      return;
+    }
+    
+    // 原有矩阵操作
     let mB = undefined;
     if (requiresSecondMatrix.value) {
       mB = parseMatrix(matrixB.value);
@@ -224,12 +269,101 @@ const convertBase = async () => {
   }
 };
 
-const calculateCalculus = () => {
+const calculateCalculus = async () => {
   try {
     error.value = null;
     if (calculusOp.value === 'derivative') {
+      // 符号求导 (使用 mathjs)
       const res = math.derivative(calculusExpr.value, calculusVar.value);
-      result.value = res.toString();
+      result.value = `f'(${calculusVar.value}) = ${res.toString()}`;
+    } else if (calculusOp.value === 'numerical_derivative') {
+      // 数值求导 (调用后端)
+      const res = await invoke<number>('calculate_derivative', {
+        expression: calculusExpr.value,
+        x: calculusPoint.value,
+        h: 0.0001,
+      });
+      result.value = `f'(${calculusPoint.value}) ≈ ${res.toFixed(8)}`;
+    } else if (calculusOp.value === 'integral') {
+      // 数值积分 (调用后端)
+      const res = await invoke<number>('calculate_integral', {
+        expression: calculusExpr.value,
+        a: integralLower.value,
+        b: integralUpper.value,
+        n: integralSteps.value,
+      });
+      result.value = `∫[${integralLower.value}, ${integralUpper.value}] ${calculusExpr.value} dx ≈ ${res.toFixed(8)}`;
+    }
+  } catch (e: any) {
+    error.value = e.toString();
+  }
+};
+
+// 函数绘图
+const drawFunctionPlot = async () => {
+  try {
+    error.value = null;
+    
+    // 调用后端生成绘图数据
+    const res = await invoke<{ x: number[], y: number[] }>('generate_function_plot', {
+      expression: plotExpr.value,
+      xMin: plotXMin.value,
+      xMax: plotXMax.value,
+      points: plotPoints.value,
+    });
+    
+    // 构建图表数据
+    const data = res.x.map((x, i) => ({ x, y: res.y[i] })).filter(p => isFinite(p.y));
+    
+    await nextTick();
+    
+    if (chartInstance) {
+      chartInstance.destroy();
+    }
+    
+    if (chartCanvas.value) {
+      chartInstance = new Chart(chartCanvas.value, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: `y = ${plotExpr.value}`,
+            data: data,
+            borderColor: '#007aff',
+            backgroundColor: 'rgba(0, 122, 255, 0.1)',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.1,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'center',
+              title: { display: true, text: 'x', color: '#fff' },
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: '#fff' },
+            },
+            y: {
+              type: 'linear',
+              position: 'center',
+              title: { display: true, text: 'y', color: '#fff' },
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: '#fff' },
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#fff' }
+            }
+          }
+        }
+      });
+      
+      result.value = `已绘制 y = ${plotExpr.value}，范围 [${plotXMin.value}, ${plotXMax.value}]`;
     }
   } catch (e: any) {
     error.value = e.toString();
@@ -278,8 +412,28 @@ const solveEquation = () => {
 };
 
 const close = () => {
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
   emit('close');
 };
+
+// 清理图表实例
+onUnmounted(() => {
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+});
+
+// 监听标签切换，清理图表
+watch(activeTab, () => {
+  if (chartInstance && activeTab.value !== 'plot') {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+});
 </script>
 
 <template>
@@ -313,6 +467,10 @@ const close = () => {
           <div v-if="requiresSecondMatrix" class="form-group">
             <label>矩阵 B</label>
             <textarea v-model="matrixB" placeholder="5 6&#10;7 8"></textarea>
+          </div>
+          <div v-if="requiresPower" class="form-group">
+            <label>幂次 (支持负数表示逆矩阵的幂)</label>
+            <input type="number" v-model.number="matrixPower" placeholder="2">
           </div>
           <button class="action-btn" @click="calculateMatrix">计算</button>
         </div>
@@ -406,14 +564,58 @@ const close = () => {
             </select>
           </div>
           <div class="form-group">
-            <label>表达式 (例如: x^2 + 2*x)</label>
+            <label>表达式 (例如: x^2 + 2*x, sin(x), exp(x))</label>
             <input v-model="calculusExpr" placeholder="x^2">
           </div>
           <div class="form-group">
-            <label>变量 (例如: x)</label>
+            <label>变量</label>
             <input v-model="calculusVar" placeholder="x">
           </div>
+          <div v-if="calculusOp === 'numerical_derivative'" class="form-group">
+            <label>求导点 x₀</label>
+            <input type="number" v-model.number="calculusPoint" step="0.1" placeholder="1">
+          </div>
+          <div v-if="calculusOp === 'integral'" class="integral-inputs">
+            <div class="form-group">
+              <label>积分下限 a</label>
+              <input type="number" v-model.number="integralLower" step="0.1" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>积分上限 b</label>
+              <input type="number" v-model.number="integralUpper" step="0.1" placeholder="1">
+            </div>
+            <div class="form-group">
+              <label>精度 (步数)</label>
+              <input type="number" v-model.number="integralSteps" min="10" max="10000" placeholder="100">
+            </div>
+          </div>
           <button class="action-btn" @click="calculateCalculus">计算</button>
+        </div>
+
+        <!-- Function Plot Panel -->
+        <div v-if="activeTab === 'plot'" class="panel-content">
+          <div class="form-group">
+            <label>函数表达式 (例如: sin(x), x^2, exp(-x^2))</label>
+            <input v-model="plotExpr" placeholder="sin(x)">
+          </div>
+          <div class="range-inputs">
+            <div class="form-group">
+              <label>X 最小值</label>
+              <input type="number" v-model.number="plotXMin" step="1" placeholder="-10">
+            </div>
+            <div class="form-group">
+              <label>X 最大值</label>
+              <input type="number" v-model.number="plotXMax" step="1" placeholder="10">
+            </div>
+            <div class="form-group">
+              <label>采样点数</label>
+              <input type="number" v-model.number="plotPoints" min="50" max="1000" placeholder="200">
+            </div>
+          </div>
+          <button class="action-btn" @click="drawFunctionPlot">绘制图像</button>
+          <div class="chart-container">
+            <canvas ref="chartCanvas"></canvas>
+          </div>
         </div>
 
         <!-- Equation Panel -->
@@ -590,5 +792,31 @@ textarea {
 
 .unit-selects select {
   flex: 1;
+}
+
+.integral-inputs,
+.range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.integral-inputs .form-group:last-child,
+.range-inputs .form-group:last-child {
+  grid-column: span 2;
+}
+
+.chart-container {
+  margin-top: 20px;
+  height: 300px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.chart-container canvas {
+  max-width: 100%;
+  max-height: 100%;
 }
 </style>

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::Manager;
@@ -103,6 +97,11 @@ pub fn run() {
             commands::calculate_complex,
             commands::matrix_operation,
             commands::convert_units,
+            // 新增微积分和绘图命令
+            commands::calculate_derivative,
+            commands::calculate_integral,
+            commands::generate_function_plot,
+            commands::advanced_matrix_operation,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

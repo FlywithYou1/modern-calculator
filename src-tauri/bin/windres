@@ -1,0 +1,29 @@
+#!/bin/bash
+# Wrapper script for windres to fix path issues on GNU toolchain
+
+# Convert Windows paths to MSYS2 format
+convert_path() {
+    local path="$1"
+    # Replace backslashes with forward slashes
+    path="${path//\\//}"
+    # Convert drive letter (C: -> /c)
+    if [[ "$path" =~ ^([A-Za-z]): ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        drive="${drive,,}"  # lowercase
+        path="/${drive}${path:2}"
+    fi
+    echo "$path"
+}
+
+# Process all arguments
+args=()
+for arg in "$@"; do
+    # Convert paths in the argument
+    if [[ "$arg" == *":"* ]] || [[ "$arg" == *"\\"* ]]; then
+        arg=$(convert_path "$arg")
+    fi
+    args+=("$arg")
+done
+
+# Run the real windres with --use-temp-file to avoid pipe issues
+/ucrt64/bin/windres.exe --use-temp-file "${args[@]}"

@@ -1079,6 +1079,270 @@ impl Calculator {
         Ok(((new - original) / original) * Decimal::from(100))
     }
 
+    // ==================== 数值微积分功能 ====================
+
+    /// 使用数值微分计算导数值（中心差分法）
+    /// f: 函数表达式中的变量名（通常是 "x"）
+    /// x: 求导点
+    /// h: 步长（默认 1e-8）
+    pub fn numerical_derivative<F>(&self, f: F, x: f64, h: Option<f64>) -> Result<f64, MathError>
+    where
+        F: Fn(f64) -> Result<f64, MathError>,
+    {
+        let h = h.unwrap_or(1e-8);
+        
+        // 五点中心差分公式，精度更高
+        let f_neg2h = f(x - 2.0 * h)?;
+        let f_neg1h = f(x - h)?;
+        let f_pos1h = f(x + h)?;
+        let f_pos2h = f(x + 2.0 * h)?;
+        
+        let derivative = (-f_pos2h + 8.0 * f_pos1h - 8.0 * f_neg1h + f_neg2h) / (12.0 * h);
+        
+        if derivative.is_infinite() || derivative.is_nan() {
+            return Err(MathError::Overflow);
+        }
+        
+        Ok(derivative)
+    }
+
+    /// 使用辛普森法则计算定积分
+    /// f: 被积函数
+    /// a: 积分下限
+    /// b: 积分上限
+    /// n: 分割数（必须是偶数）
+    pub fn numerical_integral<F>(&self, f: F, a: f64, b: f64, n: Option<usize>) -> Result<f64, MathError>
+    where
+        F: Fn(f64) -> Result<f64, MathError>,
+    {
+        let n = n.unwrap_or(1000);
+        let n = if n % 2 == 0 { n } else { n + 1 }; // 确保 n 是偶数
+        
+        let h = (b - a) / n as f64;
+        
+        let mut sum = f(a)? + f(b)?;
+        
+        for i in 1..n {
+            let x = a + i as f64 * h;
+            let fx = f(x)?;
+            if i % 2 == 0 {
+                sum += 2.0 * fx;
+            } else {
+                sum += 4.0 * fx;
+            }
+        }
+        
+        let result = sum * h / 3.0;
+        
+        if result.is_infinite() || result.is_nan() {
+            return Err(MathError::Overflow);
+        }
+        
+        Ok(result)
+    }
+
+    /// 使用梯形法则计算定积分（简单版本）
+    pub fn trapezoidal_integral<F>(&self, f: F, a: f64, b: f64, n: Option<usize>) -> Result<f64, MathError>
+    where
+        F: Fn(f64) -> Result<f64, MathError>,
+    {
+        let n = n.unwrap_or(1000);
+        let h = (b - a) / n as f64;
+        
+        let mut sum = (f(a)? + f(b)?) / 2.0;
+        
+        for i in 1..n {
+            let x = a + i as f64 * h;
+            sum += f(x)?;
+        }
+        
+        let result = sum * h;
+        
+        if result.is_infinite() || result.is_nan() {
+            return Err(MathError::Overflow);
+        }
+        
+        Ok(result)
+    }
+
+    /// 生成函数图像的点集
+    /// f: 函数
+    /// x_min: x 轴最小值
+    /// x_max: x 轴最大值
+    /// points: 采样点数
+    pub fn generate_plot_points<F>(&self, f: F, x_min: f64, x_max: f64, points: usize) -> Result<Vec<(f64, f64)>, MathError>
+    where
+        F: Fn(f64) -> Result<f64, MathError>,
+    {
+        if points < 2 {
+            return Err(MathError::InvalidOperation("采样点数必须至少为2".to_string()));
+        }
+        
+        let step = (x_max - x_min) / (points - 1) as f64;
+        let mut result = Vec::with_capacity(points);
+        
+        for i in 0..points {
+            let x = x_min + i as f64 * step;
+            match f(x) {
+                Ok(y) => {
+                    if !y.is_infinite() && !y.is_nan() {
+                        result.push((x, y));
+                    }
+                }
+                Err(_) => {
+                    // 跳过无法计算的点（如除以零）
+                    continue;
+                }
+            }
+        }
+        
+        Ok(result)
+    }
+
+    // ==================== 增强矩阵运算 ====================
+
+    /// 计算矩阵的迹（对角线元素之和）
+    pub fn matrix_trace(&self, matrix: &Matrix) -> Result<Decimal, MathError> {
+        let (rows, cols) = matrix.dimensions();
+        if rows != cols {
+            return Err(MathError::InvalidOperation("只有方阵才能计算迹".to_string()));
+        }
+        
+        let mut trace = Decimal::ZERO;
+        for i in 0..rows {
+            trace += matrix.get(i, i)?;
+        }
+        Ok(trace)
+    }
+
+    /// LU 分解（返回 L 和 U 矩阵）
+    pub fn matrix_lu_decomposition(&self, matrix: &Matrix) -> Result<(Matrix, Matrix), MathError> {
+        let (n, m) = matrix.dimensions();
+        if n != m {
+            return Err(MathError::InvalidOperation("LU分解只适用于方阵".to_string()));
+        }
+
+        let mut l = Matrix::identity(n);
+        let mut u = Matrix::new(n, n);
+
+        // 复制原矩阵数据到 u
+        for i in 0..n {
+            for j in 0..n {
+                u.set(i, j, matrix.get(i, j)?)?;
+            }
+        }
+
+        for k in 0..n {
+            for i in (k + 1)..n {
+                if u.get(k, k)?.is_zero() {
+                    return Err(MathError::InvalidOperation("矩阵不可进行LU分解（主元为零）".to_string()));
+                }
+                let factor = u.get(i, k)? / u.get(k, k)?;
+                l.set(i, k, factor)?;
+                for j in k..n {
+                    let new_val = u.get(i, j)? - factor * u.get(k, j)?;
+                    u.set(i, j, new_val)?;
+                }
+            }
+        }
+
+        Ok((l, u))
+    }
+
+    /// 计算矩阵的秩
+    pub fn matrix_rank(&self, matrix: &Matrix) -> Result<usize, MathError> {
+        let (rows, cols) = matrix.dimensions();
+        let mut mat = matrix.clone();
+        let mut rank = 0;
+        let tolerance = Decimal::from_str("0.0000001").unwrap();
+
+        for col in 0..cols.min(rows) {
+            // 找到主元
+            let mut max_row = col;
+            for row in (col + 1)..rows {
+                if mat.get(row, col)?.abs() > mat.get(max_row, col)?.abs() {
+                    max_row = row;
+                }
+            }
+
+            if mat.get(max_row, col)?.abs() < tolerance {
+                continue;
+            }
+
+            // 交换行
+            if max_row != col {
+                for j in 0..cols {
+                    let temp = mat.get(col, j)?;
+                    mat.set(col, j, mat.get(max_row, j)?)?;
+                    mat.set(max_row, j, temp)?;
+                }
+            }
+
+            rank += 1;
+
+            // 消元
+            for row in (col + 1)..rows {
+                let pivot = mat.get(col, col)?;
+                if !pivot.is_zero() {
+                    let factor = mat.get(row, col)? / pivot;
+                    for j in col..cols {
+                        let new_val = mat.get(row, j)? - factor * mat.get(col, j)?;
+                        mat.set(row, j, new_val)?;
+                    }
+                }
+            }
+        }
+
+        Ok(rank)
+    }
+
+    /// 计算矩阵的 Frobenius 范数
+    pub fn matrix_frobenius_norm(&self, matrix: &Matrix) -> Result<Decimal, MathError> {
+        let (rows, cols) = matrix.dimensions();
+        let mut sum_sq = Decimal::ZERO;
+        
+        for i in 0..rows {
+            for j in 0..cols {
+                let val = matrix.get(i, j)?;
+                sum_sq += val * val;
+            }
+        }
+        
+        self.sqrt(sum_sq)
+    }
+
+    /// 矩阵幂运算
+    pub fn matrix_power(&self, matrix: &Matrix, power: i32) -> Result<Matrix, MathError> {
+        let (rows, cols) = matrix.dimensions();
+        if rows != cols {
+            return Err(MathError::InvalidOperation("只有方阵才能计算幂".to_string()));
+        }
+
+        if power == 0 {
+            return Ok(Matrix::identity(rows));
+        }
+
+        let is_negative = power < 0;
+        let mut exp = power.abs() as u32;
+        
+        let mut result = Matrix::identity(rows);
+        let mut base = if is_negative {
+            self.matrix_inverse(matrix)?
+        } else {
+            matrix.clone()
+        };
+
+        while exp > 0 {
+            if exp % 2 == 1 {
+                result = self.matrix_multiply(&result, &base)?;
+            }
+            base = self.matrix_multiply(&base, &base)?;
+            exp /= 2;
+        }
+
+        Ok(result)
+    }
+
     pub fn set_angle_mode(&mut self, mode: AngleMode) {
         self.angle_mode = mode;
     }

@@ -33,25 +33,7 @@
 - **前后端通信**：通过 Tauri 的 Commands 实现异步高性能计算，Events 机制处理实时状态同步，支持跨窗口通信。
 - **MCP 调试集成**：Model Context Protocol 支持，提供实时调试接口、性能监控和开发工具集成。
 
-### 关键目录结构
-- `src/`: 前端 WebView 的所有资源
-  - `components/`: 模块化 UI 组件（Calculator.ts、Display.ts、Keyboard.ts、History.ts、Settings.ts、AdvancedPanels.ts、MCPDebugPanel.ts）
-  - `styles/`: CSS 模块和主题系统（响应式设计，适配桌面和移动端）
-  - `utils/`: 前端工具函数和类型定义（evaluator.ts、theme.ts、device.ts、tauri.ts、mcp-debugger.ts）
-  - `tests/`: 前端单元测试和集成测试
-  - `types/`: TypeScript 类型定义（calculator.ts）
-  - `mobile/`: 移动端特性（gesture.ts、voice-input-simple.ts - 待集成）
-- `src-tauri/src/`: 后端 Rust 计算引擎
-  - `math/`: 高精度数学计算模块（基础运算、科学函数、统计分析）
-  - `parser/`: 表达式解析和语法分析（词法分析、AST构建、表达式求值）
-  - `history/`: 计算历史管理（持久化存储、搜索、分类）
-  - `settings/`: 应用配置和主题管理（用户偏好、设备适配）
-  - `mcp/`: Model Context Protocol 调试模块（性能监控、状态追踪、错误诊断）
-  - `commands.rs`: Tauri 命令接口定义
-  - `lib.rs`: 模块导出和应用入口
-- `src-tauri/gen/android/`: Android 平台配置和资源
-- `scripts/`: 构建脚本和开发工具
-- `.github/`: CI/CD 配置和文档模板
+
 
 ## 3. 用户界面设计规范
 
@@ -124,31 +106,6 @@
 - **UI 组件测试**：自动化界面交互测试，确保跨平台一致性，支持视觉回归测试和无障碍性检查
 - **性能基准测试**：标准化性能测试用例，自动生成性能报告，历史性能趋势分析和性能回归检测
 
-### MCP 集成接口
-```typescript
-// MCP 调试接口示例
-interface MCPDebugger {
-  // 状态监控
-  trackCalculatorState(state: CalculatorState): void;
-  trackExpressionParsing(expression: string, ast: ASTNode, parseTime: number): void;
-  trackCalculationExecution(expression: string, result: string, execTime: number): void;
-  
-  // 性能监控
-  getPerformanceStats(): Promise<PerformanceStats>;
-  startPerformanceMonitoring(interval?: number): void;
-  stopPerformanceMonitoring(): void;
-  
-  // 错误诊断
-  trackError(error: Error, context: ErrorContext): void;
-  getSuggestedFixes(error: MathError): string[];
-  getErrorAnalytics(): ErrorAnalytics;
-  
-  // 开发工具
-  exportStateSnapshot(): StateSnapshot;
-  importStateSnapshot(snapshot: StateSnapshot): void;
-  generateTestCase(expression: string, expected: string): TestCase;
-}
-```
 
 ## 6. 技术实现规范
 
@@ -205,18 +162,6 @@ interface MCPDebugger {
 
 ## 8. 开发工作流
 
-### 质量门检查（必须全部通过）
-1. **TypeScript 类型检查**: `npm run typecheck`
-2. **代码风格检查**: `npm run lint`
-3. **前端单元测试**: `npm run test:run`
-4. **Rust 后端测试**: `cargo test`
-5. **精度验证测试**: `cargo test --features precision-tests`
-6. **性能基准测试**: `npm run benchmark`
-7. **无障碍合规检查**: `npm run a11y-test`
-8. **桌面端构建验证**: `npm run build`
-9. **Android 构建测试**: `npm run tauri android build`
-10. **MCP 调试接口测试**: `npm run test:mcp`
-11. **跨平台兼容性测试**: `npm run test:cross-platform`
 
 ### 版本发布规范
 - **语义化版本**：严格遵循 SemVer，主版本.次版本.修订版本
