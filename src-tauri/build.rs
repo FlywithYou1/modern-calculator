@@ -4,9 +4,9 @@ fn main() {
     let is_windows_gnu = target.contains("windows") && target.contains("gnu");
     
     if is_windows_gnu {
-        println!("cargo:warning=Building with GNU toolchain");
+        println!("cargo:warning=Building with GNU toolchain for target: {}", target);
         
-        // 为 GNU 工具链添加 MSYS2 路径（本地构建时需要）
+        // 为 GNU 工具链添加 MSYS2 路径
         #[cfg(target_os = "windows")]
         {
             let msys2_paths = [
@@ -31,92 +31,74 @@ fn main() {
             }
         }
         
-        // GNU 工具链：使用 embed-resource 直接编译资源文件
+        // GNU 工具链：使用 embed-resource 编译资源
+        // 必须设置 WINDRES 环境变量指向 GNU windres
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let out_dir = std::env::var("OUT_DIR").unwrap();
         let icon_path = std::path::Path::new(&manifest_dir).join("icons").join("icon.ico");
         
-        if icon_path.exists() {
-            // 创建资源文件（只包含图标，不包含内联 manifest）
-            let rc_file = std::path::Path::new(&out_dir).join("gnu_resource.rc");
-            
-            // 使用正斜杠路径（windres 更好地处理）
-            let icon_path_str = icon_path.to_string_lossy().replace('\\', "/");
-            
-            // 创建简单的资源文件（只包含图标）
-            let rc_content = format!(
-                r#"// Windows Resource File for GNU toolchain
-// Application icon
-1 ICON "{}"
-"#,
-                icon_path_str
-            );
-            
-            if let Err(e) = std::fs::write(&rc_file, &rc_content) {
-                println!("cargo:warning=Failed to write RC file: {}", e);
-            } else {
-                println!("cargo:warning=Created resource file at {:?}", rc_file);
-                
-                // 使用 embed-resource 编译资源
-                // 这会自动调用 windres 并生成 .a 文件（GNU 格式）
-                let _ = embed_resource::compile(&rc_file, embed_resource::NONE);
+        // 查找 windres
+        let windres_paths = [
+            "C:\\msys64\\ucrt64\\bin\\windres.exe",
+            "C:\\msys64\\mingw64\\bin\\windres.exe",
+            "/usr/bin/x86_64-w64-mingw32-windres",
+            "windres",
+        ];
+        
+        let mut windres_found = None;
+        for path in windres_paths.iter() {
+            if std::path::Path::new(path).exists() || path == &"windres" {
+                windres_found = Some(*path);
+                break;
             }
         }
         
-        // 为 tauri-build 创建一个虚拟图标文件
-        // 这样它就不会报错，但实际的图标由 embed-resource 编译
-        let dummy_icon_path = std::path::Path::new(&out_dir).join("dummy_icon.ico");
-        
-        // 创建最小的有效 ICO 文件（6 字节头 + 16 字节目录项）
-        // ICO 格式：https://en.wikipedia.org/wiki/ICO_(file_format)
-        let ico_header: [u8; 22] = [
-            0x00, 0x00, // Reserved
-            0x01, 0x00, // Type: ICO
-            0x01, 0x00, // Number of images: 1
-            // Directory entry (16 bytes)
-            0x01, // Width: 1
-            0x01, // Height: 1
-            0x00, // Color palette: 0
-            0x00, // Reserved
-            0x01, 0x00, // Color planes: 1
-            0x01, 0x00, // Bits per pixel: 1
-            0x0C, 0x00, 0x00, 0x00, // Size of image data: 12
-            0x16, 0x00, 0x00, 0x00, // Offset to image data: 22
-        ];
-        
-        // 最小的 BMP 数据（1x1 黑色像素）
-        let bmp_data: [u8; 12] = [
-            // BITMAPINFOHEADER (简化)
-            0x0C, 0x00, 0x00, 0x00, // Header size: 12
-            0x01, 0x00, // Width: 1
-            0x01, 0x00, // Height: 1
-            0x01, 0x00, // Planes: 1
-            0x01, 0x00, // Bits: 1
-        ];
-        
-        let mut ico_data = Vec::new();
-        ico_data.extend_from_slice(&ico_header);
-        ico_data.extend_from_slice(&bmp_data);
-        
-        if let Err(e) = std::fs::write(&dummy_icon_path, &ico_data) {
-            println!("cargo:warning=Failed to create dummy icon: {}", e);
+        if let Some(windres) = windres_found {
+            println!("cargo:warning=Using windres: {}", windres);
+            
+            // 设置环境变量强制 embed-resource 使用 GNU windres
+            unsafe {
+                std::env::set_var("WINDRES", windres);
+            }
+            
+            if icon_path.exists() {
+                // 创建简单的资源文件
+                let rc_file = std::path::Path::new(&out_dir).join("app_icon.rc");
+                let icon_path_str = icon_path.to_string_lossy().replace('\\', "/");
+                
+                let rc_content = format!(
+                    "// Windows Resource File\n1 ICON \"{}\"\n",
+                    icon_path_str
+                );
+                
+                if let Err(e) = std::fs::write(&rc_file, &rc_content) {
+                    println!("cargo:warning=Failed to write RC file: {}", e);
+                } else {
+                    println!("cargo:warning=Created resource file at {:?}", rc_file);
+                    
+                    // 使用 embed-resource 编译
+                    let _ = embed_resource::compile(&rc_file, embed_resource::NONE);
+                }
+            }
+        } else {
+            println!("cargo:warning=windres not found, skipping resource compilation");
         }
         
-        // 使用虚拟图标路径（tauri-build 需要一个存在的文件）
-        let windows = tauri_build::WindowsAttributes::new()
-            .window_icon_path(&dummy_icon_path);
+        // 对于 GNU 工具链，完全跳过 tauri-build 的资源编译
+        // 通过不设置 window_icon_path 来避免资源编译
+        // tauri-build 会生成必要的 Tauri 代码，但我们已经用 embed-resource 编译了图标
         
-        let attrs = tauri_build::Attributes::new()
-            .windows_attributes(windows);
+        // 使用空的 WindowsAttributes（不指定图标）
+        let windows = tauri_build::WindowsAttributes::new();
+        let attrs = tauri_build::Attributes::new().windows_attributes(windows);
         
-        // 使用 try_build 并忽略资源编译错误
         if let Err(e) = tauri_build::try_build(attrs) {
-            let error_msg = format!("{}", e);
-            // 如果只是资源编译错误，忽略它（我们已经用 embed-resource 编译了）
-            if !error_msg.contains("Resource") && !error_msg.contains("resource") {
-                panic!("tauri build failed: {}", e);
+            let err_str = format!("{}", e);
+            // 如果是图标相关错误，忽略它
+            if err_str.contains("icon") || err_str.contains("Icon") || err_str.contains("resource") || err_str.contains("Resource") {
+                println!("cargo:warning=Ignoring icon/resource error (handled by embed-resource): {}", e);
             } else {
-                println!("cargo:warning=Ignoring tauri-winres error (using embed-resource instead): {}", e);
+                panic!("tauri build failed: {}", e);
             }
         }
     } else {

@@ -142,6 +142,7 @@ jobs:
         shell: pwsh
         env:
           CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
+          WINDRES: C:\msys64\ucrt64\bin\windres.exe
         run: |
           $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
           npm run tauri build
