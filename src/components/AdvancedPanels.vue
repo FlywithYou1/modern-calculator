@@ -150,25 +150,37 @@ const unitCategories: Record<string, any[]> = {
 
 const baseOptions = [2, 8, 10, 16];
 
-const requiresSecondMatrix = computed(() => ['add', 'subtract', 'multiply'].includes(matrixOp.value));
+const requiresSecondMatrix = computed(() =>
+  ['add', 'subtract', 'multiply'].includes(matrixOp.value)
+);
 const requiresPower = computed(() => matrixOp.value === 'power');
-const isAdvancedMatrixOp = computed(() => ['trace', 'rank', 'frobenius_norm', 'power', 'lu'].includes(matrixOp.value));
+const isAdvancedMatrixOp = computed(() =>
+  ['trace', 'rank', 'frobenius_norm', 'power', 'lu'].includes(matrixOp.value)
+);
 
 const currentUnitOptions = computed(() => unitCategories[unitCategory.value] || []);
 
 const parseMatrix = (input: string) => {
-  return input.trim().split('\n').map(row => row.trim().split(/[\s,]+/).map(Number));
+  return input
+    .trim()
+    .split('\n')
+    .map((row) =>
+      row
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number)
+    );
 };
 
 const formatMatrix = (matrix: number[][]) => {
-  return matrix.map(row => `[${row.join(', ')}]`).join('\n');
+  return matrix.map((row) => `[${row.join(', ')}]`).join('\n');
 };
 
 const calculateMatrix = async () => {
   try {
     error.value = null;
     const mA = parseMatrix(matrixA.value);
-    
+
     // 使用高级矩阵操作命令
     if (isAdvancedMatrixOp.value) {
       const res = await invoke<any>('advanced_matrix_operation', {
@@ -176,7 +188,7 @@ const calculateMatrix = async () => {
         matrixA: mA,
         power: requiresPower.value ? matrixPower.value : null,
       });
-      
+
       if (res.matrix) {
         result.value = formatMatrix(res.matrix);
       } else if (res.l && res.u) {
@@ -186,7 +198,7 @@ const calculateMatrix = async () => {
       }
       return;
     }
-    
+
     // 原有矩阵操作
     let mB = undefined;
     if (requiresSecondMatrix.value) {
@@ -212,9 +224,12 @@ const calculateMatrix = async () => {
 const calculateStats = async () => {
   try {
     error.value = null;
-    const values = statsValues.value.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+    const values = statsValues.value
+      .split(/[\s,]+/)
+      .map(Number)
+      .filter((n) => !isNaN(n));
     if (values.length === 0) throw new Error('请输入有效数字');
-    
+
     const res = await invoke<number>('calculate_statistics', {
       values,
       operation: statsOp.value,
@@ -303,38 +318,40 @@ const calculateCalculus = async () => {
 const drawFunctionPlot = async () => {
   try {
     error.value = null;
-    
+
     // 调用后端生成绘图数据
-    const res = await invoke<{ x: number[], y: number[] }>('generate_function_plot', {
+    const res = await invoke<{ x: number[]; y: number[] }>('generate_function_plot', {
       expression: plotExpr.value,
       xMin: plotXMin.value,
       xMax: plotXMax.value,
       points: plotPoints.value,
     });
-    
+
     // 构建图表数据
-    const data = res.x.map((x, i) => ({ x, y: res.y[i] })).filter(p => isFinite(p.y));
-    
+    const data = res.x.map((x, i) => ({ x, y: res.y[i] })).filter((p) => isFinite(p.y));
+
     await nextTick();
-    
+
     if (chartInstance) {
       chartInstance.destroy();
     }
-    
+
     if (chartCanvas.value) {
       chartInstance = new Chart(chartCanvas.value, {
         type: 'line',
         data: {
-          datasets: [{
-            label: `y = ${plotExpr.value}`,
-            data: data,
-            borderColor: '#007aff',
-            backgroundColor: 'rgba(0, 122, 255, 0.1)',
-            borderWidth: 2,
-            pointRadius: 0,
-            fill: true,
-            tension: 0.1,
-          }]
+          datasets: [
+            {
+              label: `y = ${plotExpr.value}`,
+              data: data,
+              borderColor: '#007aff',
+              backgroundColor: 'rgba(0, 122, 255, 0.1)',
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: true,
+              tension: 0.1,
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -353,16 +370,16 @@ const drawFunctionPlot = async () => {
               title: { display: true, text: 'y', color: '#fff' },
               grid: { color: 'rgba(255,255,255,0.1)' },
               ticks: { color: '#fff' },
-            }
+            },
           },
           plugins: {
             legend: {
-              labels: { color: '#fff' }
-            }
-          }
-        }
+              labels: { color: '#fff' },
+            },
+          },
+        },
       });
-      
+
       result.value = `已绘制 y = ${plotExpr.value}，范围 [${plotXMin.value}, ${plotXMax.value}]`;
     }
   } catch (e: any) {
@@ -381,7 +398,7 @@ const solveEquation = () => {
       const parts = eq.split('=');
       eq = `(${parts[0]}) - (${parts[1]})`;
     }
-    
+
     const f = math.compile(eq);
     const derivative = math.derivative(eq, equationVar.value);
     const fPrime = derivative.compile();
@@ -440,11 +457,15 @@ watch(activeTab, () => {
   <div v-if="isOpen" class="advanced-panel-overlay" @click.self="close">
     <div class="advanced-panel">
       <div class="tabs">
-        <button 
-          v-for="tab in tabs" 
+        <button
+          v-for="tab in tabs"
           :key="tab.id"
           :class="{ active: activeTab === tab.id }"
-          @click="activeTab = tab.id; result = null; error = null"
+          @click="
+            activeTab = tab.id;
+            result = null;
+            error = null;
+          "
         >
           {{ tab.label }}
         </button>
@@ -457,7 +478,9 @@ watch(activeTab, () => {
           <div class="form-group">
             <label>操作</label>
             <select v-model="matrixOp">
-              <option v-for="op in matrixOperations" :key="op.value" :value="op.value">{{ op.label }}</option>
+              <option v-for="op in matrixOperations" :key="op.value" :value="op.value">
+                {{ op.label }}
+              </option>
             </select>
           </div>
           <div class="form-group">
@@ -470,7 +493,7 @@ watch(activeTab, () => {
           </div>
           <div v-if="requiresPower" class="form-group">
             <label>幂次 (支持负数表示逆矩阵的幂)</label>
-            <input type="number" v-model.number="matrixPower" placeholder="2">
+            <input type="number" v-model.number="matrixPower" placeholder="2" />
           </div>
           <button class="action-btn" @click="calculateMatrix">计算</button>
         </div>
@@ -480,7 +503,9 @@ watch(activeTab, () => {
           <div class="form-group">
             <label>操作</label>
             <select v-model="statsOp">
-              <option v-for="op in statOperations" :key="op.value" :value="op.value">{{ op.label }}</option>
+              <option v-for="op in statOperations" :key="op.value" :value="op.value">
+                {{ op.label }}
+              </option>
             </select>
           </div>
           <div class="form-group">
@@ -495,19 +520,21 @@ watch(activeTab, () => {
           <div class="form-group">
             <label>操作</label>
             <select v-model="complexOp">
-              <option v-for="op in complexOperations" :key="op.value" :value="op.value">{{ op.label }}</option>
+              <option v-for="op in complexOperations" :key="op.value" :value="op.value">
+                {{ op.label }}
+              </option>
             </select>
           </div>
           <div class="complex-inputs">
             <div class="complex-num">
               <span>A:</span>
-              <input type="number" v-model.number="complexA.real" placeholder="实部">
-              <input type="number" v-model.number="complexA.imag" placeholder="虚部"> i
+              <input type="number" v-model.number="complexA.real" placeholder="实部" />
+              <input type="number" v-model.number="complexA.imag" placeholder="虚部" /> i
             </div>
             <div class="complex-num">
               <span>B:</span>
-              <input type="number" v-model.number="complexB.real" placeholder="实部">
-              <input type="number" v-model.number="complexB.imag" placeholder="虚部"> i
+              <input type="number" v-model.number="complexB.real" placeholder="实部" />
+              <input type="number" v-model.number="complexB.imag" placeholder="虚部" /> i
             </div>
           </div>
           <button class="action-btn" @click="calculateComplex">计算</button>
@@ -523,15 +550,19 @@ watch(activeTab, () => {
           </div>
           <div class="form-group">
             <label>数值</label>
-            <input type="number" v-model.number="unitValue">
+            <input type="number" v-model.number="unitValue" />
           </div>
           <div class="unit-selects">
             <select v-model="unitFrom">
-              <option v-for="u in currentUnitOptions" :key="u.unit" :value="u.unit">{{ u.label }}</option>
+              <option v-for="u in currentUnitOptions" :key="u.unit" :value="u.unit">
+                {{ u.label }}
+              </option>
             </select>
             <span>→</span>
             <select v-model="unitTo">
-              <option v-for="u in currentUnitOptions" :key="u.unit" :value="u.unit">{{ u.label }}</option>
+              <option v-for="u in currentUnitOptions" :key="u.unit" :value="u.unit">
+                {{ u.label }}
+              </option>
             </select>
           </div>
           <button class="action-btn" @click="convertUnit">转换</button>
@@ -541,7 +572,7 @@ watch(activeTab, () => {
         <div v-if="activeTab === 'base'" class="panel-content">
           <div class="form-group">
             <label>数字</label>
-            <input v-model="baseNumber" placeholder="1010">
+            <input v-model="baseNumber" placeholder="1010" />
           </div>
           <div class="unit-selects">
             <select v-model.number="baseFrom">
@@ -560,33 +591,41 @@ watch(activeTab, () => {
           <div class="form-group">
             <label>操作</label>
             <select v-model="calculusOp">
-              <option v-for="op in calculusOperations" :key="op.value" :value="op.value">{{ op.label }}</option>
+              <option v-for="op in calculusOperations" :key="op.value" :value="op.value">
+                {{ op.label }}
+              </option>
             </select>
           </div>
           <div class="form-group">
             <label>表达式 (例如: x^2 + 2*x, sin(x), exp(x))</label>
-            <input v-model="calculusExpr" placeholder="x^2">
+            <input v-model="calculusExpr" placeholder="x^2" />
           </div>
           <div class="form-group">
             <label>变量</label>
-            <input v-model="calculusVar" placeholder="x">
+            <input v-model="calculusVar" placeholder="x" />
           </div>
           <div v-if="calculusOp === 'numerical_derivative'" class="form-group">
             <label>求导点 x₀</label>
-            <input type="number" v-model.number="calculusPoint" step="0.1" placeholder="1">
+            <input type="number" v-model.number="calculusPoint" step="0.1" placeholder="1" />
           </div>
           <div v-if="calculusOp === 'integral'" class="integral-inputs">
             <div class="form-group">
               <label>积分下限 a</label>
-              <input type="number" v-model.number="integralLower" step="0.1" placeholder="0">
+              <input type="number" v-model.number="integralLower" step="0.1" placeholder="0" />
             </div>
             <div class="form-group">
               <label>积分上限 b</label>
-              <input type="number" v-model.number="integralUpper" step="0.1" placeholder="1">
+              <input type="number" v-model.number="integralUpper" step="0.1" placeholder="1" />
             </div>
             <div class="form-group">
               <label>精度 (步数)</label>
-              <input type="number" v-model.number="integralSteps" min="10" max="10000" placeholder="100">
+              <input
+                type="number"
+                v-model.number="integralSteps"
+                min="10"
+                max="10000"
+                placeholder="100"
+              />
             </div>
           </div>
           <button class="action-btn" @click="calculateCalculus">计算</button>
@@ -596,20 +635,26 @@ watch(activeTab, () => {
         <div v-if="activeTab === 'plot'" class="panel-content">
           <div class="form-group">
             <label>函数表达式 (例如: sin(x), x^2, exp(-x^2))</label>
-            <input v-model="plotExpr" placeholder="sin(x)">
+            <input v-model="plotExpr" placeholder="sin(x)" />
           </div>
           <div class="range-inputs">
             <div class="form-group">
               <label>X 最小值</label>
-              <input type="number" v-model.number="plotXMin" step="1" placeholder="-10">
+              <input type="number" v-model.number="plotXMin" step="1" placeholder="-10" />
             </div>
             <div class="form-group">
               <label>X 最大值</label>
-              <input type="number" v-model.number="plotXMax" step="1" placeholder="10">
+              <input type="number" v-model.number="plotXMax" step="1" placeholder="10" />
             </div>
             <div class="form-group">
               <label>采样点数</label>
-              <input type="number" v-model.number="plotPoints" min="50" max="1000" placeholder="200">
+              <input
+                type="number"
+                v-model.number="plotPoints"
+                min="50"
+                max="1000"
+                placeholder="200"
+              />
             </div>
           </div>
           <button class="action-btn" @click="drawFunctionPlot">绘制图像</button>
@@ -622,11 +667,11 @@ watch(activeTab, () => {
         <div v-if="activeTab === 'equation'" class="panel-content">
           <div class="form-group">
             <label>方程 (例如: x^2 - 4 = 0)</label>
-            <input v-model="equationExpr" placeholder="x^2 - 4 = 0">
+            <input v-model="equationExpr" placeholder="x^2 - 4 = 0" />
           </div>
           <div class="form-group">
             <label>变量 (例如: x)</label>
-            <input v-model="equationVar" placeholder="x">
+            <input v-model="equationVar" placeholder="x" />
           </div>
           <button class="action-btn" @click="solveEquation">求解 (数值解)</button>
         </div>
@@ -664,16 +709,16 @@ watch(activeTab, () => {
   width: 90%;
   max-width: 500px;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
 }
 
 .tabs {
   display: flex;
-  background: rgba(0,0,0,0.2);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tabs button {
@@ -681,14 +726,14 @@ watch(activeTab, () => {
   padding: 12px;
   background: transparent;
   border: none;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tabs button.active {
   color: white;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-bottom: 2px solid #007aff;
 }
 
@@ -709,15 +754,17 @@ watch(activeTab, () => {
 .form-group label {
   display: block;
   margin-bottom: 5px;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
 }
 
-select, input, textarea {
+select,
+input,
+textarea {
   width: 100%;
   padding: 8px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   color: white;
   font-family: inherit;
@@ -747,9 +794,9 @@ textarea {
 .result-area {
   margin-top: 20px;
   padding: 15px;
-  background: rgba(0,255,0,0.1);
+  background: rgba(0, 255, 0, 0.1);
   border-radius: 8px;
-  border: 1px solid rgba(0,255,0,0.2);
+  border: 1px solid rgba(0, 255, 0, 0.2);
 }
 
 .result-area pre {
@@ -761,9 +808,9 @@ textarea {
 .error-area {
   margin-top: 20px;
   padding: 15px;
-  background: rgba(255,0,0,0.1);
+  background: rgba(255, 0, 0, 0.1);
   border-radius: 8px;
-  border: 1px solid rgba(255,0,0,0.2);
+  border: 1px solid rgba(255, 0, 0, 0.2);
   color: #ff453a;
 }
 

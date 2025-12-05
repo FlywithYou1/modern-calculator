@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitest/config'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vitest/config';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const rootDir = fileURLToPath(new URL('.', import.meta.url))
-const resolveFromRoot = (relativePath: string) => resolve(rootDir, relativePath)
+const rootDir = fileURLToPath(new URL('.', import.meta.url));
+const resolveFromRoot = (relativePath: string) => resolve(rootDir, relativePath);
 
 export default defineConfig({
   test: {
@@ -11,21 +11,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['src/tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
-    exclude: [
-      'node_modules',
-      'dist',
-      'src-tauri',
-    ],
+    exclude: ['node_modules', 'dist', 'src-tauri'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/**/*',
-        'src/tests/**/*',
-        '**/*.d.ts',
-        '**/*.config.*',
-        'dist/**/*',
-      ],
+      exclude: ['node_modules/**/*', 'src/tests/**/*', '**/*.d.ts', '**/*.config.*', 'dist/**/*'],
     },
     testTimeout: 10000,
     hookTimeout: 10000,
@@ -45,4 +35,4 @@ export default defineConfig({
       { find: '@', replacement: resolveFromRoot('src') },
     ],
   },
-})
+});

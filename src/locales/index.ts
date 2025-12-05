@@ -1,11 +1,11 @@
-import { createI18n } from "vue-i18n";
-import en from "./en.json";
-import zh from "./zh.json";
+import { createI18n } from 'vue-i18n';
+import en from './en.json';
+import zh from './zh.json';
 
 const i18n = createI18n({
   legacy: false,
-  locale: "zh", // 默认语言
-  fallbackLocale: "en",
+  locale: 'zh', // 默认语言
+  fallbackLocale: 'en',
   messages: {
     en,
     zh,

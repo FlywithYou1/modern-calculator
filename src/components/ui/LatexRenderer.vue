@@ -7,21 +7,24 @@ import { ref, watch, onMounted } from 'vue';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
-const props = withDefaults(defineProps<{
-  math: string;
-  displayMode?: boolean;
-  throwOnError?: boolean;
-}>(), {
-  displayMode: false,
-  throwOnError: false,
-});
+const props = withDefaults(
+  defineProps<{
+    math: string;
+    displayMode?: boolean;
+    throwOnError?: boolean;
+  }>(),
+  {
+    displayMode: false,
+    throwOnError: false,
+  }
+);
 
 const container = ref<HTMLElement | null>(null);
 const error = ref<string | null>(null);
 
 const renderMath = () => {
   if (!container.value || !props.math) return;
-  
+
   try {
     katex.render(props.math, container.value, {
       displayMode: props.displayMode,
@@ -30,12 +33,12 @@ const renderMath = () => {
       trust: true,
       strict: false,
       macros: {
-        "\\R": "\\mathbb{R}",
-        "\\N": "\\mathbb{N}",
-        "\\Z": "\\mathbb{Z}",
-        "\\Q": "\\mathbb{Q}",
-        "\\C": "\\mathbb{C}",
-        "\\d": "\\mathrm{d}",
+        '\\R': '\\mathbb{R}',
+        '\\N': '\\mathbb{N}',
+        '\\Z': '\\mathbb{Z}',
+        '\\Q': '\\mathbb{Q}',
+        '\\C': '\\mathbb{C}',
+        '\\d': '\\mathrm{d}',
       },
     });
     error.value = null;
@@ -53,8 +56,8 @@ watch(() => props.displayMode, renderMath);
 </script>
 
 <template>
-  <span 
-    ref="container" 
+  <span
+    ref="container"
     class="latex-container"
     :class="{ 'display-mode': displayMode, 'has-error': error }"
     :title="error || undefined"

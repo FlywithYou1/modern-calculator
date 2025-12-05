@@ -20,13 +20,20 @@ const close = () => appWindow.close();
     <div class="title">Modern Calculator</div>
     <div class="window-controls">
       <div class="button minimize" @click.stop="minimize">
-        <svg width="10" height="1" viewBox="0 0 10 1"><path d="M0 0h10v1H0z" fill="currentColor"/></svg>
+        <svg width="10" height="1" viewBox="0 0 10 1">
+          <path d="M0 0h10v1H0z" fill="currentColor" />
+        </svg>
       </div>
       <div class="button maximize" @click.stop="maximize">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0h10v10H0V0zm1 1h8v8H1V1z" fill="currentColor"/></svg>
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M0 0h10v10H0V0zm1 1h8v8H1V1z" fill="currentColor" />
+        </svg>
       </div>
       <div class="button close" @click.stop="close">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0h10v1H0z" transform="rotate(45 5 5)" fill="currentColor"/><path d="M0 0h10v1H0z" transform="rotate(-45 5 5)" fill="currentColor"/></svg>
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M0 0h10v1H0z" transform="rotate(45 5 5)" fill="currentColor" />
+          <path d="M0 0h10v1H0z" transform="rotate(-45 5 5)" fill="currentColor" />
+        </svg>
       </div>
     </div>
   </div>
@@ -62,7 +69,7 @@ const close = () => appWindow.close();
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 1;
 }

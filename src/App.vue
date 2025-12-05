@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Calculator from "./components/Calculator.vue";
-import TitleBar from "./components/TitleBar.vue";
+import Calculator from './components/Calculator.vue';
+import TitleBar from './components/TitleBar.vue';
 </script>
 
 <template>

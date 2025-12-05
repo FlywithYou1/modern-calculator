@@ -3,11 +3,9 @@ import { ref, computed } from 'vue';
 import { evaluate, format } from 'mathjs';
 import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import AdvancedPanels from './AdvancedPanels.vue';
 
 const { t } = useI18n();
-const appWindow = getCurrentWindow();
 
 const display = ref('0');
 const history = ref('');
@@ -20,21 +18,11 @@ const toggleMode = () => {
   mode.value = mode.value === 'standard' ? 'scientific' : 'standard';
 };
 
-const minimize = () => appWindow.minimize();
-const maximize = async () => {
-  if (await appWindow.isMaximized()) {
-    appWindow.unmaximize();
-  } else {
-    appWindow.maximize();
-  }
-};
-const closeApp = () => appWindow.close();
-
 const append = (char: string) => {
   if (display.value === 'Error') display.value = '0';
-  
+
   const isOperator = ['+', '-', '*', '/', '^', '%'].includes(char);
-  
+
   if (isResult.value) {
     if (isOperator) {
       // 若已有结果且再次输入运算符，则以当前结果继续运算
@@ -79,14 +67,17 @@ const calculate = async () => {
       .replace(/÷/g, '/')
       .replace(/π/g, 'pi')
       .replace(/√/g, 'sqrt');
-    
+
     history.value = display.value + ' =';
-    
+
     try {
-      const result = await invoke<{ success: boolean; result?: string; error?: string }>('calculate', { 
-        expression,
-        displayExpression: display.value,
-      });
+      const result = await invoke<{ success: boolean; result?: string; error?: string }>(
+        'calculate',
+        {
+          expression,
+          displayExpression: display.value,
+        }
+      );
 
       if (result.success && result.result) {
         display.value = result.result;
@@ -100,7 +91,7 @@ const calculate = async () => {
     const result = evaluate(expression);
     display.value = format(result, { precision: 14 });
     isResult.value = true;
-  } catch (e) {
+  } catch {
     display.value = 'Error';
     isResult.value = true;
   }
@@ -112,22 +103,22 @@ const buttons = computed(() => {
     { label: 'DEL', type: 'action', action: del, text: t('calculator.delete') },
     { label: '%', type: 'func' },
     { label: '÷', type: 'op', value: '/' },
-    
+
     { label: '7', type: 'num' },
     { label: '8', type: 'num' },
     { label: '9', type: 'num' },
     { label: '×', type: 'op', value: '*' },
-    
+
     { label: '4', type: 'num' },
     { label: '5', type: 'num' },
     { label: '6', type: 'num' },
     { label: '-', type: 'op' },
-    
+
     { label: '1', type: 'num' },
     { label: '2', type: 'num' },
     { label: '3', type: 'num' },
     { label: '+', type: 'op' },
-    
+
     { label: 'Mode', type: 'func', action: toggleMode },
     { label: '0', type: 'num' },
     { label: '.', type: 'num' },
@@ -136,43 +127,48 @@ const buttons = computed(() => {
 
   const scientific = [
     { label: '2nd', type: 'func' },
-    { label: 'deg', type: 'func', action: () => angleMode.value = angleMode.value === 'DEG' ? 'RAD' : 'DEG', text: t(`calculator.${angleMode.value.toLowerCase()}`) },
+    {
+      label: 'deg',
+      type: 'func',
+      action: () => (angleMode.value = angleMode.value === 'DEG' ? 'RAD' : 'DEG'),
+      text: t(`calculator.${angleMode.value.toLowerCase()}`),
+    },
     { label: 'sin', type: 'func', value: 'sin(' },
     { label: 'cos', type: 'func', value: 'cos(' },
     { label: 'tan', type: 'func', value: 'tan(' },
-    
+
     { label: 'xʸ', type: 'func', value: '^' },
     { label: 'lg', type: 'func', value: 'log10(' },
     { label: 'ln', type: 'func', value: 'log(' },
     { label: '(', type: 'func' },
     { label: ')', type: 'func' },
-    
+
     { label: '√', type: 'func', value: 'sqrt(' },
     { label: 'C', type: 'action', action: clear, text: t('calculator.clear') },
     { label: 'DEL', type: 'action', action: del, text: t('calculator.delete') },
     { label: '%', type: 'func' },
     { label: '÷', type: 'op', value: '/' },
-    
+
     { label: 'x!', type: 'func', value: '!' },
     { label: '7', type: 'num' },
     { label: '8', type: 'num' },
     { label: '9', type: 'num' },
     { label: '×', type: 'op', value: '*' },
-    
+
     { label: '1/x', type: 'func', value: '1/' },
     { label: '4', type: 'num' },
     { label: '5', type: 'num' },
     { label: '6', type: 'num' },
     { label: '-', type: 'op' },
-    
+
     { label: 'π', type: 'func', value: 'pi' },
     { label: '1', type: 'num' },
     { label: '2', type: 'num' },
     { label: '3', type: 'num' },
     { label: '+', type: 'op' },
-    
+
     { label: 'Mode', type: 'func', action: toggleMode },
-    { label: 'Adv', type: 'func', action: () => showAdvanced.value = true },
+    { label: 'Adv', type: 'func', action: () => (showAdvanced.value = true) },
     { label: '0', type: 'num' },
     { label: '.', type: 'num' },
     { label: '=', type: 'equal', action: calculate },
@@ -183,18 +179,10 @@ const buttons = computed(() => {
 </script>
 
 <template>
-  <div class="calculator">
-    <div class="window-controls">
-      <div class="traffic-lights">
-        <button class="traffic-light close" @click="closeApp"></button>
-        <button class="traffic-light minimize" @click="minimize"></button>
-        <button class="traffic-light maximize" @click="maximize"></button>
-      </div>
-    </div>
-
-    <div class="display">
-      <div class="history">{{ history }}</div>
-      <div class="current">{{ display }}</div>
+  <div class="calculator" role="application" aria-label="科学计算器">
+    <div class="display" role="status" aria-live="polite">
+      <div class="history" aria-label="历史记录">{{ history }}</div>
+      <div class="current" aria-label="当前显示">{{ display }}</div>
     </div>
 
     <div class="keypad" :class="{ scientific: mode === 'scientific' }">
@@ -204,16 +192,13 @@ const buttons = computed(() => {
         class="btn"
         :class="[btn.type]"
         @click="btn.action ? btn.action() : append(btn.value || btn.label)"
+        :aria-label="btn.text || btn.label"
       >
         {{ btn.text || btn.label }}
       </button>
     </div>
 
-    <AdvancedPanels
-      v-if="showAdvanced"
-      :is-open="showAdvanced"
-      @close="showAdvanced = false"
-    />
+    <AdvancedPanels v-if="showAdvanced" :is-open="showAdvanced" @close="showAdvanced = false" />
   </div>
 </template>
 
@@ -236,52 +221,13 @@ const buttons = computed(() => {
   animation: fadeIn 0.5s ease-out;
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-  .window-controls {
-    height: 30px;
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    -webkit-app-region: drag;
-
-    .traffic-lights {
-      display: flex;
-      gap: 8px;
-      padding-left: 4px;
-
-      .traffic-light {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        border: none;
-        padding: 0;
-        cursor: pointer;
-        position: relative;
-        -webkit-app-region: no-drag;
-        transition: transform 0.2s ease;
-
-        &:hover { transform: scale(1.1); }
-        &:active { transform: scale(0.9); }
-
-        &.close {
-          background: #ff5f56;
-          border: 1px solid #e0443e;
-          &:hover::before { content: '×'; color: #550000; position: absolute; top: -2px; left: 3px; font-size: 10px; }
-        }
-        &.minimize {
-          background: #ffbd2e;
-          border: 1px solid #dea123;
-          &:hover::before { content: '−'; color: #553300; position: absolute; top: -4px; left: 3px; font-size: 10px; }
-        }
-        &.maximize {
-          background: #27c93f;
-          border: 1px solid #1aab29;
-          &:hover::before { content: '+'; color: #004400; position: absolute; top: -2px; left: 3px; font-size: 10px; }
-        }
-      }
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 
@@ -312,12 +258,12 @@ const buttons = computed(() => {
     box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
-    
+
     &:hover {
       background: rgba(0, 0, 0, 0.25);
       box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.15);
     }
-    
+
     .history {
       color: rgba(255, 255, 255, 0.6);
       font-size: 14px;
@@ -325,13 +271,13 @@ const buttons = computed(() => {
       margin-bottom: 8px;
       transition: color 0.3s;
     }
-    
+
     .current {
       color: #fff;
       font-size: 48px;
       font-weight: 200;
       word-break: break-all;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       transition: transform 0.1s;
     }
   }
@@ -342,7 +288,7 @@ const buttons = computed(() => {
     gap: 12px;
     flex: 1;
     transition: all 0.3s ease;
-    
+
     &.scientific {
       grid-template-columns: repeat(5, 1fr);
     }
@@ -370,10 +316,12 @@ const buttons = computed(() => {
         left: 50%;
         width: 100%;
         height: 100%;
-        background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 60%);
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
         transform: translate(-50%, -50%) scale(0);
         opacity: 0;
-        transition: transform 0.3s, opacity 0.3s;
+        transition:
+          transform 0.3s,
+          opacity 0.3s;
       }
 
       &:active::after {
@@ -400,7 +348,7 @@ const buttons = computed(() => {
         color: #fff;
         font-size: 24px;
         font-weight: 500;
-        
+
         &:hover {
           background: rgba(255, 165, 0, 1);
           box-shadow: 0 0 15px rgba(255, 165, 0, 0.4);
@@ -411,7 +359,7 @@ const buttons = computed(() => {
         background: rgba(52, 199, 89, 0.8); /* Green for equal */
         color: #fff;
         grid-row: span 1;
-        
+
         &:hover {
           background: rgba(52, 199, 89, 1);
           box-shadow: 0 0 20px rgba(52, 199, 89, 0.4);
@@ -421,7 +369,7 @@ const buttons = computed(() => {
       &.action {
         background: rgba(255, 59, 48, 0.1);
         color: #ff3b30;
-        
+
         &:hover {
           background: rgba(255, 59, 48, 0.2);
           box-shadow: 0 0 15px rgba(255, 59, 48, 0.2);
@@ -433,12 +381,12 @@ const buttons = computed(() => {
         color: white;
         animation: pulse 1.5s infinite;
       }
-      
+
       &.num {
         font-size: 22px;
         font-weight: 400;
         background: rgba(255, 255, 255, 0.05);
-        
+
         &:hover {
           background: rgba(255, 255, 255, 0.15);
         }
@@ -448,8 +396,14 @@ const buttons = computed(() => {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 59, 48, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+  }
 }
 </style>

@@ -1,2 +1,2 @@
 // Vitest 的全局预设入口
-// 目前留空，后续补充测试初始化逻辑
+import '@testing-library/jest-dom/vitest';
