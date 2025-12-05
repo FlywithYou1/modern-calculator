@@ -333,7 +333,7 @@ jobs:
 
       - name: 📦 构建 Android APK (Debug Signed)
         # 使用 --debug 确保 APK 使用调试密钥签名，避免 "PackageInfo is null" 错误
-        run: npm run tauri android build -- --debug --apk
+        run: npm run tauri android build -- --debug --apk true
 
       - name: 📋 列出产物
         run: |
