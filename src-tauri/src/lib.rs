@@ -1,15 +1,10 @@
-//! 现代化跨平台科学计算器 - 后端 Rust 计算引擎
-//! 
-//! Tauri 计算器应用后端 - 支持桌面端(Windows/macOS/Linux)和移动端(Android)
-//! 
-//! 提供高精度数学计算、历史记录管理、设置存储等功能
-
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::Manager;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-// 模块声明
+
 pub mod math;
 pub mod parser;
 pub mod history;
@@ -17,7 +12,7 @@ pub mod settings;
 pub mod commands;
 pub mod mcp;
 
-/// 计算结果类型
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CalculationResult {
     pub success: bool,
@@ -26,17 +21,20 @@ pub struct CalculationResult {
     pub warnings: Option<Vec<String>>,
 }
 
-/// 历史记录项类型
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryItem {
     pub id: String,
     pub expression: String,
     pub result: String,
-    pub timestamp: String, // 改为字符串以兼容 v1.x
+    pub timestamp: String, 
     pub tags: Option<Vec<String>>,
+    pub notes: Option<String>,
+    pub metadata: Option<Value>,
+    pub source: Option<String>,
 }
 
-/// 应用状态
+
 #[derive(Debug)]
 pub struct AppState {
     pub calculation_count: Arc<Mutex<u64>>,
@@ -56,13 +54,22 @@ impl Default for AppState {
     }
 }
 
-/// Tauri 应用入口点 - 支持桌面和移动端
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        // 注入全局状态
+    let builder = tauri::Builder::default();
+
+    #[cfg(not(test))]
+    let builder = builder
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_haptics::init());
+
+    #[cfg(test)]
+    let builder = builder;
+
+    builder
         .manage(AppState::default())
-        // 注册命令
         .invoke_handler(tauri::generate_handler![
             commands::calculate,
             commands::get_history,
@@ -72,6 +79,7 @@ pub fn run() {
             commands::export_history,
             commands::import_history,
             commands::clear_history,
+            commands::record_history_entry,
             commands::update_history_item,
             commands::search_history,
             commands::get_history_stats,
@@ -89,26 +97,26 @@ pub fn run() {
             commands::calculate_complex,
             commands::matrix_operation,
             commands::convert_units,
+            // 新增微积分和绘图命令
+            commands::calculate_derivative,
+            commands::calculate_integral,
+            commands::generate_function_plot,
+            commands::advanced_matrix_operation,
         ])
-        // 应用设置
         .setup(|app| {
             #[cfg(debug_assertions)]
             {
                 log::info!("🚀 科学计算器后端服务已启动 - 支持桌面端和移动端");
-                // 初始化 MCP 调试器
                 mcp::init_mcp_debugger();
                 log::info!("🔧 MCP 调试器已启用");
             }
 
-            // 初始化应用数据目录
             let data_dir = app.path().app_data_dir().ok();
             if let Some(dir) = &data_dir {
                 let _ = std::fs::create_dir_all(dir);
             }
 
-            // 加载持久化的设置与历史记录
             if let Some(state) = app.try_state::<AppState>() {
-                // 加载设置
                 if let Some(dir) = &data_dir {
                     let settings_path = dir.join("settings.json");
                     if settings_path.exists() {
@@ -119,7 +127,6 @@ pub fn run() {
                         }
                     }
 
-                    // 加载历史记录
                     let history_path = dir.join("history.json");
                     if history_path.exists() {
                         if let Ok(mut history) = state.history_manager.try_lock() {
@@ -128,7 +135,6 @@ pub fn run() {
                     }
                 }
             }
-            
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -152,19 +158,16 @@ mod tests {
 
         let serialized = serde_json::to_string(&result).unwrap();
         let deserialized: CalculationResult = serde_json::from_str(&serialized).unwrap();
-        
         assert_eq!(result.success, deserialized.success);
         assert_eq!(result.result, deserialized.result);
     }
 
     #[test]
     fn test_high_precision_decimal() {
-        // 测试高精度小数计算
         let a = Decimal::from_str("0.1").unwrap();
         let b = Decimal::from_str("0.2").unwrap();
         let sum = a + b;
         let expected = Decimal::from_str("0.3").unwrap();
-        
         assert_eq!(sum, expected);
     }
 }

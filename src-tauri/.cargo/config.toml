@@ -1,0 +1,11 @@
+# Windows 特定配置 - 仅在 Windows 上使用
+# 在 CI/CD 中，通过环境变量 CARGO_BUILD_TARGET 设置 target
+
+# 注意: 不要在这里设置全局 [build] target，否则会影响跨平台构建
+# 本地 Windows 开发时，使用以下命令:
+#   $env:CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu"
+#   $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+
+[target.x86_64-pc-windows-gnu]
+# MSYS2 UCRT64 使用 gcc，PATH 中已包含
+linker = "gcc"

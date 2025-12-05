@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "科学计算器",
+  "productName": "Modern Calculator",
   "version": "2.0.0",
-  "identifier": "com.calculator.scientific",
+  "identifier": "com.flywithyou.moderncalculator",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -14,46 +14,50 @@
       {
         "label": "main",
         "title": "科学计算器",
-        "width": 800,
-        "height": 600,
-        "minWidth": 320,
-        "minHeight": 480,
+        "width": 900,
+        "height": 700,
+        "minWidth": 360,
+        "minHeight": 560,
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "decorations": true,
-        "transparent": false
+        "decorations": false,
+        "transparent": true,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "visible": true,
+        "alwaysOnTop": false,
+        "contentProtected": false
       }
     ],
     "security": {
-      "csp": "default-src 'self' asset: tauri:; img-src 'self' data: blob: asset: tauri:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' asset: tauri: ipc: http://localhost:5173 ws://localhost:5173 http://localhost:1420 ws://localhost:1420; frame-src 'none'; object-src 'none'"
+      "csp": "default-src 'self' asset: tauri:; img-src 'self' data: blob: asset: tauri:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' asset: tauri: ipc: http://localhost:5173 ws://localhost:5173 http://*.tauri.localhost https://*.tauri.localhost ipc:; frame-src 'none'; object-src 'none'",
+      "capabilities": ["default"]
     },
-    "trayIcon": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true,
-      "menuOnLeftClick": false
-    }
+    "trayIcon": null,
+    "withGlobalTauri": false
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "deb", "msi", "nsis", "dmg"],
+    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.png"
     ],
     "publisher": "Scientific Calculator Team",
-    "copyright": "© 2024 Scientific Calculator Team",
+    "copyright": "© 2025 Scientific Calculator Team. All rights reserved.",
     "category": "Productivity",
-    "shortDescription": "现代化跨平台科学计算器",
-    "longDescription": "高精度数学计算、科技感界面、完整功能的现代科学计算器，支持基础运算、科学函数、历史记录、多主题等功能。",
+    "shortDescription": "High-Performance Scientific Calculator with Apple Liquid Glass UI",
+    "longDescription": "Modern cross-platform scientific calculator featuring Apple Liquid Glass design, 90+ FPS GPU-accelerated animations, 16-digit precision calculations, voice input, gesture controls, and transparent window effects. Built with Tauri 2.0 + Vite + TypeScript for optimal performance.",
     "externalBin": [],
     "resources": [],
     "linux": {
       "deb": {
-        "depends": []
+        "depends": ["libwebkit2gtk-4.0-37", "libgtk-3-0"]
       }
     },
     "windows": {
@@ -61,17 +65,15 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
     },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "hardenedRuntime": true
+    },
     "android": {
       "minSdkVersion": 24
     }
   },
   "plugins": {
-    "store": {
-      "default": true
-    },
-    "haptics": {
-      "default": true
-    },
     "barcode-scanner": {
       "default": false
     },

@@ -7,9 +7,17 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
+.vite/
+benchmark-results-*.json
 
 # Tauri
 src-tauri/target/
+
+# Tauri Mobile generated caches
+src-tauri/gen/**/build/
+src-tauri/gen/**/.gradle/
+src-tauri/gen/**/local.properties
+src-tauri/gen/**/captures/
 
 # Tauri Mobile generated
 src-tauri/gen/
@@ -26,6 +34,11 @@ src-tauri/ios/
 # OS
 .DS_Store
 Thumbs.db
+
+# Android signing keys
+keystore/
+*.jks
+*.keystore
 
 # Logs
 *.log

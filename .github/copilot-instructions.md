@@ -26,31 +26,14 @@
 - **智能输入**体验，支持自然语言表达式和历史记录
 
 ### 技术架构
-- **前端技术栈**：原生 HTML5、CSS3 Grid/Flexbox 和 TypeScript 5.0+。**严禁**引入任何前端框架。
+- **前端技术栈**：原生 HTML5、CSS3 Grid/Flexbox 和 TypeScript 5.0+。引入VITE8作为构建工具，确保快速开发和热重载。
 - **后端技术栈**：Rust 2024 Edition，集成 Tauri 2.0+ API 和高精度数学计算库（rust_decimal, num-bigint, libm, bigdecimal）。
 - **跨平台支持**：Windows 10+、macOS 10.15+、Linux（主流发行版）、Android 8.0+，专注桌面和移动端体验。
 - **WebView 架构**：利用系统原生 WebView（Windows WebView2、macOS WKWebView、Linux WebKitGTK、Android WebView），支持多 WebView 窗口。
 - **前后端通信**：通过 Tauri 的 Commands 实现异步高性能计算，Events 机制处理实时状态同步，支持跨窗口通信。
 - **MCP 调试集成**：Model Context Protocol 支持，提供实时调试接口、性能监控和开发工具集成。
 
-### 关键目录结构
-- `src/`: 前端 WebView 的所有资源
-  - `components/`: 模块化 UI 组件（Calculator.ts、Display.ts、Keyboard.ts、History.ts、Settings.ts）
-  - `styles/`: CSS 模块和主题系统（响应式设计，适配桌面和移动端）
-  - `utils/`: 前端工具函数和类型定义（evaluator.ts、theme.ts、device.ts、tauri.ts、mcp-debugger.ts）
-  - `tests/`: 前端单元测试和集成测试
-  - `types/`: TypeScript 类型定义（calculator.ts）
-- `src-tauri/src/`: 后端 Rust 计算引擎
-  - `math/`: 高精度数学计算模块（基础运算、科学函数、统计分析）
-  - `parser/`: 表达式解析和语法分析（词法分析、AST构建、表达式求值）
-  - `history/`: 计算历史管理（持久化存储、搜索、分类）
-  - `settings/`: 应用配置和主题管理（用户偏好、设备适配）
-  - `mcp/`: Model Context Protocol 调试模块（性能监控、状态追踪、错误诊断）
-  - `commands.rs`: Tauri 命令接口定义
-  - `lib.rs`: 模块导出和应用入口
-- `src-tauri/gen/android/`: Android 平台配置和资源
-- `scripts/`: 构建脚本和开发工具
-- `.github/`: CI/CD 配置和文档模板
+
 
 ## 3. 用户界面设计规范
 
@@ -123,31 +106,6 @@
 - **UI 组件测试**：自动化界面交互测试，确保跨平台一致性，支持视觉回归测试和无障碍性检查
 - **性能基准测试**：标准化性能测试用例，自动生成性能报告，历史性能趋势分析和性能回归检测
 
-### MCP 集成接口
-```typescript
-// MCP 调试接口示例
-interface MCPDebugger {
-  // 状态监控
-  trackCalculatorState(state: CalculatorState): void;
-  trackExpressionParsing(expression: string, ast: ASTNode, parseTime: number): void;
-  trackCalculationExecution(expression: string, result: string, execTime: number): void;
-  
-  // 性能监控
-  getPerformanceStats(): Promise<PerformanceStats>;
-  startPerformanceMonitoring(interval?: number): void;
-  stopPerformanceMonitoring(): void;
-  
-  // 错误诊断
-  trackError(error: Error, context: ErrorContext): void;
-  getSuggestedFixes(error: MathError): string[];
-  getErrorAnalytics(): ErrorAnalytics;
-  
-  // 开发工具
-  exportStateSnapshot(): StateSnapshot;
-  importStateSnapshot(snapshot: StateSnapshot): void;
-  generateTestCase(expression: string, expected: string): TestCase;
-}
-```
 
 ## 6. 技术实现规范
 
@@ -204,18 +162,6 @@ interface MCPDebugger {
 
 ## 8. 开发工作流
 
-### 质量门检查（必须全部通过）
-1. **TypeScript 类型检查**: `npm run typecheck`
-2. **代码风格检查**: `npm run lint`
-3. **前端单元测试**: `npm run test:run`
-4. **Rust 后端测试**: `cargo test`
-5. **精度验证测试**: `cargo test --features precision-tests`
-6. **性能基准测试**: `npm run benchmark`
-7. **无障碍合规检查**: `npm run a11y-test`
-8. **桌面端构建验证**: `npm run build`
-9. **Android 构建测试**: `npm run tauri android build`
-10. **MCP 调试接口测试**: `npm run test:mcp`
-11. **跨平台兼容性测试**: `npm run test:cross-platform`
 
 ### 版本发布规范
 - **语义化版本**：严格遵循 SemVer，主版本.次版本.修订版本
@@ -246,26 +192,30 @@ interface MCPDebugger {
 ## 10. 当前实现状态
 
 ### ✅ 已完成的核心功能
-- **前端架构**：基于 TypeScript 5.0+ 的组件化设计，包含 Calculator、Display、Keyboard、History、Settings 组件
+- **前端架构**：基于 TypeScript 5.0+ 的组件化设计，包含 Calculator、Display、Keyboard、History、Settings、AdvancedPanels、MCPDebugPanel 组件
+- **高级计算面板**：完整实现矩阵运算、复数运算、统计分析、单位转换、进制转换 5 大类高级功能，与后端 Tauri 命令无缝对接
 - **后端计算引擎**：Rust 2024 Edition 高精度数学计算，支持基础运算、科学函数、表达式解析
 - **表达式解析器**：完整的词法分析、语法分析和 AST 求值系统，支持运算符优先级和函数调用
-- **历史记录管理**：持久化存储、搜索、分类和导入导出功能
-- **设置管理系统**：主题切换、精度控制、角度单位、键盘快捷键等个性化配置
-- **MCP 调试集成**：实时性能监控、状态追踪、错误诊断和开发工具支持
+- **历史记录管理**：持久化存储、导入导出功能（搜索和标签功能待实现）
+- **设置管理系统**：主题切换、精度控制、角度单位、动画开关等个性化配置（自定义快捷键待实现）
+- **MCP 调试集成**：实时性能监控、状态追踪、错误诊断、调试快照导入导出和开发工具支持
 - **响应式设计**：自适应桌面和移动端布局，设备类型检测和性能优化
-- **无障碍支持**：键盘导航、ARIA 标签、屏幕阅读器兼容
+- **无障碍支持**：键盘导航、ARIA 标签、基础屏幕阅读器兼容（高对比主题和完整支持待实现）
+- **代码规范化**：统一键盘组件（Keyboard.ts），清理冗余代码，无遗留 TODO
 
 ### 🚧 规划中的高级功能
-- **复数和矩阵运算**：复数算术、矩阵代数操作
-- **统计分析模块**：描述性统计、回归分析、概率计算
-- **单位转换系统**：长度、重量、温度、货币等多维度转换
-- **语音输入支持**：自然语言数学表达式识别
+- **历史记录增强**：搜索和过滤、标签和分类UI、多格式导出（CSV、PDF）
+- **个性化设置扩展**：自定义键盘快捷键、动画强度调节、手势灵敏度配置
+- **语音输入支持**：自然语言数学表达式识别（voice-input-simple.ts 待集成）
 - **手写识别功能**：移动端手写数学公式输入
 - **云端同步服务**：跨设备数据同步和备份
+- **智能表达式解析**：自然语言表达式支持、智能纠错建议
 
 ### 🔧 技术债务和优化项
-- **性能优化**：大数计算的进一步优化，动画性能提升
-- **测试覆盖率**：提升单元测试和集成测试覆盖率至 90%+
+- **性能优化**：大数计算的进一步优化，动画性能提升至60fps
+- **测试覆盖率**：提升单元测试覆盖率至 90%+，实现性能基准和无障碍测试脚本
+- **无障碍增强**：高对比度主题、完整屏幕阅读器支持、视觉焦点优化
+- **视觉效果**：毛玻璃效果（backdrop-filter）、GPU 加速动画
 - **国际化支持**：多语言界面和本地化数学表示法
 - **插件系统**：支持第三方计算模块扩展
 
