@@ -37,11 +37,11 @@ const append = (char: string) => {
   
   if (isResult.value) {
     if (isOperator) {
-      // If result exists and operator is pressed, continue with result
+      // 若已有结果且再次输入运算符，则以当前结果继续运算
       isResult.value = false;
       display.value += char;
     } else {
-      // If number is pressed, start new calculation
+      // 若直接输入数字，则开始新的计算序列
       display.value = char;
       isResult.value = false;
     }

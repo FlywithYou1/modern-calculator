@@ -11,7 +11,7 @@
 
 import { ref, computed } from 'vue';
 
-// Props
+// 组件入参（属性定义）
 const props = withDefaults(defineProps<{
   variant?: 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';

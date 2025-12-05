@@ -22,7 +22,7 @@ jobs:
   # ==================== 前端检查 ====================
   frontend-check:
     name: 🎨 前端构建
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: 📥 检出代码
@@ -60,7 +60,7 @@ jobs:
   build-linux:
     name: 🐧 Linux 构建
     needs: frontend-check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: 📥 检出代码
@@ -139,37 +139,11 @@ jobs:
       - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: 🔧 安装 MSYS2 / UCRT64 (for GNU)
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-binutils
-            mingw-w64-ucrt-x86_64-windres
-          path-type: minimal
-
-      - name: 🔧 添加 ucrt64 到 PATH
-        shell: bash
-        run: |
-          echo "C:/msys64/ucrt64/bin" >> $GITHUB_PATH
-
-      - name: 🦀 设置 Rust (nightly-gnu)
+      - name: 🦀 设置 Rust (nightly-msvc)
         uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: x86_64-pc-windows-gnu
+          targets: x86_64-pc-windows-msvc
           components: rustfmt, clippy
-
-      - name: 🔧 验证工具链
-        shell: bash
-        run: |
-          echo "windres -> $(which windres || true)"
-          echo "ar -> $(which ar || true)"
-          echo "gcc -> $(which gcc || true)"
-          windres --version || true
-          ar --version || true
-          gcc --version || true
 
       - name: 📦 设置 Node.js
         uses: actions/setup-node@v4
@@ -190,24 +164,18 @@ jobs:
 
       - name: ✅ Rust 检查
         shell: pwsh
-        env:
-          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: |
           cd src-tauri
           cargo check --workspace
 
       - name: 🧪 运行测试
         shell: pwsh
-        env:
-          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: |
           cd src-tauri
           cargo test --workspace
 
       - name: 📦 构建 Tauri 应用
         shell: pwsh
-        env:
-          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: |
           npm run tauri build
 
@@ -215,29 +183,18 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "=== 🪟 Windows 构建产物 ===" -ForegroundColor Cyan
-          $paths = @(
-            "src-tauri/target/x86_64-pc-windows-gnu/release/bundle",
-            "src-tauri/target/release/bundle"
-          )
-          foreach ($path in $paths) {
-            if (Test-Path $path) {
-              Get-ChildItem -Path $path -Recurse -File | ForEach-Object {
-                Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
-              }
+          $path = "src-tauri/target/release/bundle"
+          if (Test-Path $path) {
+            Get-ChildItem -Path $path -Recurse -File | ForEach-Object {
+              Write-Host "  $($_.FullName) - $([math]::Round($_.Length / 1MB, 2)) MB"
             }
           }
-          # Debug: list generated libs
-          Write-Host "=== Debug: Generated Libs ===" -ForegroundColor Yellow
-          Get-ChildItem -Path src-tauri/target -Recurse -Filter "libapp_icon.a" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
-          Get-ChildItem -Path src-tauri/target -Recurse -Filter "app_icon.o" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
 
       - name: 📤 上传 Windows 安装包
         uses: actions/upload-artifact@v4
         with:
           name: windows-installers
           path: |
-            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
-            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
           retention-days: 7
@@ -329,6 +286,25 @@ jobs:
         run: |
           sdkmanager --install "ndk;${{ env.NDK_VERSION }}"
           echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
+
+      - name: 🔑 准备 Android 调试签名
+        run: |
+          mkdir -p $HOME/.android
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore $HOME/.android/debug.keystore \
+              -storepass android \
+              -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          echo "TAURI_ANDROID_KEYSTORE_PATH=$HOME/.android/debug.keystore" >> $GITHUB_ENV
+          echo "TAURI_ANDROID_KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+          echo "TAURI_ANDROID_KEY_PASSWORD=android" >> $GITHUB_ENV
+          echo "TAURI_ANDROID_KEY_ALIAS=androiddebugkey" >> $GITHUB_ENV
 
       - name: 🦀 设置 Rust (nightly)
         uses: dtolnay/rust-toolchain@nightly

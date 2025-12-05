@@ -19,33 +19,33 @@ const activeTab = ref(props.initialTab || 'matrix');
 const result = ref<string | null>(null);
 const error = ref<string | null>(null);
 
-// Matrix State
+// 矩阵模块状态
 const matrixOp = ref('add');
 const matrixA = ref('');
 const matrixB = ref('');
 const matrixPower = ref(2);
 
-// Statistics State
+// 统计模块状态
 const statsOp = ref('mean');
 const statsValues = ref('');
 
-// Complex State
+// 复数模块状态
 const complexOp = ref('add');
 const complexA = ref({ real: 0, imag: 0 });
 const complexB = ref({ real: 0, imag: 0 });
 
-// Unit State
+// 单位换算模块状态
 const unitCategory = ref('length');
 const unitValue = ref(0);
 const unitFrom = ref('m');
 const unitTo = ref('km');
 
-// Base State
+// 进制转换模块状态
 const baseNumber = ref('');
 const baseFrom = ref(10);
 const baseTo = ref(2);
 
-// Calculus State
+// 微积分模块状态
 const calculusOp = ref('derivative');
 const calculusExpr = ref('x^2');
 const calculusVar = ref('x');
@@ -54,11 +54,11 @@ const integralLower = ref(0); // 积分下限
 const integralUpper = ref(1); // 积分上限
 const integralSteps = ref(100); // 积分精度
 
-// Equation State
+// 方程求解模块状态
 const equationExpr = ref('x^2 - 4 = 0');
 const equationVar = ref('x');
 
-// Function Plot State
+// 函数绘图模块状态
 const plotExpr = ref('sin(x)');
 const plotXMin = ref(-10);
 const plotXMax = ref(10);
@@ -373,9 +373,9 @@ const drawFunctionPlot = async () => {
 const solveEquation = () => {
   try {
     error.value = null;
-    // Simple Newton-Raphson solver
-    // f(x) = 0
-    // Parse equation: left = right => left - right = 0
+    // 简易牛顿迭代求根器
+    // 目标：求解 f(x) = 0
+    // 将等式 left = right 解析为 left - right = 0 便于求解
     let eq = equationExpr.value;
     if (eq.includes('=')) {
       const parts = eq.split('=');
@@ -386,7 +386,7 @@ const solveEquation = () => {
     const derivative = math.derivative(eq, equationVar.value);
     const fPrime = derivative.compile();
 
-    let x = 1; // Initial guess
+    let x = 1; // 初始猜测值
     const tolerance = 1e-7;
     const maxIter = 100;
 
