@@ -1,5 +1,6 @@
 [toolchain]
-# 固定使用 Windows MSVC 夜ly 工具链，避免自动拉取 GNU 三方工具链
-channel = "nightly-x86_64-pc-windows-msvc"
+# 使用 nightly 渠道，并显式要求安装 MSVC 目标，避免再把 target 写进 channel 导致解析失败
+channel = "nightly"
 components = ["rustfmt", "clippy"]
+targets = ["x86_64-pc-windows-msvc"]
 profile = "default"
